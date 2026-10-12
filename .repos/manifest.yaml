@@ -1,0 +1,18 @@
+# Registry repo sản phẩm của Hub PIRL. Mỗi repo là một git submodule tại .repos/<repo-id>.
+# Cách đăng ký và chọn repo: xem mục "Định tuyến repo" trong AGENTS.md.
+#
+# Mẫu một mục (bỏ `{}` ở dòng `repos:` khi thêm mục đầu tiên). Chỉ dùng tập con YAML
+# mà validator đọc được: mapping lồng nhau, danh sách scalar, thụt hai dấu cách.
+#
+#   repos:
+#     <repo-id>:
+#       path: ".repos/<repo-id>"
+#       product: "<sản phẩm repo phục vụ>"
+#       stack: "<ngăn xếp chính>"
+#       keywords: ["<từ khóa>", "<từ khóa>"]
+#       commands:
+#         test: "<lệnh chạy test theo file/class/tên>"
+#       context_docs: [".agents/llm-docs/repos/<repo-id>.md"]
+#       rules: [".agents/llm-docs/rules/<tên>.rule.md"]
+schema: "pirl-repos/v1"
+repos: {}
