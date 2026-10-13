@@ -16,10 +16,11 @@ Dashboard terminal kiểu "mission control" để theo dõi đồng thời:
 - `04 // REPOSITORIES`: file thay đổi theo git trong Hub và mọi submodule
   `.repos/*` (đọc từ `.gitmodules`), kèm số dòng +/-; file sửa trong 60 giây
   gần nhất có dấu `◆`;
-- `05 // EVENT LOG`: nhật ký trực tiếp các file mới/sửa/xoá, commit, đổi nhánh,
-  repo được đăng ký hoặc gỡ, chuyển trạng thái Plan (`PLAN`), kết luận Review
-  (`REVIEW`) và chuyển trạng thái của phiên AI; thanh `ACTIVITY` ở chân trang
-  đếm sự kiện trong 60 giây gần nhất, kèm tổng sự kiện từ lúc khởi động.
+- `05 // EVENT LOG`: nhật ký trực tiếp các file mới/sửa/xoá, stage (`STAGE`) và
+  bỏ stage (`UNSTAGE`), commit, đổi nhánh, repo được đăng ký hoặc gỡ, chuyển
+  trạng thái Plan (`PLAN`), kết luận Review (`REVIEW`) và chuyển trạng thái của
+  phiên AI; thanh `ACTIVITY` ở chân trang đếm sự kiện trong 60 giây gần nhất,
+  kèm tổng sự kiện từ lúc khởi động.
 
 Terminal rộng từ 118 cột trở lên dùng bố cục hai cột; hẹp hơn thì xếp chồng.
 Panel Plan tự ẩn khi terminal quá thấp để dành chỗ cho `REPOSITORIES`.
@@ -31,18 +32,29 @@ Phạm vi theo dõi thay đổi:
   mới (`NEW`), sửa (`MOD`) và xoá (`DEL`) gần như tức thì, kể cả đường dẫn bị Git
   ignore (`tmp/`, `node_modules/`, thư mục build) và file tạo rồi xoá trước khi
   `git status` kịp quét (hiện `(tạo rồi xóa)`). Chỉ bỏ qua nội dung `.git/`.
-- Git: mỗi `--interval` giây (mặc định 10) quét `git status` cho panel
-  `REPOSITORIES` và ghi commit, đổi nhánh, repo được đăng ký hoặc gỡ trong
-  `.gitmodules`. Plan và Review được đọc cùng nhịp này.
+- Git: stage, bỏ stage, commit, reset hay đổi nhánh chỉ ghi vào thư mục git,
+  nên dashboard so `stat` của `index`, `HEAD` và `logs/HEAD` trong thư mục git
+  của Hub và từng submodule mỗi 0,5 giây (không gọi git). Khi một trong ba file
+  này đổi, dashboard quét `git status` sau khoảng 0,2 giây và ghi `STAGE`,
+  `UNSTAGE`, `COMMIT`, `BRANCH` tương ứng. Ngoài ra cứ mỗi `--interval` giây
+  (mặc định 10) dashboard quét định kỳ cho panel `REPOSITORIES` và ghi repo được
+  đăng ký hoặc gỡ trong `.gitmodules`.
+- Plan và Review: đọc lại ở mỗi lần quét git; khi `fs.watch` chạy thì còn đọc
+  lại ngay lúc file trong `.agents/plan/` hoặc `.agents/review/` đổi.
+- Nhịp quét: quét do sự kiện cách lần quét trước ít nhất 0,5 giây sau thay đổi
+  git và 3 giây sau thay đổi file; sự kiện đến lúc đang quét được bù bằng đúng
+  một lần quét sau đó, nên không bỏ sót và không chạy chồng lệnh git. Khi
+  không có thay đổi, dashboard chỉ gọi git theo `--interval`.
 - Gộp để không tràn nhật ký: sự kiện file được gom 0,7 giây rồi nhóm theo repo,
   thư mục cấp một và loại; nhóm quá 3 file thành một dòng có đếm, ví dụ
-  `NEW hub/node_modules/ ×1200 · node_modules/a/index.js`. Nhật ký giữ 400 sự
-  kiện gần nhất.
+  `NEW hub/node_modules/ ×1200 · node_modules/a/index.js`. `STAGE` và `UNSTAGE`
+  được gộp cùng cách, ví dụ sau `git add .`. Nhật ký giữ 400 sự kiện gần nhất.
 - Giới hạn: `NEW` hay `MOD` được suy từ thời điểm tạo file, nên file thay bằng
   cách ghi đè nguyên tử có thể hiện là `NEW`. Nếu `fs.watch` đệ quy không dùng
   được (hệ điều hành hoặc Node cũ) hay bị lỗi, dashboard ghi một dòng `SYS` và
-  quay về phát hiện file bằng `git status`, khi đó không thấy đường dẫn bị Git
-  ignore và file tạo rồi xoá giữa hai lần quét.
+  quay về phát hiện file bằng `git status` (stage, commit, nhánh vẫn được báo
+  ngay như trên), khi đó không thấy đường dẫn bị Git ignore và file tạo rồi xoá
+  giữa hai lần quét, còn Plan và Review chỉ được đọc lại ở lần quét git kế tiếp.
 
 Cách nhanh nhất là double-click `tools/dashboard/dashboard.bat` (hoặc tạo
 shortcut ra Desktop). File này cũng nhận các tham số dưới đây, ví dụ
