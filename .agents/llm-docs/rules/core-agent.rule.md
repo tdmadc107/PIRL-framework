@@ -1,7 +1,7 @@
 ---
 id: .agents/llm-docs/rules/core-agent
 kind: rule
-version: 5.2.0
+version: 5.3.0
 status: active
 ---
 
@@ -22,6 +22,8 @@ status: active
 ### Safety rules and self-improvement
 
 Safety rules are: every rule in this Safety section; the "Git và submodule" section of `AGENTS.md`; and any rule anywhere in the framework that limits commit, push, deploy, secrets or destructive and externally consequential actions, or that requires the user's decision or authorization. The self-improvement guards of the router are safety rules too: the mode-self guard (a self-evaluation never edits framework files and hands its findings to the user) and the never-loosen rule below, including this definition.
+
+Code and tests that enforce a safety rule are part of that rule: for example, the check in `.agents/llm-docs/evals/layer_record.py` that rejects applied fixes from a self-evaluation, together with its tests.
 
 Self-improvement may make a safety rule stricter or clearer. It must never loosen, narrow, remove or work around one, even when that rule blocked the current run. A change that would loosen a safety rule is not applied: the run records it as pending with reason `safety` and asks the user, and only the user's explicit approval allows it.
 
