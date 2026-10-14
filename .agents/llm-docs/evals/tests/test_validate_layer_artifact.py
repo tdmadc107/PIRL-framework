@@ -137,10 +137,16 @@ class HandoffIOTests(unittest.TestCase):
                 self.assertTrue(any(field in error for error in result["errors"]), result)
 
     def test_target_repo_must_be_hub_or_registered_path(self):
-        self.assertEqual(self.write_plan(PLAN.replace("target_repo: .", 'target_repo: ".repos/demo"'))[0], 0)
+        target = PLAN.replace("target_repo: .", 'target_repo: ".repos/demo"')
+        (self.root / ".gitmodules").write_text('[submodule ".repos/demo"]\n\tpath = .repos/demo\n', encoding="utf-8")
+        self.assertEqual(self.write_plan(target)[0], 0)
         code, result = self.write_plan(PLAN.replace("target_repo: .", 'target_repo: ".repos/other"'))
         self.assertNotEqual(code, 0)
         self.assertTrue(any("target_repo" in error for error in result["errors"]), result)
+        (self.root / ".gitmodules").unlink()
+        code, result = self.write_plan(target)
+        self.assertNotEqual(code, 0)
+        self.assertTrue(any("not a submodule" in error for error in result["errors"]), result)
 
     def test_status_beyond_planned_requires_a_matching_implementation_record(self):
         implemented = PLAN.replace("status: planned", "status: implemented")

@@ -13,14 +13,19 @@ Dashboard terminal kiểu "mission control" để theo dõi đồng thời:
   Plan (`PLANNED`, `AWAIT`, `IMPLEMENTED`, `BLOCKED`, `FAILED`) và vòng Review
   mới nhất kèm verdict (`R1 PASS`); task đã `implemented` mà chưa có Review được
   đếm vào `CHỜ REVIEW`;
-- `04 // REPOSITORIES`: file thay đổi theo git trong Hub và mọi submodule
-  `.repos/*` (đọc từ `.gitmodules`), kèm số dòng +/-; file sửa trong 60 giây
-  gần nhất có dấu `◆`;
+- `04 // REPOSITORIES`: file thay đổi theo git trong Hub và mọi repo sản phẩm,
+  kèm số dòng +/-; file sửa trong 60 giây gần nhất có dấu `◆`. Danh sách repo là
+  hợp của submodule trong `.gitmodules` và mục trong `.repos/manifest.yaml`. Repo
+  đăng ký dở (định nghĩa ở mục "Định tuyến repo" của `AGENTS.md`) có dòng `⚠`
+  đầu panel nêu phần còn thiếu: submodule chưa có mục manifest, mục manifest trỏ
+  tới đường dẫn chưa là submodule, mục manifest thiếu `path`, hoặc submodule
+  chưa clone. Thư mục chưa có `.git` không bị quét git;
 - `05 // EVENT LOG`: nhật ký trực tiếp các file mới/sửa/xoá, stage (`STAGE`) và
-  bỏ stage (`UNSTAGE`), commit, đổi nhánh, repo được đăng ký hoặc gỡ, chuyển
-  trạng thái Plan (`PLAN`), kết luận Review (`REVIEW`) và chuyển trạng thái của
-  phiên AI; thanh `ACTIVITY` ở chân trang đếm sự kiện trong 60 giây gần nhất,
-  kèm tổng sự kiện từ lúc khởi động.
+  bỏ stage (`UNSTAGE`), commit, đổi nhánh, đăng ký/gỡ đăng ký repo và submodule
+  thêm/gỡ (`REPO`), cảnh báo đăng ký dở (`WARN`), chuyển trạng thái Plan
+  (`PLAN`), kết luận Review (`REVIEW`) và chuyển trạng thái của phiên AI; thanh
+  `ACTIVITY` ở chân trang đếm sự kiện trong 60 giây gần nhất, kèm tổng sự kiện
+  từ lúc khởi động.
 
 Terminal rộng từ 118 cột trở lên dùng bố cục hai cột; hẹp hơn thì xếp chồng.
 Panel Plan tự ẩn khi terminal quá thấp để dành chỗ cho `REPOSITORIES`.
@@ -37,8 +42,8 @@ Phạm vi theo dõi thay đổi:
   của Hub và từng submodule mỗi 0,5 giây (không gọi git). Khi một trong ba file
   này đổi, dashboard quét `git status` sau khoảng 0,2 giây và ghi `STAGE`,
   `UNSTAGE`, `COMMIT`, `BRANCH` tương ứng. Ngoài ra cứ mỗi `--interval` giây
-  (mặc định 10) dashboard quét định kỳ cho panel `REPOSITORIES` và ghi repo được
-  đăng ký hoặc gỡ trong `.gitmodules`.
+  (mặc định 10) dashboard quét định kỳ cho panel `REPOSITORIES`, đọc lại
+  `.gitmodules` và `.repos/manifest.yaml` để ghi `REPO` và `WARN`.
 - Plan và Review: đọc lại ở mỗi lần quét git; khi `fs.watch` chạy thì còn đọc
   lại ngay lúc file trong `.agents/plan/` hoặc `.agents/review/` đổi.
 - Nhịp quét: quét do sự kiện cách lần quét trước ít nhất 0,5 giây sau thay đổi

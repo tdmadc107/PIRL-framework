@@ -153,9 +153,14 @@ mục vào manifest, rồi tạo tài liệu ngữ cảnh và rule nếu cần. 
 ngược lại: `git submodule deinit -f` và `git rm` đường dẫn submodule, xóa mục
 manifest và các tài liệu chỉ phục vụ repo đó.
 
+Một repo **đã đăng ký** khi có đủ hai phần: mục trong manifest, và submodule
+khai báo trong `.gitmodules` tại đúng `path` của mục đó. Thiếu một trong hai là
+đăng ký dở: repo đó chưa được định tuyến, validator Plan từ chối `target_repo`
+trỏ tới nó, và dashboard cảnh báo cho tới khi bổ sung phần thiếu.
+
 Chọn repo cho một yêu cầu:
 
-1. Đọc manifest; chọn repo có `id`, `path` hoặc `keywords` khớp yêu cầu. Chỉ nạp
+1. Đọc manifest; chọn repo đã đăng ký có `id`, `path` hoặc `keywords` khớp yêu cầu. Chỉ nạp
    `context_docs` và `rules` của repo được chọn.
 2. Chọn đúng một repo, trừ khi yêu cầu nêu rõ nhiều repo; khi đó xử lý và ghi
    từng repo riêng, kể cả hợp đồng giữa các repo.

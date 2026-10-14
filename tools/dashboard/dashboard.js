@@ -29,6 +29,7 @@ const { execFile } = require('child_process');
 
 const HUB = path.resolve(__dirname, '..', '..');
 const PLAN_DIR = path.join(HUB, '.agents', 'plan');
+const MANIFEST = path.join(HUB, '.repos', 'manifest.yaml');
 const REVIEW_DIR = path.join(HUB, '.agents', 'review');
 const SESSION_DIR = path.join(os.homedir(), '.claude', 'dashboard', 'sessions');
 
@@ -67,14 +68,62 @@ function git(cwd, gitArgs) {
   });
 }
 
-function listRepos() {
-  const repos = [{ name: 'Hub', dir: HUB }];
-  let text = '';
-  try { text = fs.readFileSync(path.join(HUB, '.gitmodules'), 'utf8'); } catch { return repos; }
-  for (const m of text.matchAll(/^\s*path\s*=\s*(.+?)\s*$/gm)) {
-    repos.push({ name: m[1], dir: path.join(HUB, m[1]) });
+// Đọc `repos.<id>.path` từ .repos/manifest.yaml (tập con YAML của framework, thụt hai dấu cách).
+// Mục thiếu `path` vẫn được giữ với giá trị null để báo lỗi đăng ký.
+function manifestRepos() {
+  let text;
+  try { text = fs.readFileSync(MANIFEST, 'utf8'); } catch { return new Map(); }
+  const unquote = s => s.trim().replace(/^["']|["']$/g, '');
+  const out = new Map();
+  let inRepos = false;
+  let id = null;
+  for (const raw of text.split(/\r?\n/)) {
+    if (!raw.trim() || raw.trimStart().startsWith('#')) continue;
+    const indent = raw.length - raw.trimStart().length;
+    const line = raw.trim();
+    if (indent === 0) { inRepos = /^repos\s*:/.test(line); id = null; continue; }
+    if (!inRepos) continue;
+    if (indent === 2) {
+      const m = line.match(/^([^:]+):\s*$/);
+      id = m ? unquote(m[1]) : null;
+      if (id) out.set(id, null);
+    } else if (indent === 4 && id) {
+      const m = line.match(/^path\s*:\s*(.+)$/);
+      if (m) out.set(id, unquote(m[1]).replace(/\\/g, '/').replace(/\/+$/, '') || null);
+    }
   }
+  return out;
+}
+
+// Hub cùng hợp của submodule trong `.gitmodules` và repo trong manifest, ghép theo đường dẫn.
+// Repo đã đăng ký khi có cả hai (AGENTS.md, mục Định tuyến repo); thiếu một bên là đăng ký dở.
+function listRepos() {
+  const repos = [{ name: 'Hub', dir: HUB, submodule: true, ids: [] }];
+  const byPath = new Map();
+  let text = '';
+  try { text = fs.readFileSync(path.join(HUB, '.gitmodules'), 'utf8'); } catch { /* chưa có submodule */ }
+  for (const m of text.matchAll(/^\s*path\s*=\s*(.+?)\s*$/gm)) {
+    const p = m[1].replace(/\\/g, '/').replace(/\/+$/, '');
+    byPath.set(p, { name: p, submodule: true, ids: [] });
+  }
+  manifestIssues = [];
+  for (const [id, p] of manifestRepos()) {
+    if (!p) { manifestIssues.push(`mục ${id} trong .repos/manifest.yaml thiếu path`); continue; }
+    if (!byPath.has(p)) byPath.set(p, { name: p, submodule: false, ids: [] });
+    byPath.get(p).ids.push(id);
+  }
+  for (const r of byPath.values()) repos.push({ ...r, dir: path.join(HUB, r.name) });
   return repos;
+}
+
+// Lý do một repo chưa đăng ký đủ, hoặc '' khi đủ.
+function registryIssue(r) {
+  if (r.name === 'Hub') return '';
+  if (!r.ids.length) return 'submodule chưa có mục trong .repos/manifest.yaml';
+  if (r.ids.length > 1) return `nhiều mục manifest cùng path (${r.ids.join(', ')})`;
+  if (!r.submodule) return `mục manifest ${r.ids[0]} trỏ tới đường dẫn chưa là submodule trong .gitmodules`;
+  if (r.absent) return 'submodule chưa clone (git submodule update --init)';
+  return '';
 }
 
 // Porcelain v2: "1 XY ..." (đổi), "2 XY ... path\torig" (đổi tên), "u XY ..." (xung đột), "? path".
@@ -116,6 +165,9 @@ function parseNumstat(out) {
 }
 
 async function scanRepo(repo) {
+  // Thư mục chưa có `.git` (submodule chưa clone, hoặc manifest trỏ tới đường dẫn chưa có) không
+  // được quét: `git -C` sẽ đi ngược lên Hub và báo nhầm thay đổi của Hub.
+  if (repo.name !== 'Hub' && !fs.existsSync(path.join(repo.dir, '.git'))) return { ...repo, absent: true, files: [] };
   // Hub bỏ qua thay đổi bên trong submodule vì mỗi submodule có khối riêng.
   const ignore = repo.name === 'Hub' ? ['--ignore-submodules=dirty'] : [];
   const [status, numstat, last] = await Promise.all([
@@ -460,11 +512,14 @@ const STATES = {
 const KINDS = {
   NEW: P.green, MOD: P.amber, DEL: P.red, CLEAR: P.muted, STAGE: P.teal, UNSTAGE: P.muted,
   COMMIT: P.violet, BRANCH: P.magenta, AGENT: P.cyan, SYS: P.neon, PLAN: P.blue, REVIEW: P.orange,
+  REPO: P.white, WARN: P.red,
 };
 
 // ---------- trạng thái ----------
 
 let repoState = [];
+let manifestIssues = []; // lỗi của chính manifest (mục thiếu path), do listRepos ghi lại
+let reportedManifestIssues = new Set();
 let planState = [];
 let planLoaded = false;
 let sessions = [];
@@ -499,6 +554,29 @@ function pushGrouped(entries) {
 
 const shortName = name => (name === 'Hub' ? 'hub' : name.replace(/^\.repos\//, ''));
 
+// Ghi thay đổi đăng ký repo: mục manifest và submodule được thêm hay gỡ, cùng cảnh báo khi một repo
+// rơi vào trạng thái đăng ký dở (registryIssue). Lần quét đầu chỉ báo các repo đang đăng ký dở.
+function diffRegistry(prev, next) {
+  const prevMap = new Map(prev.map(r => [r.name, r]));
+  const nextMap = new Map(next.map(r => [r.name, r]));
+  for (const name of new Set([...prevMap.keys(), ...nextMap.keys()])) {
+    const p = prevMap.get(name), r = nextMap.get(name);
+    const tag = shortName(name);
+    const before = p ? registryIssue(p) : '', after = r ? registryIssue(r) : '';
+    if (prev.length) {
+      const was = p || { ids: [], submodule: false }, now = r || { ids: [], submodule: false };
+      for (const id of now.ids) if (!was.ids.includes(id)) pushEvent('REPO', `đăng ký ${id} → ${name}`);
+      for (const id of was.ids) if (!now.ids.includes(id)) pushEvent('REPO', `gỡ đăng ký ${id} (${name})`);
+      if (now.submodule && !was.submodule) pushEvent('REPO', `submodule mới: ${tag}`);
+      if (was.submodule && !now.submodule) pushEvent('REPO', `submodule đã gỡ: ${tag}`);
+      if (r && !after && before) pushEvent('REPO', `${tag}: đã đăng ký đủ`);
+    }
+    if (after && after !== before) pushEvent('WARN', `${tag}: ${after}`);
+  }
+  for (const issue of manifestIssues) if (!reportedManifestIssues.has(issue)) pushEvent('WARN', issue);
+  reportedManifestIssues = new Set(manifestIssues);
+}
+
 // Cột X của porcelain v2 là trạng thái trong index; '.' là chưa stage gì, file untracked cũng vậy.
 // Một đường dẫn có thể có hai dòng (sau `git rm --cached`: `D.` và `??`); dòng đã stage được ưu tiên.
 function indexStates(files) {
@@ -517,14 +595,14 @@ function diffRepos(prev, next) {
   if (!prev.length) {
     const dirty = next.filter(r => r.files.length);
     pushEvent('SYS', `baseline · ${next.length} repo · ${dirty.length} có thay đổi · ${dirty.reduce((n, r) => n + r.files.length, 0)} file`);
+    diffRegistry(prev, next);
     return;
   }
+  diffRegistry(prev, next);
   const prevMap = new Map(prev.map(r => [r.name, r]));
-  for (const r of next) if (!prevMap.has(r.name)) pushEvent('SYS', `repo mới đăng ký: ${shortName(r.name)}`);
-  for (const p of prev) if (!next.some(r => r.name === p.name)) pushEvent('SYS', `repo đã gỡ: ${shortName(p.name)}`);
   for (const r of next) {
     const p = prevMap.get(r.name);
-    if (!p || r.error || p.error) continue;
+    if (!p || r.error || p.error || r.absent || p.absent) continue;
     const tag = shortName(r.name);
     if (p.branch !== r.branch) pushEvent('BRANCH', `${tag} ${p.branch} → ${r.branch}`);
     const committed = r.last && (!p.last || p.last.hash !== r.last.hash);
@@ -871,6 +949,10 @@ function reposBody(iw, now) {
   if (!repoState.length) return [paint(P.cyan, `${SPIN[Math.floor(now / 80) % SPIN.length]} đang quét các repo…`)];
   const lines = [];
   if (scanError) lines.push(paint(P.red, `× ${scanError}`));
+  // Đăng ký dở đứng đầu panel để không bị danh sách file đẩy khỏi màn hình.
+  const issues = [...manifestIssues, ...repoState.filter(registryIssue).map(r => `${shortName(r.name)} · ${registryIssue(r)}`)];
+  for (const issue of issues) lines.push(paint(P.red, `⚠ ${issue}`));
+  if (issues.length) lines.push('');
   const clean = [];
   for (const r of repoState) {
     if (r.error) { lines.push(paint(P.red, `× ${r.name}: ${r.error}`)); continue; }
@@ -897,7 +979,7 @@ function reposBody(iw, now) {
   }
   if (clean.length) {
     lines.push(paint(P.muted, 'CLEAN'), '');
-    const items = clean.map(r => `${paint(P.neon, '■')} ${paint(P.text, shortName(r.name))}` +
+    const items = clean.map(r => `${registryIssue(r) ? paint(P.red, '⚠') : paint(P.neon, '■')} ${paint(P.text, shortName(r.name))}` +
       (r.upstream && (r.ahead || r.behind) ? ' ' + paint(P.amber, `↑${r.ahead}↓${r.behind}`) : ''));
     const cell = Math.max(...items.map(vlen)) + 3;
     const perRow = Math.max(1, Math.floor(iw / cell));
@@ -912,7 +994,9 @@ function reposBody(iw, now) {
 function reposTag() {
   const dirty = repoState.filter(r => r.files.length);
   const files = dirty.reduce((n, r) => n + r.files.length, 0);
-  return paint(dirty.length ? P.amber : P.muted, `${dirty.length}/${repoState.length} DIRTY · ${files} Δ`);
+  const warn = manifestIssues.length + repoState.filter(registryIssue).length;
+  return paint(dirty.length ? P.amber : P.muted, `${dirty.length}/${repoState.length} DIRTY · ${files} Δ`) +
+    (warn ? paint(P.red, ` · ${warn} ⚠`) : '');
 }
 
 const PLAN_STATES = {

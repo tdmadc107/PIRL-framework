@@ -180,6 +180,18 @@ def load_repo_paths(root: Path) -> set[str]:
     return paths
 
 
+def load_submodule_paths(root: Path) -> set[str]:
+    """Return the submodule paths declared in .gitmodules; a missing file declares none."""
+
+    try:
+        text = (root / ".gitmodules").read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return set()
+    except (OSError, UnicodeError) as exc:
+        raise LayerArtifactError(f".gitmodules: cannot read submodules: {exc}") from exc
+    return {match.strip().replace("\\", "/").rstrip("/") for match in re.findall(r"(?m)^\s*path\s*=\s*(.+?)\s*$", text)}
+
+
 # ---------- field helpers ----------
 
 
@@ -270,12 +282,17 @@ def _plan_file(path: Path, root: Path) -> tuple[list[str], dict[str, Any]]:
     try:
         catalog = load_roles(root)
         repo_paths = load_repo_paths(root)
+        submodule_paths = load_submodule_paths(root)
     except LayerArtifactError as exc:
         errors.append(str(exc))
     else:
+        # A registered repository has both a manifest entry and a submodule at that path (AGENTS.md).
         target = metadata.get("target_repo")
-        if isinstance(target, str) and target.strip() and target.strip().rstrip("/") not in {".", *repo_paths}:
+        normalized = target.strip().rstrip("/") if isinstance(target, str) else ""
+        if normalized and normalized != "." and normalized not in repo_paths:
             errors.append(f"target_repo: {target} is neither '.' nor a path registered in {MANIFEST}")
+        elif normalized and normalized != "." and normalized not in submodule_paths:
+            errors.append(f"target_repo: {target} is in {MANIFEST} but is not a submodule in .gitmodules")
         _roles(metadata.get("planning_roles"), "planning_roles", "plan", catalog, errors, True)
         implementers = _roles(metadata.get("implementation_roles"), "implementation_roles", "implement", catalog, errors, True)
         verifiers = _roles(metadata.get("verification_roles"), "verification_roles", "verify", catalog, errors, True)
