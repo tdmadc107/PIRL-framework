@@ -10,7 +10,7 @@ depends_on: []
 created_at: "2026-10-14T23:38:44+07:00"
 target_repo: ".repos/Portfolio"
 source_request: "Lập Plan giải quyết các khoảng trống đã biết (GAP-01..GAP-04) của repo Portfolio"
-planning_roles: [code-analyst]
+planning_roles: [business-analyst, code-analyst, solution-architect]
 implementation_roles: [technical-writer]
 verification_roles: [code-analyst]
 ---
@@ -28,27 +28,28 @@ verification_roles: [code-analyst]
   - Mục "Testing Checklist" ghi kết quả kiểm của đợt cập nhật Starbucks, không mô tả CSS hiện tại: bỏ khỏi `RESPONSIVE.md`.
 - REQ-02 | Nguồn: GAP-04; `docs/UPDATE_SUMMARY.md` (tiêu đề "... - Starbucks Design System", commit `994f88d` ngày 2026-05-14) | Yêu cầu: Đầu file có ghi chú: đây là hồ sơ lịch sử của đợt cập nhật theo Starbucks Design System, đã được thay bằng `docs/DESIGN.md` (Mastercard-inspired); token hiện hành ở `src/styles/variables.css`. Nội dung lịch sử giữ nguyên.
 - REQ-03 | Nguồn: cùng vấn đề GAP-04 (tài liệu thiết kế mô tả hệ thiết kế không dùng); `DOCUMENTATION_COMPLETE.md` mục "Color Scheme"/"Color Palette" (bảng `#0f172a`, `#3b82f6`...), "Tùy Chỉnh Giao Diện"/"UI Customization" (`--primary-color`, `--spacing-*`, `--font-size-xs`..., Dark Mode) và gạch đầu dòng "Thiết Kế Hiện Đại - Gradient..."/"Modern Design - ... gradient..." ở cả hai ngôn ngữ; `src/styles/variables.css` không có các biến đó và không có `prefers-color-scheme` | Yêu cầu: Các mục này nêu đúng tên và giá trị token trong `src/styles/variables.css` (màu `--color-*`, khoảng cách `--space-*`, cỡ chữ `--font-size-*`) và trỏ tới `docs/DESIGN.md`; bỏ khẳng định Dark Mode và khẳng định giao diện dùng "gradient màu sắc hài hòa" (`docs/DESIGN.md` mục Gradient System: UI chính không dùng gradient); chỉ được nhắc gradient khi khớp CSS, ví dụ vòng trang trí `.orbit` dùng `conic-gradient` trong `src/components/Personal.module.css`.
-- REQ-04 | Nguồn: `.agents/llm-docs/repos/Portfolio.md` | Yêu cầu: Xóa dòng GAP-04. Task này sở hữu phần câu cảnh báo tài liệu lệch nói về `docs/UPDATE_SUMMARY.md`: câu nói file đó là hồ sơ lịch sử thay vì tài liệu lệch. Nếu dòng GAP-06 (do T01 tạo) đã có, xóa khỏi GAP-06 mục màu/giao diện mà task này đã sửa; GAP-06 không còn mục nào thì xóa GAP-06 và bỏ `DOCUMENTATION_COMPLETE.md` khỏi câu cảnh báo. Chưa có GAP-06 thì không tạo.
+- REQ-04 | Nguồn: `.agents/llm-docs/repos/Portfolio.md` | Yêu cầu: Xóa dòng GAP-04. Task này sở hữu phần câu cảnh báo tài liệu lệch nói về `docs/UPDATE_SUMMARY.md`: câu nói file đó là hồ sơ lịch sử thay vì tài liệu lệch. Nếu dòng GAP-06 (do T01 tạo) đã có, xóa khỏi GAP-06 mục màu/giao diện và mục "Tham Khảo Components" mà task này đã sửa; GAP-06 không còn mục nào thì xóa GAP-06 và bỏ `DOCUMENTATION_COMPLETE.md` khỏi câu cảnh báo. Chưa có GAP-06 thì không tạo.
+- REQ-05 | Nguồn: phát hiện khi lập Plan lượt trước, người dùng yêu cầu lập Plan cho gap mới; `DOCUMENTATION_COMPLETE.md` mục "Tham Khảo Components"/"Component Cheatsheet" (cả hai ngôn ngữ): thiếu `Projects`, `Skills`, ghi file style chữ thường (`header.module.css`...) trong khi file thật là `Header.module.css`... | Yêu cầu: Bảng liệt kê đúng mọi component trong `src/components/` (kể cả `Skills` nằm trong `Personal`, `Projects`), tên file `.module.css` đúng chữ hoa/thường, props đúng chữ ký component lúc triển khai.
 - Phạm vi: chỉ tài liệu; không sửa CSS hay token. Không sửa nội dung `docs/DESIGN.md`. Không sửa các mục dữ liệu, cá nhân hóa, tính năng song ngữ của `DOCUMENTATION_COMPLETE.md` (thuộc T01, T02).
-- Đường dẫn được phép sửa: `docs/RESPONSIVE.md`, `docs/UPDATE_SUMMARY.md` (chỉ phần ghi chú đầu file), `DOCUMENTATION_COMPLETE.md` (các mục ở REQ-03); ở Hub: `.agents/llm-docs/repos/Portfolio.md`.
+- Đường dẫn được phép sửa: `docs/RESPONSIVE.md`, `docs/UPDATE_SUMMARY.md` (chỉ phần ghi chú đầu file), `DOCUMENTATION_COMPLETE.md` (các mục ở REQ-03, REQ-05); ở Hub: `.agents/llm-docs/repos/Portfolio.md`.
 - Kết quả riêng của task: người đọc `docs/RESPONSIVE.md` và mục giao diện của `DOCUMENTATION_COMPLETE.md` nhận đúng token và hành vi responsive của source; `docs/UPDATE_SUMMARY.md` không bị hiểu là đặc tả hiện hành.
 
 ## Làm như thế nào
 
 1. ROLE-01 (`technical-writer`) đọc `src/styles/variables.css`, `src/index.css`, `src/App.module.css` và mọi `src/components/*.module.css`; viết lại `docs/RESPONSIVE.md` theo REQ-01: đổi tiêu đề, bảng ngưỡng theo media query thật (480/768/1024px), từng thành phần theo quy tắc CSS của nó, bảng spacing/typography theo token; mỗi khẳng định truy được về file và selector.
 2. ROLE-01 thêm ghi chú lịch sử đầu `docs/UPDATE_SUMMARY.md` theo REQ-02.
-3. ROLE-01 sửa các mục ở REQ-03 của `DOCUMENTATION_COMPLETE.md` (cả hai ngôn ngữ) theo `variables.css` và `docs/DESIGN.md`.
+3. ROLE-01 sửa các mục ở REQ-03 của `DOCUMENTATION_COMPLETE.md` (cả hai ngôn ngữ) theo `variables.css` và `docs/DESIGN.md`, và bảng ở REQ-05 theo `src/components/`.
 4. ROLE-01 sửa `.agents/llm-docs/repos/Portfolio.md` theo REQ-04; sửa cả bảng "Đọc trước khi làm" nếu mô tả `RESPONSIVE.md` không còn đúng.
-5. ROLE-02 (`code-analyst`), sau ROLE-01, đối chiếu từng khẳng định của phần đã sửa với CSS và token để kết luận QG-01..QG-04; không chạy lệnh.
+5. ROLE-02 (`code-analyst`), sau ROLE-01, đối chiếu từng khẳng định của phần đã sửa với CSS và token để kết luận QG-01..QG-05; không chạy lệnh.
 
-Song song: T01, T02 sửa mục khác của `DOCUMENTATION_COMPLETE.md` và dòng GAP khác của `.agents/llm-docs/repos/Portfolio.md`; T01 tạo GAP-06 nếu khi đó `DOCUMENTATION_COMPLETE.md` còn mục lệch. Không có phụ thuộc đầu ra: REQ-04 đúng dù GAP-06 đã có hay chưa.
+Song song: T01, T02 sửa mục khác của `DOCUMENTATION_COMPLETE.md` và dòng GAP khác của `.agents/llm-docs/repos/Portfolio.md`; T01 tạo GAP-06 nếu khi đó `DOCUMENTATION_COMPLETE.md` còn mục lệch. Không có phụ thuộc đầu ra: REQ-04 đúng dù GAP-06 đã có hay chưa. T05 phụ thuộc task này: T05 viết lại các mục màu của `DOCUMENTATION_COMPLETE.md` sau khi task này đưa chúng về khớp source.
 Bước tiếp theo: người dùng chỉ định file Plan này để Implement; Implement chỉ thực hiện T03 trong phạm vi trên.
 
 ## Vai trò tham gia
 
-- ROLE-01 | Loại: triển khai | Vai trò: technical-writer | Phụ trách: `docs/RESPONSIVE.md`, ghi chú `docs/UPDATE_SUMMARY.md`, mục thiết kế của `DOCUMENTATION_COMPLETE.md`, tài liệu ngữ cảnh | Đầu vào: CSS và token tại `a50912c`, `docs/DESIGN.md` | Hoàn tất khi: REQ-01..REQ-04 có thay đổi tài liệu tương ứng, mỗi khẳng định có nguồn CSS/token
-- ROLE-02 | Loại: kiểm chứng | Vai trò: code-analyst | Phụ trách: QG-01..QG-04 | Đầu vào: diff của ROLE-01, CSS và token | Hoàn tất khi: PASS/FAIL/BLOCKED cho từng QG kèm khẳng định đã đối chiếu, phản ví dụ, nguồn
-- Lập Plan | Vai trò: code-analyst | Cách thực hiện: người điều phối tự thực hiện; không có phản biện độc lập
+- ROLE-01 | Loại: triển khai | Vai trò: technical-writer | Phụ trách: `docs/RESPONSIVE.md`, ghi chú `docs/UPDATE_SUMMARY.md`, mục thiết kế của `DOCUMENTATION_COMPLETE.md`, tài liệu ngữ cảnh | Đầu vào: CSS và token tại `a50912c`, `docs/DESIGN.md` | Hoàn tất khi: REQ-01..REQ-05 có thay đổi tài liệu tương ứng, mỗi khẳng định có nguồn CSS/token
+- ROLE-02 | Loại: kiểm chứng | Vai trò: code-analyst | Phụ trách: QG-01..QG-05 | Đầu vào: diff của ROLE-01, CSS và token | Hoàn tất khi: PASS/FAIL/BLOCKED cho từng QG kèm khẳng định đã đối chiếu, phản ví dụ, nguồn
+- Lập Plan | Vai trò: business-analyst, code-analyst, solution-architect | Cách thực hiện: người điều phối tự thực hiện lần lượt; không có phản biện độc lập
 
 ## Tiêu chí chất lượng bắt buộc
 
@@ -56,3 +57,4 @@ Bước tiếp theo: người dùng chỉ định file Plan này để Implement
 - QG-02 | Yêu cầu: REQ-02 | Logic bắt buộc: `docs/UPDATE_SUMMARY.md` mở đầu bằng ghi chú lịch sử nêu đợt cập nhật Starbucks, `docs/DESIGN.md` và `src/styles/variables.css` là nguồn hiện hành; phần còn lại của file giống bản tại `a50912c`.
 - QG-03 | Yêu cầu: REQ-03 | Logic bắt buộc: Mỗi tên biến và giá trị màu, khoảng cách, cỡ chữ trong các mục ở REQ-03 (cả hai ngôn ngữ) tồn tại trong `src/styles/variables.css` với đúng giá trị; không còn biến không tồn tại (`--primary-color`, `--bg-primary`, `--spacing-md`, `--font-size-xs`...), không còn khẳng định Dark Mode hay "gradient màu sắc hài hòa"; nhắc tới gradient (nếu có) khớp `conic-gradient` của `.orbit`; mô tả bảng màu khớp `docs/DESIGN.md`.
 - QG-04 | Yêu cầu: REQ-04 | Logic bắt buộc: `.agents/llm-docs/repos/Portfolio.md` không còn dòng GAP-04; câu về tài liệu lệch mô tả `docs/UPDATE_SUMMARY.md` là hồ sơ lịch sử; bảng "Đọc trước khi làm" mô tả đúng `docs/RESPONSIVE.md` sau sửa. Nếu GAP-06 tồn tại thì không còn liệt kê mục màu/giao diện; GAP-06 không còn mục nào thì đã bị xóa và câu cảnh báo không nêu `DOCUMENTATION_COMPLETE.md`. Kết luận đúng dù T01 hoàn tất trước hay sau task này.
+- QG-05 | Yêu cầu: REQ-05 | Logic bắt buộc: Bảng "Tham Khảo Components"/"Component Cheatsheet" (cả hai ngôn ngữ) có đúng một dòng cho mỗi file `src/components/*.tsx` không phải test, tên file style khớp đúng tên file `.module.css` đang tồn tại (phân biệt hoa/thường), cột Props khớp chữ ký component. Nếu GAP-06 tồn tại thì không còn liệt kê mục này.
