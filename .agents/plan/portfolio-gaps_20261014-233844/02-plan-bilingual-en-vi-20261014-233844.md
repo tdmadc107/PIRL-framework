@@ -1,0 +1,71 @@
+---
+schema: pirl-plan/v1
+content_language: vi
+plan_set: portfolio-gaps_20261014-233844
+task_id: T02
+title: "Trang song ngữ Anh–Việt, nút đổi ngôn ngữ ở footer"
+layer: implement
+status: planned
+depends_on: [T01]
+created_at: "2026-10-14T23:38:44+07:00"
+target_repo: ".repos/Portfolio"
+source_request: "Lập Plan giải quyết các khoảng trống đã biết (GAP-01..GAP-04) của repo Portfolio"
+planning_roles: [business-analyst, code-analyst, solution-architect, ux-designer]
+implementation_roles: [frontend-developer]
+verification_roles: [code-reviewer, code-analyst, ux-designer]
+---
+
+# T02: Trang song ngữ Anh–Việt, nút đổi ngôn ngữ ở footer
+
+## Cần làm gì
+
+- REQ-01 | Nguồn: quyết định của người dùng ("Song ngữ Anh–Việt"; "Mặc định là tiếng Anh... đồng thời thay đổi `lang` thành tiếng Anh"); GAP-02 (`index.html`: `<html lang="vi">`, `<title>Portfolio - Hồ Sơ Cá Nhân</title>`, nội dung tiếng Anh) | Yêu cầu: Trang có hai ngôn ngữ `en` và `vi`. Người xem chưa có lựa chọn đã lưu thấy tiếng Anh. `index.html` khai báo `<html lang="en">` và `<title>Portfolio - Personal Profile</title>`.
+- REQ-02 | Nguồn: quyết định của người dùng ("Bấm là đổi ngôn ngữ"); GAP-03 (`src/components/Footer.tsx`: nút `Vietnam (EN)`, `aria-label="Select country and language"`, không có `onClick`) | Yêu cầu: Nút ở hàng cuối footer thay nút `Vietnam (EN)`, ghi tên ngôn ngữ sẽ chuyển sang: `Tiếng Việt` khi đang tiếng Anh, `English` khi đang tiếng Việt. Bấm một lần thì toàn trang đổi ngôn ngữ ngay, không tải lại trang. Bỏ mũi tên `▾`.
+- REQ-03 | Nguồn: GAP-02 | Yêu cầu: Lúc tải trang và mỗi lần đổi ngôn ngữ, thuộc tính `lang` của thẻ `<html>` và tiêu đề tab theo ngôn ngữ đang hiển thị: `en` → `Portfolio - Personal Profile`; `vi` → `Portfolio - Hồ Sơ Cá Nhân`.
+- REQ-04 | Nguồn: quyết định của người dùng ("Giữ trên máy người xem") | Yêu cầu: Lựa chọn được lưu trong localStorage. Lần tải sau dùng giá trị đã lưu nếu là `en` hoặc `vi`. Không có giá trị, giá trị khác, hoặc localStorage ném lỗi khi đọc thì dùng tiếng Anh. Ghi thất bại thì trang vẫn đổi ngôn ngữ trong lượt xem đó và không báo lỗi cho người xem.
+- REQ-05 | Nguồn: quyết định của người dùng: song ngữ cho mọi chuỗi giao diện và nội dung; Implement dịch bản `vi` từ nội dung tiếng Anh; giữ nguyên chức danh, tên công ty, dự án, chứng chỉ, tổ chức cấp, công nghệ; tên trường theo tên chính thức (người dùng chọn "Implement dịch, giữ chức danh"). Suy ra, không hỏi: họ tên, email, số điện thoại, URL, emoji không dịch | Yêu cầu: Mọi văn bản người xem đọc được hoặc trình đọc màn hình đọc có bản `en` và `vi`: nhãn điều hướng của `Header` và `Footer`, eyebrow, tiêu đề section, nhãn trường (Phone, Email, Address, Position, `Issued:`, `Expiry:`, `ID:`), nhãn nút và liên kết (`Close`, `View Certificate →`, `Live URL`, `GitHub URL`, `Privacy`, `Terms`, các liên kết Need help), tiêu đề footer, `alt`, `aria-label`, dòng bản quyền, và nội dung hồ sơ trong `src/data/` (giới thiệu, thẻ Expertise/Characteristics, tên nhóm và nhóm con kỹ năng, học vấn, kinh nghiệm, mô tả dự án, thành tích, địa chỉ, chuỗi ngày tháng như `Present`, `Jan 2024`). Giữ nguyên ở cả hai ngôn ngữ: họ tên, chức danh nghề nghiệp (`Java Developer | Salesforce Developer`, `Team leader`, `Developer`), tên công ty, tên dự án, tên chứng chỉ, tên tổ chức cấp, tên công nghệ và thẻ kỹ năng, email, số điện thoại, URL, emoji. Tên trường học dùng tên chính thức theo ngôn ngữ (`Quang Binh University` ↔ `Trường Đại học Quảng Bình`). Bản tiếng Việt do Implement dịch từ nội dung tiếng Anh hiện có, giữ nghĩa, không thêm thông tin.
+- REQ-06 | Nguồn: `.agents/llm-docs/repos/Portfolio.md` (GAP-02, GAP-03, mục "Kiểm chứng layout bằng mock" ghi "chỉ tiếng Anh"); `DOCUMENTATION_COMPLETE.md`, `src/data/README.md` sau T01; kiểm tra khi lập Plan: link font trong `index.html` trả HTTP 400, Sofia Sans không có subset `vietnamese` | Yêu cầu: Tài liệu mô tả hai ngôn ngữ, nơi chứa chuỗi và cách sửa nội dung song ngữ. Tài liệu ngữ cảnh xóa GAP-02, GAP-03 và thêm GAP-05 về font.
+- Hợp đồng đã chốt khi lập Plan (vai trò `solution-architect`, người điều phối tự thực hiện; suy ra từ source, không hỏi người dùng):
+  - `Language = 'en' | 'vi'`, mặc định `'en'`. Kiểu `Language` và `LocalizedText = Record<Language, string>` khai báo trong `src/types/index.ts`.
+  - Trường nội dung cần dịch trong `src/data/` có kiểu `LocalizedText`; trường giữ nguyên theo REQ-05 vẫn là `string`. Thiếu một bản dịch là lỗi kiểu.
+  - Chuỗi giao diện nằm trong thư mục mới `src/i18n/`: một bảng chuỗi cho mỗi ngôn ngữ, bảng `vi` khai báo theo kiểu của bảng `en` để thiếu khóa là lỗi kiểu.
+  - Một provider ngôn ngữ trong `src/i18n/` bọc toàn bộ cây trong `src/App.tsx`; component đọc qua một hook (ngôn ngữ hiện tại, hàm đổi, hàm chọn chuỗi). Giá trị mặc định của context là `en`, nên component render riêng (như trong test hiện có) hiển thị tiếng Anh.
+  - Khóa localStorage: thêm `LANGUAGE: 'portfolio_language'` vào `STORAGE_KEYS` trong `src/utils/constants.ts`.
+  - Không thêm thư viện i18n: hai ngôn ngữ, chuỗi tĩnh, không cần số nhiều hay định dạng theo locale.
+- Phạm vi: không đổi link font trong `index.html` (xem GAP-05 ở bước 5); không thêm ngôn ngữ thứ ba, không đổi URL theo ngôn ngữ, không tự nhận ngôn ngữ trình duyệt.
+- Đường dẫn được phép sửa: `index.html`; `src/App.tsx`; `src/main.tsx` (chỉ khi cần cho provider); thư mục mới `src/i18n/`; `src/utils/constants.ts`; `src/types/index.ts`; `src/data/*.ts`; `src/components/Header.tsx`, `Personal.tsx`, `Skills.tsx`, `Education.tsx`, `Experience.tsx`, `Projects.tsx`, `Certifications.tsx`, `Achievements.tsx`, `Footer.tsx`, `Footer.module.css`; test: `src/components/Footer.test.tsx`, file mới `src/App.test.tsx`; tài liệu: `DOCUMENTATION_COMPLETE.md` (mục "Tính Năng Chính"/"Key Features" và các mục dữ liệu, cá nhân hóa do T01 viết lại), `src/data/README.md`; ở Hub: `.agents/llm-docs/repos/Portfolio.md`.
+- Kết quả riêng của task: người xem đổi được ngôn ngữ toàn trang bằng nút footer, lựa chọn được ghi nhớ, `lang` và tiêu đề tab đúng ngôn ngữ.
+
+## Làm như thế nào
+
+Đầu vào từ T01: nội dung hồ sơ nằm trong `src/data/` với kiểu trong `src/types/index.ts`, component đọc qua `@data`, các mục dữ liệu/cá nhân hóa của `DOCUMENTATION_COMPLETE.md` và `src/data/README.md` đã viết lại. Thiếu đầu vào này thì dừng.
+
+1. ROLE-01 (`frontend-developer`) dựng cơ chế ngôn ngữ theo hợp đồng trên: kiểu `Language`, `LocalizedText`; provider và hook trong `src/i18n/`; ngôn ngữ khởi tạo đọc đồng bộ từ localStorage trước lần render đầu, trong `try/catch`, chỉ nhận `en`/`vi`; khi ngôn ngữ đổi (kể cả lần đầu) đặt `document.documentElement.lang` và `document.title`, ghi localStorage trong `try/catch`. Bọc cây trong `src/App.tsx`. Sửa `index.html`: `lang="en"`, `<title>` tiếng Anh.
+2. ROLE-01 chuyển mọi chuỗi giao diện ở REQ-05 của 9 component sang bảng chuỗi `en`/`vi`; đổi trường cần dịch trong `src/data/*.ts` sang `LocalizedText` và viết bản `vi`; component chọn chuỗi theo ngôn ngữ hiện tại.
+3. ROLE-01 thay nút `Vietnam (EN)` trong `src/components/Footer.tsx` bằng nút đổi ngôn ngữ: `<button type="button">`, chữ hiển thị là tên ngôn ngữ đích, phần chữ đó mang `lang` của chính ngôn ngữ đích; tên truy cập chứa chữ hiển thị (không dùng `aria-label` khác nghĩa); bỏ `▾`; giữ style pill hiện có, chỉnh `Footer.module.css` nếu cần.
+4. ROLE-01 viết/cập nhật test theo FUT, chỉ cho REQ-01..REQ-04:
+   - `src/components/Footer.test.tsx`: thay khẳng định nút `select country and language` bằng nút `Tiếng Việt` ở mặc định (hành vi cũ đã gỡ).
+   - `src/App.test.tsx` (mới), render `App`: (a) không có giá trị lưu → `<html lang="en">`, tiêu đề tiếng Anh, nút `Tiếng Việt`; (b) bấm nút → `lang="vi"`, tiêu đề tiếng Việt, localStorage `vi`, nút `English`, một chuỗi giao diện ở `Header` và một ở section khác đổi sang bản `vi` (lấy giá trị từ bảng chuỗi, không chép cứng câu chữ); (c) giá trị lưu `vi` → render tiếng Việt; (d) giá trị lưu không hợp lệ → tiếng Anh; (e) đọc localStorage ném lỗi → tiếng Anh; ghi ném lỗi → vẫn đổi sang `vi`. Mỗi test dọn localStorage, `lang` và mock.
+   - Chạy từ `.repos/Portfolio`: `npx vitest run --pool=forks src/App.test.tsx src/components/Footer.test.tsx src/components/Header.test.tsx src/components/Personal.test.tsx src/components/Projects.test.tsx`. `Header`, `Personal`, `Projects` là chức năng bị ảnh hưởng vì component đổi sang đọc chuỗi theo ngôn ngữ; test của chúng khẳng định nội dung tiếng Anh, vẫn đúng với mặc định `en`.
+5. ROLE-01 cập nhật tài liệu ở REQ-06: `DOCUMENTATION_COMPLETE.md` (cả hai ngôn ngữ) và `src/data/README.md` mô tả hai ngôn ngữ, bảng chuỗi trong `src/i18n/`, trường `LocalizedText` và cách thêm/sửa nội dung có đủ `en`/`vi`; `.agents/llm-docs/repos/Portfolio.md`: mục Kiến trúc nêu `src/i18n/` và `LocalizedText`; mục "Kiểm chứng layout bằng mock" ghi ngôn ngữ `en` (mặc định) và `vi`, cách chuyển (nút footer hoặc đặt khóa `portfolio_language` trong localStorage trước khi tải trang); xóa GAP-02, GAP-03; thêm GAP-05: link font trong `index.html` yêu cầu trục `opsz` mà Sofia Sans không có, Google Fonts trả HTTP 400 nên trang đang dùng font dự phòng Arial; sửa link thì Sofia Sans chỉ có subset `latin`/`latin-ext`, không gồm U+1EA0–U+1EF1 (ạ, ế, ộ, ự...), chữ tiếng Việt sẽ lẫn hai font; hướng xử lý: chọn font có subset `vietnamese` hoặc giữ Arial, cần quyết định thiết kế.
+6. ROLE-02 (`code-reviewer`), sau ROLE-01, kết luận QG-01, QG-02 và đối chiếu test trong diff với FUT, bằng lập luận trên diff; không chạy lệnh/test.
+7. ROLE-03 (`code-analyst`), sau ROLE-01, kết luận QG-03, QG-05 bằng lần từ `src/App.tsx` qua 9 component, `src/data/`, `src/i18n/` và đối chiếu tài liệu với source.
+8. ROLE-04 (`ux-designer`), sau khi ROLE-01 chụp layout theo router, đối chiếu ảnh và bảng kết quả với QG-04.
+
+Bước tiếp theo: người dùng chỉ định file Plan này để Implement sau khi T01 đã `implemented`; Implement chỉ thực hiện T02 trong phạm vi trên.
+
+## Vai trò tham gia
+
+- ROLE-01 | Loại: triển khai | Vai trò: frontend-developer | Phụ trách: cơ chế ngôn ngữ, bảng chuỗi, bản dịch `vi`, nút footer, `index.html`, test bước 4, tài liệu bước 5, chụp layout | Đầu vào: kết quả T01, Plan này | Hoàn tất khi: REQ-01..REQ-06 có source/tài liệu/test trong diff; test bước 4 đã chạy và được giải thích; `layout_verification` có lần chụp đạt
+- ROLE-02 | Loại: kiểm chứng | Vai trò: code-reviewer | Phụ trách: QG-01, QG-02, test trong diff so với FUT | Đầu vào: diff và tuyên bố của ROLE-01 | Hoàn tất khi: PASS/FAIL/BLOCKED cho QG-01, QG-02 kèm đường đã lần, phản ví dụ, nguồn
+- ROLE-03 | Loại: kiểm chứng | Vai trò: code-analyst | Phụ trách: QG-03 (đủ chuỗi ở cả hai ngôn ngữ), QG-05 (tài liệu) | Đầu vào: diff của ROLE-01 | Hoàn tất khi: PASS/FAIL/BLOCKED cho QG-03, QG-05 kèm đường đã lần, phản ví dụ, nguồn
+- ROLE-04 | Loại: kiểm chứng | Vai trò: ux-designer | Phụ trách: QG-04 (bố cục và ngôn ngữ hiển thị) | Đầu vào: ảnh và bảng kết quả layout của ROLE-01, source hiển thị | Hoàn tất khi: PASS/FAIL/BLOCKED cho QG-04 kèm ảnh đã xem, phản ví dụ, nguồn
+- Lập Plan | Vai trò: business-analyst, code-analyst, solution-architect, ux-designer | Cách thực hiện: người điều phối tự thực hiện lần lượt; không có phản biện độc lập
+
+## Tiêu chí chất lượng bắt buộc
+
+- QG-01 | Yêu cầu: REQ-01, REQ-03, REQ-04 | Logic bắt buộc: Khởi tạo ngôn ngữ theo bảng: localStorage không có khóa `portfolio_language` → `en`; giá trị `vi` → `vi`; `en` → `en`; giá trị khác (`fr`, chuỗi rỗng) → `en`; `getItem` ném lỗi → `en` và trang vẫn render. Giá trị khởi tạo được đọc trước lần render đầu, nên với `vi` đã lưu, lần render đầu đã là tiếng Việt. Sau khi mount, `document.documentElement.lang` và `document.title` đúng ngôn ngữ khởi tạo. `index.html` có `lang="en"` và `<title>Portfolio - Personal Profile</title>`.
+- QG-02 | Yêu cầu: REQ-02, REQ-03, REQ-04 | Logic bắt buộc: Bấm nút footer khi đang `en` → ngôn ngữ `vi`, nút ghi `English`, `lang="vi"`, tiêu đề `Portfolio - Hồ Sơ Cá Nhân`, localStorage `vi`; bấm lần nữa → ngược lại về `en`. `setItem` ném lỗi → ngôn ngữ vẫn đổi, lỗi được bắt, không có thông báo cho người xem. Chỉ provider giữ trạng thái ngôn ngữ; không component nào giữ bản sao, nên mọi section đổi trong cùng một lần render. Đổi ngôn ngữ chỉ đổi state, không điều hướng hay tải lại trang. Nút là `<button type="button">`, tên truy cập chứa chữ hiển thị, phần chữ `Tiếng Việt` có `lang="vi"`, phần chữ `English` có `lang="en"`; không còn `▾` hay `aria-label="Select country and language"`.
+- QG-03 | Yêu cầu: REQ-05 | Logic bắt buộc: Lần từ `src/App.tsx` qua `Header`, `Personal`, `Skills`, `Education`, `Experience`, `Projects`, `Certifications`, `Achievements`, `Footer`: mọi chữ hiển thị, `alt`, `aria-label` thuộc danh sách dịch ở REQ-05 được chọn từ bảng chuỗi hoặc trường `LocalizedText` theo ngôn ngữ hiện tại; không còn literal tiếng Anh trong JSX ngoài danh sách giữ nguyên. Trường cần dịch trong `src/data/` có kiểu `LocalizedText`; bảng `vi` có đủ khóa của bảng `en`. Bản `vi` là tiếng Việt, không phải bản chép tiếng Anh, trừ danh sách giữ nguyên.
+- QG-04 | Yêu cầu: REQ-02, REQ-05 | Logic bắt buộc: Ở khổ 1280×800 và 360×800, với cả `en` và `vi`: không cuộn ngang; ở 1280, header hiển thị đủ 6 mục điều hướng trên một hàng, không chồng lên khối tên; ở 360, menu hamburger mở ra hiển thị đủ 6 mục và nút đóng; hàng cuối footer chứa nút ngôn ngữ và icon mạng xã hội trong khung nhìn, không chồng nhau. Văn bản tiếng Việt hiển thị đủ dấu, không có ký tự thay thế. Ở `vi`, không còn chữ tiếng Anh ngoài danh sách giữ nguyên ở REQ-05.
+- QG-05 | Yêu cầu: REQ-06 | Logic bắt buộc: `DOCUMENTATION_COMPLETE.md` (cả hai ngôn ngữ) và `src/data/README.md` mô tả đúng thư mục `src/i18n/`, kiểu `LocalizedText`, khóa `portfolio_language`, ngôn ngữ mặc định `en`, và ví dụ sửa nội dung có đủ `en`/`vi` khớp source. `.agents/llm-docs/repos/Portfolio.md`: mục Kiến trúc và "Kiểm chứng layout bằng mock" khớp source; không còn GAP-02, GAP-03; có GAP-05 với vấn đề, bằng chứng (link font trong `index.html`, HTTP 400, thiếu subset `vietnamese`) và hướng xử lý.
