@@ -172,7 +172,7 @@ git submodule tại `.repos/<repo-id>` và có một mục dưới khóa `repos`
 | `product` | Sản phẩm repo phục vụ |
 | `stack` | Ngăn xếp chính |
 | `keywords` | Từ khóa yêu cầu dùng để chọn repo |
-| `commands` | Tên lệnh → lệnh chạy, dùng khi Plan giao test theo FUT |
+| `commands` | Tên lệnh → lệnh chạy từ thư mục `path` của repo, dùng khi Plan giao test theo FUT |
 | `context_docs` | Tài liệu ngữ cảnh của repo, thường `.agents/llm-docs/repos/<repo-id>.md`: kiến trúc, quy ước, khổ màn hình và ngôn ngữ giao diện cần chụp layout, nơi ghi khoảng trống đã biết |
 | `rules` | Rule áp dụng cho repo, thường `.agents/llm-docs/rules/<tên>.rule.md` |
 

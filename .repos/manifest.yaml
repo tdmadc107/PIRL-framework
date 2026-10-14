@@ -15,4 +15,34 @@
 #       context_docs: [".agents/llm-docs/repos/<repo-id>.md"]
 #       rules: [".agents/llm-docs/rules/<tên>.rule.md"]
 schema: "pirl-repos/v1"
-repos: {}
+repos:
+  Monify-Projector:
+    path: ".repos/Monify-Projector"
+    product: "Monifit: webapp quản lý chi tiêu cho cá nhân và hộ gia đình"
+    stack: "Spring Boot 3.2 (Java 17) + MongoDB; React 18 + TypeScript + Vite 5 + SCSS Modules; Vercel"
+    keywords: ["monify", "monifit", "chi tiêu", "thu chi", "sổ giao dịch", "ngân sách", "hộ gia đình", "chủ hộ", "theo dõi kế hoạch chi", "tracking", "java", "spring boot"]
+    commands:
+      test-backend: "cd backend; mvn -Dtest=<tên lớp test> test"
+      test-backend-mongo: 'cd backend; mvn -Dtest=<tên lớp MongoIntegrationTest> "-Dledger.test.mongo.uri=<uri>" "-Dtracking.test.mongo.uri=<uri>" test'
+      test-frontend: "cd frontend; node --test tests/<tên>.test.mjs"
+    context_docs: [".agents/llm-docs/repos/Monify-Projector.md"]
+    rules: []
+  Shahmat-Projector:
+    path: ".repos/Shahmat-Projector"
+    product: "Shahmat: webapp giải câu đố cờ vua chiếu hết sau N nước, có màn chơi, thử thách hằng ngày, xếp hạng và PvP"
+    stack: "React 18 + TypeScript + Vite 5 + CSS Modules + Zustand; Vercel Functions + MongoDB"
+    keywords: ["shahmat", "cờ vua", "chess", "câu đố", "puzzle", "chiếu hết", "mate-in-n", "màn chơi", "thử thách hằng ngày", "pvp", "bảng xếp hạng", "xu vàng"]
+    commands:
+      test: "cd shahmat; npx vitest run <file test>"
+      test-mongodb: "cd shahmat; node --env-file-if-exists=.env.local ./node_modules/vitest/vitest.mjs run --no-file-parallelism --maxWorkers=1 <file test trong tests/integration/mongodb>"
+    context_docs: [".agents/llm-docs/repos/Shahmat-Projector.md"]
+    rules: []
+  Portfolio:
+    path: ".repos/Portfolio"
+    product: "Trang portfolio cá nhân một trang: hồ sơ, học vấn, kinh nghiệm, dự án, chứng chỉ, thành tích"
+    stack: "React 18 + TypeScript + Vite 4 + CSS Modules (trang tĩnh, không backend)"
+    keywords: ["portfolio", "hồ sơ cá nhân", "trang giới thiệu bản thân", "cv", "kinh nghiệm làm việc", "học vấn", "chứng chỉ", "thành tích"]
+    commands:
+      test: "npx vitest run --pool=forks <file test>"
+    context_docs: [".agents/llm-docs/repos/Portfolio.md"]
+    rules: []
