@@ -105,7 +105,7 @@ trò trong câu giao việc; danh mục vai trò nằm ở
 2. **Implement.** Agent sửa source trong repo sản phẩm, đúng phạm vi Plan. Vai
    trò kiểm chứng kết luận từng QG bằng lập luận trên source. Kết quả ghi vào mục
    `Implementation Record` ở cuối file Plan. Khi giao diện thay đổi, ảnh layout
-   nằm trong `tmp/layout-snapshots/` (không vào git).
+   nằm trong `.tmp/layout-snapshots/` (không vào git).
 3. **Review.** Agent đối chiếu từng QG trên source và ghi report vào
    `.agents/review/<plan-set>/<task>/round-<NN>-review-...md`. Report có hai mục:
    `Business` (kết luận PASS, FAIL hoặc BLOCKED cùng các FIND, RISK, BLOCK) và
@@ -145,11 +145,11 @@ python -B .agents/llm-docs/evals/layer_record.py check
 
 - **Dashboard:** theo dõi phiên Claude Code, hạn mức, tiến độ Plan/Review, thay
   đổi file và git của Hub cùng mọi repo, và cảnh báo repo đăng ký dở. Chạy
-  `tools\dashboard\dashboard.bat` hoặc `node tools/dashboard/dashboard.js`.
+  `.tools\dashboard\dashboard.bat` hoặc `node .tools/dashboard/dashboard.js`.
 - **claude-resume, claude-schedule:** chạy lại phiên sau khi hạn mức reset, và
   hẹn giờ một task bằng Windows Task Scheduler.
 
-Chi tiết và tham số: [`tools/README.md`](tools/README.md).
+Chi tiết và tham số: [`.tools/README.md`](.tools/README.md).
 
 ## Kiểm tra sau khi sửa framework
 
@@ -166,8 +166,8 @@ Chọn lệnh kiểm tra theo phần đã sửa: xem
 AGENTS.md        gốc: cấu trúc, luồng, vai trò, định tuyến repo
 .agents/         hướng dẫn layer, vai trò, quy tắc, công cụ, Plan, report, record
 .repos/          manifest và submodule của repo sản phẩm
-tools/           dashboard, claude-resume, claude-schedule
-tmp/             đầu ra tạm, không vào git
+.tools/          dashboard, claude-resume, claude-schedule
+.tmp/            đầu ra tạm, không vào git
 ```
 
 Cây đầy đủ: [`AGENTS.md`](AGENTS.md#cấu-trúc).
@@ -181,7 +181,7 @@ Cây đầy đủ: [`AGENTS.md`](AGENTS.md#cấu-trúc).
 | Chi tiết từng layer | [Plan](.agents/instructions/plan.instructions.md), [Implement](.agents/instructions/implement.instructions.md), [Review](.agents/instructions/review.instructions.md) |
 | Chuyên môn từng vai trò | [`.agents/roles/`](.agents/roles/) |
 | Quy tắc an toàn và test | [`core-agent`](.agents/llm-docs/rules/core-agent.rule.md), [`test-verification`](.agents/llm-docs/rules/test-verification.rule.md) |
-| Công cụ cục bộ | [`tools/README.md`](tools/README.md) |
+| Công cụ cục bộ | [`.tools/README.md`](.tools/README.md) |
 
 ## Giấy phép
 

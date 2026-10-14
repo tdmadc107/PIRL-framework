@@ -5,7 +5,7 @@ applyTo: ".repos/**/*,.agents/instructions/**/*,.agents/plan/**/*,.agents/review
 metadata:
   id: ".agents/instructions/layered-task-execution"
   kind: "instruction"
-  version: "1.1.0"
+  version: "1.1.1"
   status: "active"
 ---
 
@@ -78,7 +78,7 @@ chứng không thay kết luận của Review.
 ## Bảo trì framework
 
 Yêu cầu sửa trực tiếp `AGENTS.md`, instruction, rule, `.repos/manifest.yaml` hoặc
-công cụ trong `.agents/llm-docs/evals/` và `tools/` là bảo trì framework theo
+công cụ trong `.agents/llm-docs/evals/` và `.tools/` là bảo trì framework theo
 phạm vi người dùng giao. Không ép tạo Plan hay report sản phẩm trước khi sửa.
 Cải tiến do `process-auditor` áp dụng trong một lượt layer theo
 [mục Tự đánh giá và cải tiến](#tự-đánh-giá-và-cải-tiến) cũng là bảo trì framework,
@@ -196,7 +196,7 @@ chỉ làm khi người dùng yêu cầu.
   thì phần layout `BLOCKED` kèm chủ xử lý, không tự chế phương tiện. Công cụ
   và đường dẫn runtime thuộc ghi chú của repo, không thuộc framework.
 - **Lưu ở đâu:** script mock, ảnh và bảng kết quả trong
-  `tmp/layout-snapshots/<plan-set>/<task-id>/<YYYYMMDD-HHmmss>/` ở gốc Hub
+  `.tmp/layout-snapshots/<plan-set>/<task-id>/<YYYYMMDD-HHmmss>/` ở gốc Hub
   (bị Git ignore). Mỗi lần chạy một thư mục mới; không xóa hay ghi đè lần
   chạy trước. Thư mục này là đầu ra bàn giao được giữ lại; máy chủ phát
   triển, trình duyệt và profile tạm vẫn dừng hoặc xóa theo mục dọn tài nguyên.
@@ -214,7 +214,7 @@ chỉ làm khi người dùng yêu cầu.
   diện chưa có kết quả này thì task chưa được ghi `implemented`.
 - **Ghi lại:** tóm tắt trong trường `layout_verification` của Implementation
   Record: trạng thái đã chụp, ngôn ngữ, khổ màn hình, số ảnh, kiểm đạt/không
-  đạt và đường dẫn thư mục. `tmp/` không đi theo commit nên tóm tắt là bằng
+  đạt và đường dẫn thư mục. `.tmp/` không đi theo commit nên tóm tắt là bằng
   chứng, đường dẫn chỉ để tra cứu.
 - **Review:** đọc tóm tắt và ảnh của Implement, không tự chạy lại. Diff đổi
   giao diện mà Record thiếu kết quả này, hoặc ảnh cho thấy layout vi phạm QG,
@@ -335,10 +335,10 @@ cần trước khi bàn giao kết quả tương ứng.
 
 - Phạm vi bắt buộc dọn là vùng Git có thể commit của Hub và các submodule
   trong `.repos/`: file đã được theo dõi và file untracked không bị
-  `.gitignore` loại trừ. Đường dẫn bị Git ignore (ví dụ `tmp/` ở gốc Hub,
+  `.gitignore` loại trừ. Đường dẫn bị Git ignore (ví dụ `.tmp/` ở gốc Hub,
   `node_modules/`, thư mục build) và vị trí ngoài repo không được commit nên
   không thuộc nghĩa vụ dọn; có thể giữ lại cho lượt sau. Thư mục
-  `tmp/layout-snapshots/` của [kiểm chứng layout bằng mock](#kiểm-chứng-layout-bằng-mock)
+  `.tmp/layout-snapshots/` của [kiểm chứng layout bằng mock](#kiểm-chứng-layout-bằng-mock)
   là đầu ra bàn giao, luôn giữ lại.
 - Khi tạo file, thư mục hoặc phiên tạm trong vùng có thể commit, giữ đường
   dẫn/owner trong ngữ cảnh làm việc; không tạo thêm manifest hay log dọn rác

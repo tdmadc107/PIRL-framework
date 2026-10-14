@@ -31,8 +31,8 @@ AGENTS.md                         gốc: cấu trúc, luồng, vai trò Agent, �
 .repos/
   manifest.yaml   registry repo sản phẩm
   <repo-id>/      git submodule của repo sản phẩm
-tools/            công cụ cục bộ (dashboard, claude-resume, claude-schedule)
-tmp/              đầu ra tạm, bị Git ignore (ảnh layout, log công cụ)
+.tools/           công cụ cục bộ (dashboard, claude-resume, claude-schedule)
+.tmp/             đầu ra tạm, bị Git ignore (ảnh layout, log công cụ)
 ```
 
 | Nguồn | Sở hữu |

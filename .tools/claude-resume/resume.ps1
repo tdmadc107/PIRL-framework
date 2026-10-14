@@ -1,11 +1,11 @@
 # Chạy lại phiên Claude Code sau khi hạn mức 5h reset (được Task Scheduler gọi).
 # -SessionId: nối tiếp đúng phiên đó; phải là UUID đầy đủ (panel AGENTS của dashboard) hoặc tên
 # phiên khớp chính xác, vì -p không nhận ID rút gọn. Bỏ trống thì nối tiếp phiên gần nhất của repo.
-# Log ghi vào tmp\claude-resume\logs của Hub (tmp/ không vào git).
+# Log ghi vào .tmp\claude-resume\logs của Hub (.tmp/ không vào git).
 param([string]$SessionId = "")
 
 $repo = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-$logDir = Join-Path $repo "tmp\claude-resume\logs"
+$logDir = Join-Path $repo ".tmp\claude-resume\logs"
 New-Item -ItemType Directory -Force $logDir | Out-Null
 $log = Join-Path $logDir ("resume-{0:yyyyMMdd-HHmmss}.log" -f (Get-Date))
 

@@ -35,7 +35,7 @@ Phạm vi theo dõi thay đổi:
 
 - File: một watcher `fs.watch` đệ quy trên gốc Hub (gồm `.repos/*`) báo mọi file
   mới (`NEW`), sửa (`MOD`) và xoá (`DEL`) gần như tức thì, kể cả đường dẫn bị Git
-  ignore (`tmp/`, `node_modules/`, thư mục build) và file tạo rồi xoá trước khi
+  ignore (`.tmp/`, `node_modules/`, thư mục build) và file tạo rồi xoá trước khi
   `git status` kịp quét (hiện `(tạo rồi xóa)`). Chỉ bỏ qua nội dung `.git/`.
 - Git: stage, bỏ stage, commit, reset hay đổi nhánh chỉ ghi vào thư mục git,
   nên dashboard so `stat` của `index`, `HEAD` và `logs/HEAD` trong thư mục git
@@ -61,20 +61,20 @@ Phạm vi theo dõi thay đổi:
   ngay như trên), khi đó không thấy đường dẫn bị Git ignore và file tạo rồi xoá
   giữa hai lần quét, còn Plan và Review chỉ được đọc lại ở lần quét git kế tiếp.
 
-Cách nhanh nhất là double-click `tools/dashboard/dashboard.bat` (hoặc tạo
+Cách nhanh nhất là double-click `.tools/dashboard/dashboard.bat` (hoặc tạo
 shortcut ra Desktop). File này cũng nhận các tham số dưới đây, ví dụ
-`tools\dashboard\dashboard.bat --no-intro`, và giữ cửa sổ lại nếu dashboard
+`.tools\dashboard\dashboard.bat --no-intro`, và giữ cửa sổ lại nếu dashboard
 lỗi.
 
 Hoặc chạy trong một tab hoặc pane riêng của terminal:
 
 ```powershell
-node tools/dashboard/dashboard.js                 # mặc định quét git mỗi 10 giây
-node tools/dashboard/dashboard.js --interval 5 --files 15 --max-age 6
-node tools/dashboard/dashboard.js --plans 10      # hiện tối đa 10 task Plan (mặc định 6)
-node tools/dashboard/dashboard.js --no-intro      # bỏ màn khởi động
-node tools/dashboard/dashboard.js --once          # in một khung hình rồi thoát
-node tools/dashboard/dashboard.js --once --rows 30  # khung hình cho terminal cao 30 dòng
+node .tools/dashboard/dashboard.js                 # mặc định quét git mỗi 10 giây
+node .tools/dashboard/dashboard.js --interval 5 --files 15 --max-age 6
+node .tools/dashboard/dashboard.js --plans 10      # hiện tối đa 10 task Plan (mặc định 6)
+node .tools/dashboard/dashboard.js --no-intro      # bỏ màn khởi động
+node .tools/dashboard/dashboard.js --once          # in một khung hình rồi thoát
+node .tools/dashboard/dashboard.js --once --rows 30  # khung hình cho terminal cao 30 dòng
 ```
 
 Phím `q` hoặc `Ctrl+C` để thoát, `r` để quét lại ngay; phím khác bỏ qua màn
@@ -89,11 +89,11 @@ transcript của phiên.
 ## claude-resume
 
 `claude-resume/resume.ps1` chạy lại phiên Claude Code sau khi hạn mức 5 giờ
-reset; log ghi vào `tmp/claude-resume/logs/`. Hẹn giờ một lần bằng Task
+reset; log ghi vào `.tmp/claude-resume/logs/`. Hẹn giờ một lần bằng Task
 Scheduler (ngày phải ở dạng `yyyy/MM/dd`, máy phải đang đăng nhập và thức):
 
 ```powershell
-schtasks /Create /TN "ClaudeResume" /SC ONCE /SD yyyy/MM/dd /ST HH:mm /TR "pwsh -NoProfile -ExecutionPolicy Bypass -File D:\Project\.repository\PIRL-framework\tools\claude-resume\resume.ps1 -SessionId <id>" /F
+schtasks /Create /TN "ClaudeResume" /SC ONCE /SD yyyy/MM/dd /ST HH:mm /TR "pwsh -NoProfile -ExecutionPolicy Bypass -File D:\Project\.repository\PIRL-framework\.tools\claude-resume\resume.ps1 -SessionId <id>" /F
 ```
 
 `<id>` phải là UUID đầy đủ (lấy ở panel `02 // AGENTS` của dashboard) hoặc
@@ -109,19 +109,19 @@ không, vì phiên tương tác cũng có thể tự chạy tiếp:
 `claude-schedule/schedule.ps1` hẹn trước một task Claude Code chạy một lần,
 dùng khi biết trước mình sẽ không tiện gửi request vào giờ đó. Task được tạo
 trong thư mục `\Claude\` của Task Scheduler và gọi `claude-schedule/run.ps1`;
-prompt lưu ở `tmp/claude-schedule/tasks/<tên>.txt`, log ở
-`tmp/claude-schedule/logs/`.
+prompt lưu ở `.tmp/claude-schedule/tasks/<tên>.txt`, log ở
+`.tmp/claude-schedule/logs/`.
 
 ```powershell
 # Phiên mới, giờ đầy đủ; prompt ngắn viết thẳng
-tools\claude-schedule\schedule.ps1 -Name review-t01 -At "2026-10-10 08:00" -Prompt "Review phần triển khai của Plan T01 trong .agents/plan/<gói>"
+.tools\claude-schedule\schedule.ps1 -Name review-t01 -At "2026-10-10 08:00" -Prompt "Review phần triển khai của Plan T01 trong .agents/plan/<gói>"
 # Prompt dài để trong file; chỉ ghi HH:mm thì lấy lần tới của giờ đó
-tools\claude-schedule\schedule.ps1 -Name implement-t02 -At 23:30 -PromptFile D:\prompts\t02.md
+.tools\claude-schedule\schedule.ps1 -Name implement-t02 -At 23:30 -PromptFile D:\prompts\t02.md
 # Nối tiếp một phiên có sẵn thay vì mở phiên mới
-tools\claude-schedule\schedule.ps1 -Name fix-t03 -At 06:00 -Prompt "..." -SessionId <uuid>
+.tools\claude-schedule\schedule.ps1 -Name fix-t03 -At 06:00 -Prompt "..." -SessionId <uuid>
 
-tools\claude-schedule\schedule.ps1 -List               # trạng thái, lần chạy tới, kết quả lần trước
-tools\claude-schedule\schedule.ps1 -Remove -Name review-t01
+.tools\claude-schedule\schedule.ps1 -List               # trạng thái, lần chạy tới, kết quả lần trước
+.tools\claude-schedule\schedule.ps1 -Remove -Name review-t01
 ```
 
 - `-At` nhận `yyyy-MM-dd HH:mm` hoặc `HH:mm`, không phụ thuộc định dạng ngày

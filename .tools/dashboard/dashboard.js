@@ -4,7 +4,7 @@
 // mọi submodule `.repos/*`, tiến độ Plan/Review của framework, và nhật ký sự kiện trực tiếp:
 // file mới/sửa/xóa theo fs.watch, stage/bỏ stage, commit và đổi nhánh theo git.
 //
-// Chạy:   node tools/dashboard/dashboard.js [--interval 10] [--max-age 12] [--files 10] [--agents 2] [--plans 6]
+// Chạy:   node .tools/dashboard/dashboard.js [--interval 10] [--max-age 12] [--files 10] [--agents 2] [--plans 6]
 //   --interval  số giây giữa hai lần quét git (mặc định 10)
 //   --max-age   chỉ hiện phiên Claude cập nhật trong N giờ gần nhất (mặc định 12)
 //   --files     số file tối đa hiện cho mỗi repo (mặc định 10)

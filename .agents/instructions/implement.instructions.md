@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/implement.instructions.md"
 metadata:
   id: ".agents/instructions/implement"
   kind: "instruction"
-  version: "1.1.0"
+  version: "1.1.1"
   status: "active"
 ---
 
@@ -97,7 +97,7 @@ bằng chứng.
   mới, test chỉ phục vụ luồng đã gỡ thì xóa, đều theo
   [quy tắc FUT](../llm-docs/rules/test-verification.rule.md#quy-tắc-fut-test-chức-năng);
   không đụng test của chức năng không liên quan, không dựng harness hay script
-  kiểm chứng mới trong repo (script mock chụp layout nằm trong `tmp/` theo
+  kiểm chứng mới trong repo (script mock chụp layout nằm trong `.tmp/` theo
   [router](layered-task-execution.instructions.md#kiểm-chứng-layout-bằng-mock)
   không thuộc điều cấm này). Điểm cần quyết định sản phẩm thì ghi vào nơi dự
   án lưu khoảng trống đã biết và vào rủi ro còn lại, không tự chọn. Không sửa
@@ -188,7 +188,7 @@ sửa nội dung Plan để hợp thức hóa hướng đã tự đổi.
 - checkpoint_evidence: <checkpoint, bằng chứng và đầu vào tiếp tục; hoặc N/A>
 - quality_gate_results: <QG-01=PASS|FAIL|BLOCKED theo kết luận của vai trò kiểm chứng; ...>
 - quality_gate_evidence: <từng QG -> vai trò kiểm chứng, file/symbol, đường đã lần, phản ví dụ và kết luận>
-- layout_verification: <N/A khi diff không đổi giao diện; hoặc trạng thái đã chụp, ngôn ngữ, khổ màn hình, số ảnh, kiểm đạt/không đạt và thư mục tmp/layout-snapshots/...>
+- layout_verification: <N/A khi diff không đổi giao diện; hoặc trạng thái đã chụp, ngôn ngữ, khổ màn hình, số ảnh, kiểm đạt/không đạt và thư mục .tmp/layout-snapshots/...>
 - repair_closure_evidence: <từng mục report -> REQ/QG, nguyên nhân, giải pháp/disposition và bằng chứng trước/sau phù hợp; hoặc đúng N/A cho lượt đầu>
 - root_cause_revalidation: <ITEM-ID=confirmed|contradicted|blocked/bằng chứng trước sửa; hoặc đúng N/A cho lượt đầu>
 - review_item_disposition: <FIND-01=resolved|failed|blocked/bằng chứng; RISK-01=deferred/chủ xử lý và điều kiện xem lại; BLOCK-01=unblocked|blocked|escalated/bằng chứng; hoặc đúng N/A cho lượt đầu>

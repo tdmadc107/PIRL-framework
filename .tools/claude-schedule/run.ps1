@@ -1,8 +1,8 @@
 # Chạy một task Claude Code đã hẹn giờ (được Task Scheduler gọi, task tạo bằng schedule.ps1).
-# -Name: tên task; prompt đọc từ tmp\claude-schedule\tasks\<Name>.txt của Hub.
+# -Name: tên task; prompt đọc từ .tmp\claude-schedule\tasks\<Name>.txt của Hub.
 # -SessionId: nối tiếp đúng phiên đó (UUID đầy đủ hoặc tên phiên khớp chính xác, vì -p không
 # nhận ID rút gọn). Bỏ trống thì mở phiên mới.
-# Log ghi vào tmp\claude-schedule\logs của Hub (tmp/ không vào git).
+# Log ghi vào .tmp\claude-schedule\logs của Hub (.tmp/ không vào git).
 param(
     [Parameter(Mandatory)][ValidatePattern('^[A-Za-z0-9_-]+$')][string]$Name,
     [string]$SessionId = "",
@@ -10,8 +10,8 @@ param(
 )
 
 $repo = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-$promptFile = Join-Path $repo "tmp\claude-schedule\tasks\$Name.txt"
-$logDir = Join-Path $repo "tmp\claude-schedule\logs"
+$promptFile = Join-Path $repo ".tmp\claude-schedule\tasks\$Name.txt"
+$logDir = Join-Path $repo ".tmp\claude-schedule\logs"
 New-Item -ItemType Directory -Force $logDir | Out-Null
 $log = Join-Path $logDir ("{0}-{1:yyyyMMdd-HHmmss}.log" -f $Name, (Get-Date))
 
