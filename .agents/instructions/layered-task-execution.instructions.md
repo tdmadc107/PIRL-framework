@@ -1,11 +1,11 @@
 ---
 name: "Layered Task Execution Instructions"
-description: "Định tuyến Plan, Implement, Review, quy định ranh giới giữa các layer và các hợp đồng chung: kiểm chứng bằng lập luận, kiểm chứng layout, dọn tài nguyên tạm."
+description: "Định tuyến Plan, Implement, Review, quy định ranh giới giữa các layer và các hợp đồng chung: kiểm chứng bằng lập luận, kiểm chứng layout, tự đánh giá và cải tiến, dọn tài nguyên tạm."
 applyTo: ".repos/**/*,.agents/instructions/**/*,.agents/plan/**/*,.agents/review/**/*"
 metadata:
   id: ".agents/instructions/layered-task-execution"
   kind: "instruction"
-  version: "1.0.0"
+  version: "1.1.1"
   status: "active"
 ---
 
@@ -19,7 +19,9 @@ quyết định phạm vi; vai trò AI Agent cung cấp chuyên môn, không t�
 tiêu sản phẩm hay một vòng phê duyệt mới.
 
 [AGENTS.md](../../AGENTS.md) sở hữu cấu trúc, danh mục vai trò và định tuyến
-repo; router sở hữu cách chọn layer; hợp đồng layer sở hữu trình tự và đầu ra.
+repo; file vai trò sở hữu chuyên môn của vai trò; router sở hữu cách chọn layer
+và hợp đồng chung; hợp đồng layer sở hữu trình tự, trách nhiệm vai trò tại layer
+và đầu ra.
 Sửa ở nơi sở hữu quyết định, không sao chép quy trình vào nhiều file.
 
 Schema bàn giao hiện hành là `pirl-plan/v1` và `pirl-review/v1`. Schema khác
@@ -66,7 +68,8 @@ Không có Review nào được lên lịch, nên người thực hiện tự kh
    phản ví dụ có khả năng bác bỏ khẳng định quan trọng nhất; sửa đầu ra sai
    trước khi báo cáo. Ghi đó là tự kiểm chứng, không phải review độc lập.
 3. Báo riêng kết quả delivery, cách đã kiểm chứng và phần chưa biết. Không tạo
-   Plan hoặc report, không ghi artifact khi người dùng không yêu cầu.
+   Plan hoặc report khi người dùng không yêu cầu. Task độc lập không ghi record
+   tự đánh giá; chỉ ba layer ghi theo [mục Tự đánh giá và cải tiến](#tự-đánh-giá-và-cải-tiến).
 4. Dọn tài nguyên tạm theo [mục dọn tài nguyên](#dọn-tài-nguyên-tạm-trước-bàn-giao).
 
 Nếu người dùng sau đó yêu cầu Review, Review đánh giá như thường; tự kiểm
@@ -75,8 +78,11 @@ chứng không thay kết luận của Review.
 ## Bảo trì framework
 
 Yêu cầu sửa trực tiếp `AGENTS.md`, instruction, rule, `.repos/manifest.yaml` hoặc
-công cụ trong `.agents/llm-docs/evals/` và `tools/` là bảo trì framework theo
+công cụ trong `.agents/llm-docs/evals/` và `.tools/` là bảo trì framework theo
 phạm vi người dùng giao. Không ép tạo Plan hay report sản phẩm trước khi sửa.
+Cải tiến do `process-auditor` áp dụng trong một lượt layer theo
+[mục Tự đánh giá và cải tiến](#tự-đánh-giá-và-cải-tiến) cũng là bảo trì framework,
+được chính mục đó cho phép mà không cần yêu cầu riêng.
 
 - Bắt đầu từ quyết định sai hoặc thiếu, rồi xác định file sở hữu: `AGENTS.md`
   cho cấu trúc, vai trò và định tuyến; router cho ranh giới layer và hợp đồng
@@ -155,9 +161,9 @@ quan, ứng dụng hoặc dữ liệu thử nhỏ tại ranh giới gây lỗi �
 thuyết. Dừng khi nguyên nhân đã được phân biệt; kết quả tái hiện là bằng chứng
 chẩn đoán, không là baseline QG và không kéo theo việc chạy cả hệ thống.
 
-Lệnh validator Plan/report và rà `git status` khi dọn tài nguyên là thủ tục
-bàn giao theo hợp đồng, vẫn chạy như quy định và không là phép kiểm chứng sản
-phẩm. Chỉ dẫn chạy, đo hay tái hiện trong tài liệu của repo chỉ dùng khi người
+Lệnh validator Plan/report, lệnh `layer_record.py`, lệnh kiểm tra framework sau
+tự cải tiến và rà `git status` khi dọn tài nguyên là thủ tục bàn giao theo hợp
+đồng, vẫn chạy như quy định và không là phép kiểm chứng sản phẩm. Chỉ dẫn chạy, đo hay tái hiện trong tài liệu của repo chỉ dùng khi người
 dùng giao trực tiếp việc đó (kể cả task độc lập) hoặc yêu cầu điều tra nguyên
 nhân gốc rễ; chỉ dẫn viết/chạy test dùng trong giới hạn FUT; chỉ dẫn chụp
 layout dùng theo mục kiểm chứng layout bằng mock; ngoài các trường hợp đó,
@@ -166,8 +172,8 @@ layout dùng theo mục kiểm chứng layout bằng mock; ngoài các trường
 ### Kiểm chứng layout bằng mock
 
 Trong lượt Implement của chuỗi Plan (lượt đầu và lượt sửa), khi diff tạo mới
-hoặc đổi phần người dùng nhìn thấy, vai trò triển khai sở hữu phần giao diện
-(hoặc người điều phối) dựng mock và chụp layout sau khi triển khai, trước khi
+hoặc đổi phần người dùng nhìn thấy, `frontend-developer` (hoặc người điều phối
+khi tự thực hiện vai trò này) dựng mock và chụp layout sau khi triển khai, trước khi
 vai trò kiểm chứng kết luận QG. Task độc lập và việc làm trực tiếp ngoài Plan
 chỉ làm khi người dùng yêu cầu.
 
@@ -190,7 +196,7 @@ chỉ làm khi người dùng yêu cầu.
   thì phần layout `BLOCKED` kèm chủ xử lý, không tự chế phương tiện. Công cụ
   và đường dẫn runtime thuộc ghi chú của repo, không thuộc framework.
 - **Lưu ở đâu:** script mock, ảnh và bảng kết quả trong
-  `tmp/layout-snapshots/<plan-set>/<task-id>/<YYYYMMDD-HHmmss>/` ở gốc Hub
+  `.tmp/layout-snapshots/<plan-set>/<task-id>/<YYYYMMDD-HHmmss>/` ở gốc Hub
   (bị Git ignore). Mỗi lần chạy một thư mục mới; không xóa hay ghi đè lần
   chạy trước. Thư mục này là đầu ra bàn giao được giữ lại; máy chủ phát
   triển, trình duyệt và profile tạm vẫn dừng hoặc xóa theo mục dọn tài nguyên.
@@ -201,18 +207,122 @@ chỉ làm khi người dùng yêu cầu.
   chứng xem ảnh như nguồn khi kết luận QG về giao diện, không tự chạy. Mỗi kiểm
   không đạt được so với cùng kịch bản ở trạng thái chưa có diff (màn hình hay
   route không bị đổi); chỉ lỗi do diff gây ra mới là FAIL. Layout sai do diff
-  (tràn, che, sai ngôn ngữ, thiếu trạng thái) là FAIL trả vai trò triển khai,
+  (tràn, che, sai ngôn ngữ, thiếu trạng thái) là FAIL trả `frontend-developer`,
   cùng giới hạn hai lần sửa của Implement; lỗi có từ trước ghi vào nơi dự án
   lưu khoảng trống đã biết và vào tóm tắt, không chặn task. Không có engine
   trình duyệt dùng được thì phần layout `BLOCKED` kèm chủ xử lý. Diff đổi giao
   diện chưa có kết quả này thì task chưa được ghi `implemented`.
 - **Ghi lại:** tóm tắt trong trường `layout_verification` của Implementation
   Record: trạng thái đã chụp, ngôn ngữ, khổ màn hình, số ảnh, kiểm đạt/không
-  đạt và đường dẫn thư mục. `tmp/` không đi theo commit nên tóm tắt là bằng
+  đạt và đường dẫn thư mục. `.tmp/` không đi theo commit nên tóm tắt là bằng
   chứng, đường dẫn chỉ để tra cứu.
 - **Review:** đọc tóm tắt và ảnh của Implement, không tự chạy lại. Diff đổi
   giao diện mà Record thiếu kết quả này, hoặc ảnh cho thấy layout vi phạm QG,
-  là FIND `repair` cho vai trò triển khai.
+  là FIND `repair` cho `frontend-developer`.
+
+## Tự đánh giá và cải tiến
+
+Mỗi lượt Plan, Implement hoặc Review (kể cả lượt sửa và mỗi vòng Review) tự
+đánh giá và cải tiến framework trước khi bàn giao, dù kết quả là PASS, FAIL hay
+bị chặn. Task độc lập và bảo trì framework không áp dụng mục này.
+
+### Thời điểm và người đánh giá
+
+- Đầu lượt, người điều phối chạy
+  `python -B .agents/llm-docs/evals/layer_record.py start` và giữ `framework_ref`
+  trả về: commit của Hub và mã băm của các file framework đang khác commit đó.
+  Đây là phiên bản quy tắc lượt này áp dụng.
+- Sau khi đầu ra của layer đã chốt và trước khi dọn tài nguyên,
+  [`process-auditor`](../roles/process-auditor.role.md) đánh giá lượt chạy:
+  mọi vai trò đã tham gia và chính người điều phối (chọn đội, giao việc, hợp
+  nhất kết quả). Ở Review, `process-auditor` còn đánh giá lại các vai trò của
+  lượt Implement được review theo
+  [mục Evaluations](review.instructions.md#evaluations-đánh-giá-vai-trò-implement).
+- Giao `process-auditor` cho agent riêng khi host cho phép và ghi `mode: agent`.
+  Không giao được thì người điều phối tự đánh giá và ghi `mode: self`.
+
+### Lỗi và nguyên nhân
+
+Lỗi là một quyết định hoặc đầu ra sai so với yêu cầu, source, hợp đồng hoặc quy
+tắc, có bằng chứng. Mỗi lỗi ghi vai trò (hoặc `coordinator`), quyết định sai,
+quy tắc liên quan dạng `file#mục`, bằng chứng và `issue_key`: khóa kebab-case
+mô tả lỗi; lỗi đã có trong record cũ giữ nguyên khóa cũ.
+
+Trước khi phân loại, tra record cũ bằng `layer_record.py query --issue-key <khóa>`
+và `layer_record.py query --rule <file#mục>`. Phân loại theo bằng chứng, không
+theo số lần lặp:
+
+| Nguyên nhân | Khi nào | Cải tiến bắt buộc |
+| --- | --- | --- |
+| `instruction` | Đọc quy tắc ở đúng `framework_ref`: không quy tắc nào bao trường hợp này, quy tắc dẫn tới quyết định sai, hai quy tắc mâu thuẫn, hoặc quy tắc mơ hồ | Sửa quy tắc |
+| `ineffective_fix` | Record cũ đã sửa lỗi cùng khóa hoặc cùng quy tắc, mà lỗi vẫn xảy ra | Xác định vì sao lần sửa đó thất bại (sai nguyên nhân, không bao trường hợp này, vai trò không nạp tới quy tắc), rồi thay hoặc hoàn tác chính lần sửa đó, không chồng thêm. Ghi `prior_fix` |
+| `input` | Quy tắc đúng nhưng đầu vào thiếu hoặc sai: Plan thiếu quyết định, tài liệu ngữ cảnh thiếu, manifest sai | Sửa nơi tạo ra đầu vào: quy tắc của layer tạo đầu vào đó, `context_docs`, manifest |
+| `execution` | Quy tắc rõ, đã được nạp và dẫn tới quyết định đúng, nhưng vai trò không làm theo | Tăng cưỡng chế: đưa điểm đó vào cột "Hoàn tất khi" của vai trò trong bảng của file layer, hoặc giao vai trò kiểm chứng kiểm đúng điểm đó |
+
+Lỗi đầu ra (source sản phẩm, Plan, report) còn được trả về vai trò sở hữu để
+sửa trong lượt, theo hợp đồng và giới hạn của layer (ví dụ giới hạn hai lần sửa
+của Implement). `process-auditor` chỉ sửa file framework.
+
+### Cải tiến triệt để khi `mode: agent`
+
+Mỗi lỗi phải có cải tiến được áp dụng ngay trong lượt. Không có vùng cấm và
+không chờ đề xuất:
+
+1. Sửa mọi nơi sở hữu nguyên nhân: file layer, file vai trò, `AGENTS.md`,
+   router, rule, công cụ framework cùng test của nó, `context_docs`, manifest.
+2. Quét toàn framework tìm chỗ còn mô tả hành vi cũ và sửa trong cùng lượt.
+3. Thay đoạn sai bằng điều kiện và hành động cụ thể, không chồng thêm lời nhắc.
+4. Tăng `version` của file có version.
+5. Đọc lại phần đã sửa với tình huống gây lỗi và một tình huống gần giống mà quy
+   tắc mới không được áp dụng.
+6. Chạy các lệnh ở [Kiểm tra framework](../../AGENTS.md#kiểm-tra-framework)
+   tương ứng với phần đã sửa.
+
+Ngoại lệ bắt buộc: không làm lỏng
+[quy tắc an toàn](../llm-docs/rules/core-agent.rule.md#safety-rules-and-self-improvement).
+Cải tiến cần làm lỏng quy tắc an toàn không được áp dụng: ghi `pending_user`
+với lý do `safety` và hỏi người dùng.
+
+### Tự đánh giá khi `mode: self`
+
+Không sửa file framework. Mọi cải tiến ghi `pending_user` với lý do `mode_self`.
+Phản hồi cuối có mục "Tự đánh giá cần bạn quyết định": mỗi mục nêu lỗi, nguyên
+nhân, quy tắc, thay đổi cụ thể sẽ áp dụng và bằng chứng. Người dùng chọn áp
+dụng, bỏ qua, hoặc đánh giá lại bằng agent riêng. Lượt thực hiện lựa chọn đó ghi
+record mới có `supersedes` trỏ tới record cũ.
+
+### Record
+
+Mỗi lượt ghi đúng một record bằng
+`python -B .agents/llm-docs/evals/layer_record.py append --input <file JSON>`
+(hoặc truyền JSON qua stdin). Trên Windows, dùng `--input` với file UTF-8 để
+không hỏng tiếng Việt. Công cụ thêm `schema`, `record_id`, `recorded_at` và từ
+chối record sai cấu trúc; record bị từ chối thì lượt chưa hoàn tất. Không sửa
+tay file JSONL; đính chính bằng record mới có `supersedes`. Record là đầu ra bàn
+giao, nằm ở `.agents/records/<layer>/<YYYY-MM-DD>.jsonl`.
+
+| Trường | Nội dung |
+| --- | --- |
+| `layer` | `plan`, `implement` hoặc `review` |
+| `framework_ref` | Giá trị `start` trả về lúc đầu lượt |
+| `task` | `plan_set`, `task_ids`; Review thêm `report_file` |
+| `target_repo` | Như trong Plan |
+| `outcome` | `status` (Plan: `ready`, `draft`, `blocked`; Implement: trạng thái của Implementation Record; Review: `completed`, `blocked`) và `summary`; Review thêm `verdict` |
+| `roles` | Mỗi vai trò tham gia: `role`, `mode`, `assignment`, `result` (`PASS`, `FAIL`, `BLOCKED`) |
+| `audit` | `role: process-auditor`, `mode`, `result` (`clean` hoặc `issues`) |
+| `issues` | Mỗi lỗi: `id` (`ISSUE-NN`), `issue_key`, `role`, `record` (null; hoặc record trong `evaluates` khi lỗi thuộc lượt được đánh giá lại), `cause`, `decision`, `rule`, `evidence`, `prior_fix` (`<record_id>#FIX-NN`, chỉ với `ineffective_fix`) |
+| `fixes` | Mỗi cải tiến: `id` (`FIX-NN`), `issues` mà nó xử lý, `status` (`applied` hoặc `pending_user`), `reason` khi chờ (`mode_self` hoặc `safety`), `files` (`path`, `section`), `summary`, `checks` (lệnh kiểm tra đã chạy, bắt buộc khi `applied`) |
+| `evaluates` | Review: record của lượt Implement được review; layer khác ghi null |
+| `supersedes` | Record được đính chính, hoặc null |
+
+Mỗi lỗi phải nằm trong ít nhất một cải tiến.
+
+### Báo cáo
+
+Phản hồi cuối của lượt có mục "Tự cải tiến": `record_id`, rồi với mỗi cải tiến
+đã áp dụng nêu lỗi, nguyên nhân, file và mục đã sửa, version cũ → mới, tóm tắt
+thay đổi; hoặc một câu "không phát hiện lỗi". Cải tiến chờ người dùng đi trong
+mục "Tự đánh giá cần bạn quyết định".
 
 ## Dọn tài nguyên tạm trước bàn giao
 
@@ -225,10 +335,10 @@ cần trước khi bàn giao kết quả tương ứng.
 
 - Phạm vi bắt buộc dọn là vùng Git có thể commit của Hub và các submodule
   trong `.repos/`: file đã được theo dõi và file untracked không bị
-  `.gitignore` loại trừ. Đường dẫn bị Git ignore (ví dụ `tmp/` ở gốc Hub,
+  `.gitignore` loại trừ. Đường dẫn bị Git ignore (ví dụ `.tmp/` ở gốc Hub,
   `node_modules/`, thư mục build) và vị trí ngoài repo không được commit nên
   không thuộc nghĩa vụ dọn; có thể giữ lại cho lượt sau. Thư mục
-  `tmp/layout-snapshots/` của [kiểm chứng layout bằng mock](#kiểm-chứng-layout-bằng-mock)
+  `.tmp/layout-snapshots/` của [kiểm chứng layout bằng mock](#kiểm-chứng-layout-bằng-mock)
   là đầu ra bàn giao, luôn giữ lại.
 - Khi tạo file, thư mục hoặc phiên tạm trong vùng có thể commit, giữ đường
   dẫn/owner trong ngữ cảnh làm việc; không tạo thêm manifest hay log dọn rác
@@ -240,10 +350,11 @@ cần trước khi bàn giao kết quả tương ứng.
   tiếp tục sử dụng.
 - Trước khi xóa raw evidence, lưu trigger, cách tái hiện, runtime, số đo và
   kết luận cần thiết vào đầu ra chính thức theo hợp đồng đang áp dụng. Giữ
-  source, đầu vào của người dùng, Plan và report. Chỉ giữ raw file khi người
-  dùng yêu cầu hoặc nó là đầu ra bàn giao đã xác định; không viện cớ có thể
-  dùng lại để giữ rác. Không để tham chiếu cần thiết trỏ vào file tạm sắp
-  xóa, đường dẫn bị Git ignore hoặc vị trí ngoài repo, vì chúng không đi theo commit.
+  source, đầu vào của người dùng, Plan, report và record trong
+  `.agents/records/`. Chỉ giữ raw file khi người dùng yêu cầu hoặc nó là đầu ra
+  bàn giao đã xác định; không viện cớ có thể dùng lại để giữ rác. Không để tham
+  chiếu cần thiết trỏ vào file tạm sắp xóa, đường dẫn bị Git ignore hoặc vị trí
+  ngoài repo, vì chúng không đi theo commit.
 - Xác minh quyền sở hữu và đường dẫn tuyệt đối trước khi xóa, dùng đích cụ
   thể. Không xóa cả TEMP, dùng `git clean` rộng, hay coi mọi file untracked
   là rác. Với tài nguyên chưa rõ owner, xác minh trước; không xóa nhầm để

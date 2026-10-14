@@ -1,6 +1,6 @@
 # Hẹn giờ một task Claude Code chạy một lần, xem danh sách và xoá task đã hẹn.
 # Task nằm trong thư mục \Claude\ của Task Scheduler, gọi run.ps1 -Name <Name>; prompt lưu ở
-# tmp\claude-schedule\tasks\<Name>.txt của Hub (tmp/ không vào git).
+# .tmp\claude-schedule\tasks\<Name>.txt của Hub (.tmp/ không vào git).
 #   schedule.ps1 -Name review-t01 -At "2026-10-10 08:00" -Prompt "..." [-SessionId <uuid>]
 #   schedule.ps1 -Name review-t01 -At 08:00 -PromptFile D:\prompt.md   # HH:mm: lần tới của giờ đó
 #   schedule.ps1 -List
@@ -22,7 +22,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repo = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-$taskDir = Join-Path $repo "tmp\claude-schedule\tasks"
+$taskDir = Join-Path $repo ".tmp\claude-schedule\tasks"
 $taskPath = "\Claude\"
 
 if ($List) {

@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 // Dashboard terminal cho Hub PIRL ("mission control"): trạng thái các phiên Claude Code
 // (context, hạn mức 5h/7d, đang làm gì), file đang thay đổi theo git trong Hub cùng
-// mọi submodule `.repos/*`, tiến độ Plan/Review của framework, và nhật ký sự kiện trực tiếp.
+// mọi submodule `.repos/*`, tiến độ Plan/Review của framework, và nhật ký sự kiện trực tiếp:
+// file mới/sửa/xóa theo fs.watch, stage/bỏ stage, commit và đổi nhánh theo git.
 //
-// Chạy:   node tools/dashboard/dashboard.js [--interval 10] [--max-age 12] [--files 10] [--agents 2] [--plans 6]
+// Chạy:   node .tools/dashboard/dashboard.js [--interval 10] [--max-age 12] [--files 10] [--agents 2] [--plans 6]
 //   --interval  số giây giữa hai lần quét git (mặc định 10)
 //   --max-age   chỉ hiện phiên Claude cập nhật trong N giờ gần nhất (mặc định 12)
 //   --files     số file tối đa hiện cho mỗi repo (mặc định 10)
@@ -28,6 +29,7 @@ const { execFile } = require('child_process');
 
 const HUB = path.resolve(__dirname, '..', '..');
 const PLAN_DIR = path.join(HUB, '.agents', 'plan');
+const MANIFEST = path.join(HUB, '.repos', 'manifest.yaml');
 const REVIEW_DIR = path.join(HUB, '.agents', 'review');
 const SESSION_DIR = path.join(os.homedir(), '.claude', 'dashboard', 'sessions');
 
@@ -37,7 +39,6 @@ const MAX_AGE_H = Math.max(0.1, Number(args['max-age']) || 12);
 const MAX_FILES = Math.max(1, Number(args.files) || 10);
 const MAX_AGENTS = Math.max(1, Number(args.agents) || 2);
 const MAX_PLANS = Math.max(1, Number(args.plans) || 6);
-const EVENTS_PER_REPO = 40;
 const EVENT_RING = 400;
 const ONCE = Boolean(args.once);
 const ONCE_ROWS = Number(args.rows) > 0 ? Math.max(12, Number(args.rows)) : null;
@@ -67,14 +68,62 @@ function git(cwd, gitArgs) {
   });
 }
 
-function listRepos() {
-  const repos = [{ name: 'Hub', dir: HUB }];
-  let text = '';
-  try { text = fs.readFileSync(path.join(HUB, '.gitmodules'), 'utf8'); } catch { return repos; }
-  for (const m of text.matchAll(/^\s*path\s*=\s*(.+?)\s*$/gm)) {
-    repos.push({ name: m[1], dir: path.join(HUB, m[1]) });
+// Đọc `repos.<id>.path` từ .repos/manifest.yaml (tập con YAML của framework, thụt hai dấu cách).
+// Mục thiếu `path` vẫn được giữ với giá trị null để báo lỗi đăng ký.
+function manifestRepos() {
+  let text;
+  try { text = fs.readFileSync(MANIFEST, 'utf8'); } catch { return new Map(); }
+  const unquote = s => s.trim().replace(/^["']|["']$/g, '');
+  const out = new Map();
+  let inRepos = false;
+  let id = null;
+  for (const raw of text.split(/\r?\n/)) {
+    if (!raw.trim() || raw.trimStart().startsWith('#')) continue;
+    const indent = raw.length - raw.trimStart().length;
+    const line = raw.trim();
+    if (indent === 0) { inRepos = /^repos\s*:/.test(line); id = null; continue; }
+    if (!inRepos) continue;
+    if (indent === 2) {
+      const m = line.match(/^([^:]+):\s*$/);
+      id = m ? unquote(m[1]) : null;
+      if (id) out.set(id, null);
+    } else if (indent === 4 && id) {
+      const m = line.match(/^path\s*:\s*(.+)$/);
+      if (m) out.set(id, unquote(m[1]).replace(/\\/g, '/').replace(/\/+$/, '') || null);
+    }
   }
+  return out;
+}
+
+// Hub cùng hợp của submodule trong `.gitmodules` và repo trong manifest, ghép theo đường dẫn.
+// Repo đã đăng ký khi có cả hai (AGENTS.md, mục Định tuyến repo); thiếu một bên là đăng ký dở.
+function listRepos() {
+  const repos = [{ name: 'Hub', dir: HUB, submodule: true, ids: [] }];
+  const byPath = new Map();
+  let text = '';
+  try { text = fs.readFileSync(path.join(HUB, '.gitmodules'), 'utf8'); } catch { /* chưa có submodule */ }
+  for (const m of text.matchAll(/^\s*path\s*=\s*(.+?)\s*$/gm)) {
+    const p = m[1].replace(/\\/g, '/').replace(/\/+$/, '');
+    byPath.set(p, { name: p, submodule: true, ids: [] });
+  }
+  manifestIssues = [];
+  for (const [id, p] of manifestRepos()) {
+    if (!p) { manifestIssues.push(`mục ${id} trong .repos/manifest.yaml thiếu path`); continue; }
+    if (!byPath.has(p)) byPath.set(p, { name: p, submodule: false, ids: [] });
+    byPath.get(p).ids.push(id);
+  }
+  for (const r of byPath.values()) repos.push({ ...r, dir: path.join(HUB, r.name) });
   return repos;
+}
+
+// Lý do một repo chưa đăng ký đủ, hoặc '' khi đủ.
+function registryIssue(r) {
+  if (r.name === 'Hub') return '';
+  if (!r.ids.length) return 'submodule chưa có mục trong .repos/manifest.yaml';
+  if (r.ids.length > 1) return `nhiều mục manifest cùng path (${r.ids.join(', ')})`;
+  if (!r.submodule) return `mục manifest ${r.ids[0]} trỏ tới đường dẫn chưa là submodule trong .gitmodules`;
+  if (r.absent) return 'submodule chưa clone (git submodule update --init)';
+  return '';
 }
 
 // Porcelain v2: "1 XY ..." (đổi), "2 XY ... path\torig" (đổi tên), "u XY ..." (xung đột), "? path".
@@ -116,6 +165,9 @@ function parseNumstat(out) {
 }
 
 async function scanRepo(repo) {
+  // Thư mục chưa có `.git` (submodule chưa clone, hoặc manifest trỏ tới đường dẫn chưa có) không
+  // được quét: `git -C` sẽ đi ngược lên Hub và báo nhầm thay đổi của Hub.
+  if (repo.name !== 'Hub' && !fs.existsSync(path.join(repo.dir, '.git'))) return { ...repo, absent: true, files: [] };
   // Hub bỏ qua thay đổi bên trong submodule vì mỗi submodule có khối riêng.
   const ignore = repo.name === 'Hub' ? ['--ignore-submodules=dirty'] : [];
   const [status, numstat, last] = await Promise.all([
@@ -458,13 +510,16 @@ const STATES = {
   error: { col: P.red, code: 'FAULT' },
 };
 const KINDS = {
-  NEW: P.green, MOD: P.amber, DEL: P.red, CLEAR: P.muted, COMMIT: P.violet,
-  BRANCH: P.magenta, AGENT: P.cyan, SYS: P.neon, PLAN: P.blue, REVIEW: P.orange,
+  NEW: P.green, MOD: P.amber, DEL: P.red, CLEAR: P.muted, STAGE: P.teal, UNSTAGE: P.muted,
+  COMMIT: P.violet, BRANCH: P.magenta, AGENT: P.cyan, SYS: P.neon, PLAN: P.blue, REVIEW: P.orange,
+  REPO: P.white, WARN: P.red,
 };
 
 // ---------- trạng thái ----------
 
 let repoState = [];
+let manifestIssues = []; // lỗi của chính manifest (mục thiếu path), do listRepos ghi lại
+let reportedManifestIssues = new Set();
 let planState = [];
 let planLoaded = false;
 let sessions = [];
@@ -480,49 +535,112 @@ function pushEvent(kind, text) {
   if (events.length > EVENT_RING) events.length = EVENT_RING;
 }
 
+// Ghi một đợt sự kiện file, gộp theo (repo, thư mục cấp một, loại): nhóm tới BURST file ghi từng
+// dòng, nhóm lớn hơn thành một dòng có đếm để cài đặt hay `git add` hàng loạt không làm tràn nhật ký.
+const BURST = 3;
+function pushGrouped(entries) {
+  const groups = new Map();
+  for (const e of entries) {
+    const top = e.sub.includes('/') ? e.sub.slice(0, e.sub.indexOf('/') + 1) : '';
+    const key = `${e.tag}|${top}|${e.kind}`;
+    if (!groups.has(key)) groups.set(key, { ...e, top, items: [] });
+    groups.get(key).items.push(e.label || e.sub);
+  }
+  for (const g of groups.values()) {
+    if (g.items.length <= BURST) g.items.forEach(l => pushEvent(g.kind, `${g.tag}/${l}`));
+    else pushEvent(g.kind, `${g.tag}/${g.top} ×${g.items.length} · ${g.items[0]}`);
+  }
+}
+
 const shortName = name => (name === 'Hub' ? 'hub' : name.replace(/^\.repos\//, ''));
 
-// So sánh hai lần quét git để sinh sự kiện cho nhật ký. Mỗi repo ghi tối đa EVENTS_PER_REPO
-// sự kiện file mỗi lần quét; phần vượt được gộp thành một dòng có đếm theo loại, không bị bỏ.
+// Ghi thay đổi đăng ký repo: mục manifest và submodule được thêm hay gỡ, cùng cảnh báo khi một repo
+// rơi vào trạng thái đăng ký dở (registryIssue). Lần quét đầu chỉ báo các repo đang đăng ký dở.
+function diffRegistry(prev, next) {
+  const prevMap = new Map(prev.map(r => [r.name, r]));
+  const nextMap = new Map(next.map(r => [r.name, r]));
+  for (const name of new Set([...prevMap.keys(), ...nextMap.keys()])) {
+    const p = prevMap.get(name), r = nextMap.get(name);
+    const tag = shortName(name);
+    const before = p ? registryIssue(p) : '', after = r ? registryIssue(r) : '';
+    if (prev.length) {
+      const was = p || { ids: [], submodule: false }, now = r || { ids: [], submodule: false };
+      for (const id of now.ids) if (!was.ids.includes(id)) pushEvent('REPO', `đăng ký ${id} → ${name}`);
+      for (const id of was.ids) if (!now.ids.includes(id)) pushEvent('REPO', `gỡ đăng ký ${id} (${name})`);
+      if (now.submodule && !was.submodule) pushEvent('REPO', `submodule mới: ${tag}`);
+      if (was.submodule && !now.submodule) pushEvent('REPO', `submodule đã gỡ: ${tag}`);
+      if (r && !after && before) pushEvent('REPO', `${tag}: đã đăng ký đủ`);
+    }
+    if (after && after !== before) pushEvent('WARN', `${tag}: ${after}`);
+  }
+  for (const issue of manifestIssues) if (!reportedManifestIssues.has(issue)) pushEvent('WARN', issue);
+  reportedManifestIssues = new Set(manifestIssues);
+}
+
+// Cột X của porcelain v2 là trạng thái trong index; '.' là chưa stage gì, file untracked cũng vậy.
+// Một đường dẫn có thể có hai dòng (sau `git rm --cached`: `D.` và `??`); dòng đã stage được ưu tiên.
+function indexStates(files) {
+  const states = new Map();
+  for (const f of files) {
+    const s = f.xy === '??' ? '.' : f.xy[0];
+    if (s !== '.' || !states.has(f.path)) states.set(f.path, s);
+  }
+  return states;
+}
+
+// So sánh hai lần quét git để sinh sự kiện cho nhật ký. Git sở hữu commit, nhánh, repo và việc
+// stage/bỏ stage (chỉ đổi .git/index nên fs.watch không thấy). Sự kiện file chỉ sinh ở đây khi
+// fs.watch không chạy, và được gộp qua pushGrouped như sự kiện của watcher.
 function diffRepos(prev, next) {
   if (!prev.length) {
     const dirty = next.filter(r => r.files.length);
     pushEvent('SYS', `baseline · ${next.length} repo · ${dirty.length} có thay đổi · ${dirty.reduce((n, r) => n + r.files.length, 0)} file`);
+    diffRegistry(prev, next);
     return;
   }
+  diffRegistry(prev, next);
   const prevMap = new Map(prev.map(r => [r.name, r]));
-  for (const r of next) if (!prevMap.has(r.name)) pushEvent('SYS', `repo mới đăng ký: ${shortName(r.name)}`);
-  for (const p of prev) if (!next.some(r => r.name === p.name)) pushEvent('SYS', `repo đã gỡ: ${shortName(p.name)}`);
   for (const r of next) {
     const p = prevMap.get(r.name);
-    if (!p || r.error || p.error) continue;
+    if (!p || r.error || p.error || r.absent || p.absent) continue;
     const tag = shortName(r.name);
-    let shown = 0;
-    const hidden = {};
-    const emit = (k, t) => {
-      if (shown < EVENTS_PER_REPO) { pushEvent(k, t); shown++; } else hidden[k] = (hidden[k] || 0) + 1;
-    };
     if (p.branch !== r.branch) pushEvent('BRANCH', `${tag} ${p.branch} → ${r.branch}`);
     const committed = r.last && (!p.last || p.last.hash !== r.last.hash);
     if (committed) pushEvent('COMMIT', `${tag} ${r.last.hash} ${r.last.subject}`);
-    // Khi fs.watch đang chạy, nó sở hữu sự kiện file (kể cả file bị Git ignore hoặc tạo rồi xóa giữa
-    // hai lần quét) nên đây chỉ là đường dự phòng; git vẫn sở hữu commit, nhánh và repo.
-    const old = new Map(p.files.map(f => [f.path, f]));
-    if (!WATCHING) {
-      for (const f of r.files) {
-        const o = old.get(f.path);
-        old.delete(f.path);
-        const kind = f.xy.includes('D') ? 'DEL' : f.xy === '??' || f.xy.includes('A') ? 'NEW' : 'MOD';
-        if (!o) emit(kind, `${tag}/${f.path}`);
-        else if (o.mtime !== f.mtime || o.xy !== f.xy || o.add !== f.add || o.del !== f.del) {
-          emit(kind === 'NEW' ? 'MOD' : kind, `${tag}/${f.path}`);
-        }
-      }
-      if (!committed) for (const o of old.values()) emit('CLEAR', `${tag}/${o.path}`);
+    const staging = [];
+    const before = indexStates(p.files), after = indexStates(r.files);
+    for (const [file, s] of after) {
+      if ((before.get(file) || '.') !== s) staging.push({ kind: s === '.' ? 'UNSTAGE' : 'STAGE', tag, sub: file });
     }
-    const more = Object.entries(hidden);
-    if (more.length) {
-      pushEvent('SYS', `${tag}: +${more.reduce((n, [, c]) => n + c, 0)} thay đổi khác (${more.map(([k, c]) => `${k} ${c}`).join(' · ')})`);
+    // Phần đã stage rời danh sách thay đổi mà không có commit: đã bị hoàn tác (reset, restore, stash).
+    if (!committed) {
+      for (const [file, s] of before) if (s !== '.' && !after.has(file)) staging.push({ kind: 'UNSTAGE', tag, sub: file });
+    }
+    pushGrouped(staging);
+    if (!WATCHING) {
+      // Khóa tách dòng `D.` và `??` của cùng đường dẫn; khi trạng thái đổi giữa untracked và tracked
+      // (stage file mới, `git rm --cached`) thì vẫn ghép được với dòng cũ để không báo NEW/CLEAR giả.
+      const key = f => (f.xy === '??' ? '?' : '') + f.path;
+      // `git rm --cached`: file vẫn còn trên đĩa, chỉ index đổi nên đã có sự kiện STAGE/UNSTAGE.
+      const indexOnly = files => new Set(files.filter(f => f.xy[0] === 'D' && f.mtime).map(f => f.path));
+      const old = new Map(p.files.map(f => [key(f), f]));
+      const nowIndexOnly = indexOnly(r.files), wasIndexOnly = indexOnly(p.files);
+      const entries = [];
+      for (const f of r.files) {
+        const k = old.has(key(f)) ? key(f) : [f.path, '?' + f.path].find(x => old.has(x));
+        const o = k && old.get(k);
+        if (k) old.delete(k);
+        if (nowIndexOnly.has(f.path)) continue;
+        // Stage không đổi nội dung file nên chỉ thời điểm sửa file mới tạo sự kiện file.
+        const kind = !f.mtime ? 'DEL' : f.xy === '??' || f.xy.includes('A') ? 'NEW' : 'MOD';
+        if (!o) entries.push({ kind, tag, sub: f.path });
+        else if (o.mtime !== f.mtime) entries.push({ kind: kind === 'NEW' ? 'MOD' : kind, tag, sub: f.path });
+      }
+      if (!committed) {
+        const cleared = new Set([...old.values()].map(o => o.path).filter(x => !wasIndexOnly.has(x)));
+        for (const x of cleared) entries.push({ kind: 'CLEAR', tag, sub: x });
+      }
+      pushGrouped(entries);
     }
   }
 }
@@ -558,14 +676,42 @@ function refreshPlans() {
 // ---------- theo dõi file thời gian thực ----------
 
 // fs.watch đệ quy trên gốc Hub (gồm `.repos/*`) thấy cả đường dẫn bị Git ignore và file tạo rồi xóa
-// giữa hai lần quét. Sự kiện được gom FLUSH_MS rồi gộp theo (repo, thư mục cấp một, loại): nhóm
-// vượt BURST file thành một dòng có đếm để cài đặt hàng loạt không làm tràn nhật ký.
+// giữa hai lần quét. Sự kiện file được gom FLUSH_MS rồi ghi qua pushGrouped; nội dung .git/ bị bỏ qua.
 const FLUSH_MS = 700;
-const BURST = 3;
+// Khoảng cách tối thiểu từ lần quét git trước: sau thay đổi trạng thái git thì quét sớm để ghi
+// stage/commit/nhánh; sau thay đổi file thì chỉ cần làm mới panel REPOSITORIES nên giãn hơn.
+const GIT_GAP_MS = 500;
+const FILE_GAP_MS = 3000;
+const GIT_DEBOUNCE_MS = 200; // một lệnh git ghi index, ref và log liên tiếp; chờ ghi xong mới quét
+// Stage, commit, reset, đổi nhánh chỉ ghi vào thư mục git và thay file bằng cách đổi tên file .lock,
+// nên watcher theo file có thể mất dấu (fs.watch đệ quy trên Linux). Dashboard so stat của đúng các
+// file này mỗi GIT_POLL_MS cho từng repo: vài lệnh stat, không gọi git, chạy cả khi không có fs.watch.
+const GIT_POLL_MS = 500;
+const GIT_STATE_FILES = ['index', 'HEAD', path.join('logs', 'HEAD')];
+const gitDirs = new Map(); // thư mục repo -> thư mục git
+const gitStamps = new Map(); // thư mục repo -> dấu stat của GIT_STATE_FILES
 let WATCHING = false;
 let lastScanAt = 0;
 let flushTimer = null;
+let scanTimer = null;
+let scanTimerAt = 0;
+let scanAgain = false;
 const pendingFs = new Map(); // đường dẫn tương đối -> { renames, changes }
+
+// Hẹn một lần quét git do sự kiện, sớm nhất `delay` ms nữa và cách lần quét trước ít nhất `gap` ms.
+// Các yêu cầu dồn vào một hẹn giờ duy nhất; yêu cầu đến lúc đang quét được bù bằng đúng một lần quét
+// sau đó, nên không bỏ sót thay đổi và không chạy chồng lệnh git. Nhịp --interval không đi qua đây.
+function requestScan(gap, delay = 0) {
+  if (scanning) { scanAgain = true; return; }
+  const at = Math.max(Date.now() + delay, lastScanAt + gap);
+  if (scanTimer && scanTimerAt <= at) return;
+  clearTimeout(scanTimer);
+  scanTimerAt = at;
+  scanTimer = setTimeout(() => {
+    scanTimer = null;
+    if (scanning) scanAgain = true; else scan();
+  }, at - Date.now());
+}
 
 function repoTagFor(rel) {
   for (const r of repoState) {
@@ -588,7 +734,8 @@ function flushFs() {
   flushTimer = null;
   const batch = [...pendingFs.entries()];
   pendingFs.clear();
-  const groups = new Map();
+  const entries = [];
+  let framework = false;
   for (const [rel, p] of batch) {
     let st = null;
     try { st = fs.statSync(path.join(HUB, rel)); } catch { /* đã bị xóa */ }
@@ -596,17 +743,39 @@ function flushFs() {
     const created = st && p.renames && st.birthtimeMs > Date.now() - 5000;
     const kind = !st ? 'DEL' : created ? 'NEW' : 'MOD';
     const { tag, sub } = repoTagFor(rel);
-    const top = sub.includes('/') ? sub.slice(0, sub.indexOf('/') + 1) : '';
     const label = `${sub}${st && st.isDirectory() ? '/' : ''}${!st && p.renames > 1 ? ' (tạo rồi xóa)' : ''}`;
-    const key = `${tag}|${top}|${kind}`;
-    if (!groups.has(key)) groups.set(key, { tag, top, kind, items: [] });
-    groups.get(key).items.push(label);
+    entries.push({ kind, tag, sub, label });
+    if (rel.startsWith('.agents/plan/') || rel.startsWith('.agents/review/')) framework = true;
   }
-  for (const g of groups.values()) {
-    if (g.items.length <= BURST) g.items.forEach(l => pushEvent(g.kind, `${g.tag}/${l}`));
-    else pushEvent(g.kind, `${g.tag}/${g.top} ×${g.items.length} · ${g.items[0]}`);
+  pushGrouped(entries);
+  if (framework) refreshPlans(); // chỉ đọc file Markdown, không cần chờ lần quét git
+  requestScan(FILE_GAP_MS); // làm mới panel REPOSITORIES theo thay đổi vừa thấy
+}
+
+// Submodule có `.git` là file `gitdir: <đường dẫn>`; repo thường có thư mục `.git`.
+function gitDirOf(dir) {
+  const dotgit = path.join(dir, '.git');
+  try {
+    if (fs.statSync(dotgit).isDirectory()) return dotgit;
+    const m = fs.readFileSync(dotgit, 'utf8').match(/^gitdir:\s*(.+?)\s*$/m);
+    return m ? path.resolve(dir, m[1]) : null;
+  } catch { return null; }
+}
+
+function pollGitState() {
+  let changed = false;
+  for (const r of repoState) {
+    if (!gitDirs.get(r.dir)) gitDirs.set(r.dir, gitDirOf(r.dir));
+    const gd = gitDirs.get(r.dir);
+    if (!gd) continue;
+    const stamp = GIT_STATE_FILES.map(f => {
+      try { const st = fs.statSync(path.join(gd, f)); return `${st.mtimeMs}:${st.size}:${st.ino}`; } catch { return '-'; }
+    }).join('|');
+    const prev = gitStamps.get(r.dir);
+    gitStamps.set(r.dir, stamp);
+    if (prev !== undefined && prev !== stamp) changed = true;
   }
-  if (Date.now() - lastScanAt > 3000) scan(); // làm mới panel REPOSITORIES theo thay đổi vừa thấy
+  if (changed) requestScan(GIT_GAP_MS, GIT_DEBOUNCE_MS);
 }
 
 function startWatcher() {
@@ -637,6 +806,7 @@ async function scan() {
   } finally {
     scanning = false;
     lastScanAt = Date.now();
+    if (scanAgain) { scanAgain = false; requestScan(GIT_GAP_MS); }
   }
 }
 
@@ -779,6 +949,10 @@ function reposBody(iw, now) {
   if (!repoState.length) return [paint(P.cyan, `${SPIN[Math.floor(now / 80) % SPIN.length]} đang quét các repo…`)];
   const lines = [];
   if (scanError) lines.push(paint(P.red, `× ${scanError}`));
+  // Đăng ký dở đứng đầu panel để không bị danh sách file đẩy khỏi màn hình.
+  const issues = [...manifestIssues, ...repoState.filter(registryIssue).map(r => `${shortName(r.name)} · ${registryIssue(r)}`)];
+  for (const issue of issues) lines.push(paint(P.red, `⚠ ${issue}`));
+  if (issues.length) lines.push('');
   const clean = [];
   for (const r of repoState) {
     if (r.error) { lines.push(paint(P.red, `× ${r.name}: ${r.error}`)); continue; }
@@ -805,7 +979,7 @@ function reposBody(iw, now) {
   }
   if (clean.length) {
     lines.push(paint(P.muted, 'CLEAN'), '');
-    const items = clean.map(r => `${paint(P.neon, '■')} ${paint(P.text, shortName(r.name))}` +
+    const items = clean.map(r => `${registryIssue(r) ? paint(P.red, '⚠') : paint(P.neon, '■')} ${paint(P.text, shortName(r.name))}` +
       (r.upstream && (r.ahead || r.behind) ? ' ' + paint(P.amber, `↑${r.ahead}↓${r.behind}`) : ''));
     const cell = Math.max(...items.map(vlen)) + 3;
     const perRow = Math.max(1, Math.floor(iw / cell));
@@ -820,7 +994,9 @@ function reposBody(iw, now) {
 function reposTag() {
   const dirty = repoState.filter(r => r.files.length);
   const files = dirty.reduce((n, r) => n + r.files.length, 0);
-  return paint(dirty.length ? P.amber : P.muted, `${dirty.length}/${repoState.length} DIRTY · ${files} Δ`);
+  const warn = manifestIssues.length + repoState.filter(registryIssue).length;
+  return paint(dirty.length ? P.amber : P.muted, `${dirty.length}/${repoState.length} DIRTY · ${files} Δ`) +
+    (warn ? paint(P.red, ` · ${warn} ⚠`) : '');
 }
 
 const PLAN_STATES = {
@@ -859,7 +1035,7 @@ function logBody(now, max) {
       const n = Math.floor((now - e.at) / 12);
       if (n < text.length) text = text.slice(0, n) + (now % 400 < 200 ? '█' : ' ');
     }
-    return `${paint(P.faint, clock(e.at))} ${paint(KINDS[e.kind] || P.text, BOLD + e.kind.padEnd(6))} ${paint(i === 0 ? P.white : P.text, text)}`;
+    return `${paint(P.faint, clock(e.at))} ${paint(KINDS[e.kind] || P.text, BOLD + e.kind.padEnd(7))} ${paint(i === 0 ? P.white : P.text, text)}`;
   });
 }
 
@@ -1083,6 +1259,7 @@ async function main() {
   scan();
   startWatcher();
   setInterval(scan, INTERVAL_MS);
+  setInterval(pollGitState, GIT_POLL_MS);
   setInterval(refreshSessions, 1000);
   setInterval(tick, FRAME_MS);
   tick();
