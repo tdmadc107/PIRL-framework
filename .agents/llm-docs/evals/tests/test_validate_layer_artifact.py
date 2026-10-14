@@ -20,8 +20,9 @@ AGENTS = """# Vai trò AI Agent
 | --- | --- | --- |
 | `business-analyst` | Logic nghiệp vụ | plan, review |
 | `code-analyst` | Lần luồng | plan, verify, review |
-| `implementer` | Viết source | implement |
+| `backend-developer` | Viết source | implement |
 | `code-reviewer` | Phản biện diff | verify, review |
+| `process-auditor` | Tự đánh giá | audit |
 
 # Mục khác
 """
@@ -44,7 +45,7 @@ created_at: "2026-09-09T09:00:00+07:00"
 target_repo: .
 source_request: Review API DTO ownership
 planning_roles: [code-analyst]
-implementation_roles: [implementer]
+implementation_roles: [backend-developer]
 verification_roles: [code-reviewer]
 ---
 # API task
@@ -114,7 +115,7 @@ class HandoffIOTests(unittest.TestCase):
             REVIEW.replace("task.md", "missing.md"),
             REVIEW.replace("review_round: 1", "review_round: 2"),
             REVIEW.replace("verdict: PASS\nstatus", "verdict: FAIL\nstatus"),
-            REVIEW.replace("review_roles: [code-analyst, code-reviewer, business-analyst]", "review_roles: [implementer]"),
+            REVIEW.replace("review_roles: [code-analyst, code-reviewer, business-analyst]", "review_roles: [backend-developer]"),
             REVIEW.replace("repair_roles: []", "repair_roles: [business-analyst]"),
         ):
             with self.subTest(invalid=invalid):
@@ -123,13 +124,14 @@ class HandoffIOTests(unittest.TestCase):
                 self.assertNotEqual(code, 0)
                 self.assertFalse(result["passed"])
 
-    def test_plan_roles_come_from_the_catalog_and_verifier_differs_from_implementer(self):
+    def test_plan_roles_come_from_the_catalog_and_verifier_differs_from_implementation_role(self):
         for invalid, field in (
             (PLAN.replace("verification_roles: [code-reviewer]", "verification_roles: []"), "verification_roles"),
             (PLAN.replace("verification_roles: [code-reviewer]", "verification_roles: [unknown-role]"), "verification_roles"),
             (PLAN.replace("verification_roles: [code-reviewer]", "verification_roles: [business-analyst]"), "verification_roles"),
-            (PLAN.replace("implementation_roles: [implementer]", "implementation_roles: [code-reviewer]"), "implementation_roles"),
-            (PLAN.replace("planning_roles: [code-analyst]", "planning_roles: [implementer]"), "planning_roles"),
+            (PLAN.replace("implementation_roles: [backend-developer]", "implementation_roles: [code-reviewer]"), "implementation_roles"),
+            (PLAN.replace("verification_roles: [code-reviewer]", "verification_roles: [process-auditor]"), "verification_roles"),
+            (PLAN.replace("planning_roles: [code-analyst]", "planning_roles: [backend-developer]"), "planning_roles"),
         ):
             with self.subTest(field=field, invalid=invalid):
                 code, result = self.write_plan(invalid)
@@ -170,23 +172,38 @@ class RoleCatalogTests(unittest.TestCase):
     """Layer role tables must use IDs that AGENTS.md registers for that layer."""
 
     LAYER_USAGES = {
-        "plan": {"plan"},
-        "implement": {"implement", "verify"},
-        "review": {"review"},
+        "plan": {"plan", "audit"},
+        "implement": {"implement", "verify", "audit"},
+        "review": {"review", "audit"},
     }
+    # A table row starts with the role ID, plain or linked to its role file.
+    ROW = re.compile(r"(?m)^\| (?:\[`([a-z0-9-]+)`\]\(([^)]+)\)|`([a-z0-9-]+)`) \|")
 
     def test_layer_role_tables_match_the_agents_catalog(self):
         catalog = load_roles(REPO)
         for layer, usages in self.LAYER_USAGES.items():
-            text = (REPO / f".agents/instructions/{layer}.instructions.md").read_text(encoding="utf-8")
-            section = re.search(rf"(?ms)^## Vai trò AI Agent tại layer {layer.capitalize()}\s*$(.*?)(?=^## )", text)
+            path = REPO / f".agents/instructions/{layer}.instructions.md"
+            section = re.search(rf"(?ms)^## Vai trò AI Agent tại layer {layer.capitalize()}\s*$(.*?)(?=^## )", path.read_text(encoding="utf-8"))
             self.assertIsNotNone(section, layer)
-            ids = re.findall(r"(?m)^\| `([a-z0-9-]+)` \|", section.group(1))
-            self.assertTrue(ids, layer)
-            for role in ids:
+            rows = self.ROW.findall(section.group(1))
+            self.assertTrue(rows, layer)
+            for linked, target, plain in rows:
+                role = linked or plain
                 with self.subTest(layer=layer, role=role):
                     self.assertIn(role, catalog)
                     self.assertTrue(catalog[role] & usages, f"{role} is not registered for {layer}")
+                    if target:
+                        self.assertEqual((path.parent / target).resolve(), (REPO / f".agents/roles/{role}.role.md").resolve())
+
+    def test_every_catalog_role_has_exactly_one_role_file(self):
+        catalog = load_roles(REPO)
+        files = {p.name.removesuffix(".role.md"): p for p in (REPO / ".agents/roles").glob("*.role.md")}
+        self.assertEqual(set(files), set(catalog))
+        for role, path in files.items():
+            with self.subTest(role=role):
+                header = path.read_text(encoding="utf-8").split("---")[1]
+                self.assertIn(f"id: .agents/roles/{role}\n", header)
+                self.assertRegex(header, r"(?m)^version: \d+\.\d+\.\d+$")
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ PLAN_HEADINGS = ("Cần làm gì", "Làm như thế nào", "Vai trò tham gia", 
 REVIEW_HEADINGS = ("Business", "Evaluations")
 PLAN_STATUSES = ("planned", "awaiting_confirmation", "implemented", "blocked", "failed")
 TASK_PATTERN = re.compile(r"T\d{2,}")
-ROLE_USAGES = ("plan", "implement", "verify", "review")
+ROLE_USAGES = ("plan", "implement", "verify", "review", "audit")
 ROLE_SECTION = re.compile(r"(?ms)^# Vai trò AI Agent\s*$(.*?)(?=^# |\Z)")
 ROLE_ROW = re.compile(r"^\|\s*`([a-z0-9]+(?:-[a-z0-9]+)*)`\s*\|(.*)\|\s*$")
 MANIFEST = ".repos/manifest.yaml"

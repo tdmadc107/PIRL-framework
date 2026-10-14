@@ -1,11 +1,11 @@
 ---
 name: "Hướng dẫn layer Review"
-description: "Đối chiếu quality gate của Plan bằng lập luận trên source, không dựa vào build/test, báo Business và Evaluations (đánh giá vai trò Implement và lỗi hướng dẫn)."
+description: "Đối chiếu quality gate của Plan bằng lập luận trên source, không dựa vào build/test, báo Business và Evaluations (đánh giá vai trò Implement, nguyên nhân lỗi và cải tiến đã áp dụng)."
 applyTo: ".agents/instructions/review.instructions.md"
 metadata:
   id: ".agents/instructions/review"
   kind: "instruction"
-  version: "1.0.0"
+  version: "1.1.0"
   status: "active"
 ---
 
@@ -22,17 +22,21 @@ ID, symbol, tên vai trò và đường dẫn, diễn giải bằng tiếng Vi�
 
 ## Vai trò AI Agent tại layer Review
 
-Danh mục vai trò và nguyên tắc giao việc nằm ở [AGENTS.md](../../AGENTS.md#vai-trò-ai-agent).
-Review chọn `review_roles` trong bảng dưới, theo thứ tự này, đủ để trả lời các
-QG của Plan; mặc định là cả bốn vai trò. Mỗi vai trò xử lý chuyên môn của mình
-theo QG/ranh giới cụ thể, không bắt mỗi vai trò tìm một lỗi.
+Danh mục vai trò và nguyên tắc giao việc nằm ở [AGENTS.md](../../AGENTS.md#vai-trò-ai-agent);
+chuyên môn của từng vai trò nằm trong file vai trò được liên kết trong bảng.
+Review chọn `review_roles` trong bảng dưới theo cột "Chọn khi", theo thứ tự của
+bảng: bốn vai trò đầu là mặc định, thêm `ux-designer` khi diff đổi giao diện.
+Mỗi vai trò xử lý chuyên môn của mình theo QG/ranh giới cụ thể, không bắt mỗi
+vai trò tìm một lỗi.
 
-| Vai trò | Trách nhiệm tại Review | Hoàn tất khi |
-| --- | --- | --- |
-| `code-analyst` | Lần entrypoint, caller, bên ghi/đọc, cấu hình tới trạng thái cuối của từng QG | Kết luận QG kèm đường đã lần và nguồn |
-| `code-reviewer` | Phản biện diff: bug, hồi quy, quyền, mất nhất quán, test vi phạm FUT | Nghi vấn được chứng minh thành FIND hoặc bị bác bỏ có nguồn |
-| `business-analyst` | Đối chiếu REQ và `Logic bắt buộc` của QG với hành vi source; chặn tiêu chí tự thêm | Mỗi QG có `PASS\|FAIL\|BLOCKED` đúng REQ |
-| `solution-architect` | Xét hợp đồng, ownership, ranh giới task và phụ thuộc có bị phá không | Nêu được QG bị ảnh hưởng hoặc xác nhận không ảnh hưởng |
+| Vai trò | Chọn khi | Trách nhiệm tại Review | Hoàn tất khi |
+| --- | --- | --- | --- |
+| [`code-analyst`](../roles/code-analyst.role.md) | Mặc định | Lần entrypoint, caller, bên ghi/đọc, cấu hình tới trạng thái cuối của từng QG | Kết luận QG kèm đường đã lần và nguồn |
+| [`code-reviewer`](../roles/code-reviewer.role.md) | Mặc định | Phản biện diff: bug, hồi quy, quyền và bảo mật, mất nhất quán, guard/xử lý lỗi, test vi phạm FUT | Nghi vấn được chứng minh thành FIND hoặc bị bác bỏ có nguồn |
+| [`business-analyst`](../roles/business-analyst.role.md) | Mặc định | Đối chiếu REQ và `Logic bắt buộc` của QG với hành vi source; chặn tiêu chí tự thêm | Mỗi QG có `PASS\|FAIL\|BLOCKED` đúng REQ |
+| [`solution-architect`](../roles/solution-architect.role.md) | Mặc định | Xét hợp đồng, ownership, ranh giới task và phụ thuộc có bị phá không | Nêu được QG bị ảnh hưởng hoặc xác nhận không ảnh hưởng |
+| [`ux-designer`](../roles/ux-designer.role.md) | Diff đổi giao diện | Đọc `layout_verification` và ảnh của Implement, đối chiếu QG giao diện | Mỗi QG giao diện có kết luận kèm ảnh và source đã đối chiếu |
+| [`process-auditor`](../roles/process-auditor.role.md) | Mọi vòng Review; không ghi vào `review_roles` | Đánh giá lại vai trò Implement (mục Evaluations) và tự đánh giá lượt Review theo [router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến) | Evaluations bao phủ đội Implement; record đã ghi; cải tiến đã áp dụng hoặc đã tổng hợp cho người dùng |
 
 - Phân xử bất đồng bằng source, hợp nhất nghi vấn cùng nguyên nhân; không bỏ
   phiếu. Agent riêng chỉ hữu ích khi có câu hỏi độc lập; không giả lập giao
@@ -47,9 +51,9 @@ theo QG/ranh giới cụ thể, không bắt mỗi vai trò tìm một lỗi.
   được giao và report trước cùng task nếu có. Xác định snapshot trước khi kết
   luận; thay đổi hiện tại không tự là bằng chứng về quyết định của một lượt cũ.
 - Source sản phẩm, test, config, Plan và Implementation Record là đầu vào chỉ
-  đọc. Review chỉ ghi report của lượt này. Không sửa sản phẩm, Plan, `AGENTS.md`,
-  router, layer hay rule. Lỗi hướng dẫn được báo trong `Evaluations` kèm file
-  sở hữu và đề xuất; sửa framework cần yêu cầu bảo trì từ người dùng.
+  đọc. Review ghi report của lượt này; file framework chỉ do `process-auditor`
+  sửa theo [router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến).
+  Không sửa sản phẩm, Plan hay Implementation Record.
 
 ## Business: chứng minh hoặc bác bỏ từng nghi vấn
 
@@ -108,29 +112,30 @@ theo QG/ranh giới cụ thể, không bắt mỗi vai trò tìm một lỗi.
    FIND `FUT`, nếu chưa có thất bại nhưng thiếu căn cứ bắt buộc thì `BLOCKED`,
    còn lại `PASS`. Risk và lỗi hướng dẫn tự thân không đảo ngược kết luận này.
 
-## Evaluations: đánh giá vai trò Implement và lỗi hướng dẫn
+## Evaluations: đánh giá vai trò Implement
 
-Mục này trả lời hai câu hỏi tách biệt: mỗi vai trò Implement có làm đúng phần
-được giao không, và có câu hướng dẫn nào khiến agent quyết định sai không.
-Không có công cụ lưu hay chấm điểm; kết luận là nội dung report có nguồn.
+Mục này trả lời: mỗi vai trò của lượt Implement được review có làm đúng phần
+được giao không, nếu sai thì nguyên nhân gốc là gì và framework đã được cải tiến
+ở đâu. `process-auditor` của Review thực hiện mục này cùng phần tự đánh giá lượt
+Review, theo [router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến).
+Review biết thêm các FIND mà lượt Implement bỏ sót, nên đây là lần đánh giá có
+nhiều bằng chứng hơn lần tự đánh giá của chính Implement.
 
-1. Lập một EVAL cho mỗi vai trò trong `effective_implementation_roles` rồi mỗi
+1. Tìm record của lượt Implement được review bằng
+   `python -B .agents/llm-docs/evals/layer_record.py query --layer implement --plan-set <plan-set> --task <task-id>`
+   (lấy record mới nhất của lượt đó) và ghi nó vào `evaluates` của record Review.
+2. Lập một EVAL cho mỗi vai trò trong `effective_implementation_roles` rồi mỗi
    vai trò kiểm chứng của Plan, đúng thứ tự Implementation Record. Đánh giá theo
    phần việc, thông tin và chỉ dẫn thực sự được giao; không đánh trượt cả đội
    vì một bug. Vai trò kiểm chứng được đánh giá ở kết luận QG của nó: lập luận
-   có đứng vững trước source không, có dựa vào kết quả chạy thay lập luận không.
-2. Phân biệt lỗi đầu ra cục bộ (vai trò bỏ qua đường hợp lệ đã rõ) với thiếu sót
-   tái sử dụng trong hướng dẫn (quy tắc dẫn agent tới quyết định sai, hoặc
-   đường được hướng dẫn đã bị source bác bỏ). Chỉ lỗi thứ hai là lỗi hướng dẫn.
-3. Với lỗi hướng dẫn, ghi: quyết định sai, câu/quy tắc gây ra, file sở hữu
-   (`AGENTS.md`, router, layer, rule hoặc tài liệu ngữ cảnh của repo), đề xuất
-   thay thế và tình huống gần giống mà quy tắc mới không được áp dụng. Review
-   không tự sửa; người dùng giao việc bảo trì framework thì sửa theo
-   [router](layered-task-execution.instructions.md#bảo-trì-framework).
-4. `Khắc phục` ghi `đề xuất` kèm file/đề xuất, hoặc `no_change` khi không có lỗi
-   hướng dẫn được chứng minh. Không tạo lỗi giả để chứng minh đã học. Lỗi
-   hướng dẫn không hạ verdict Business và không chặn bàn giao một delivery đã
-   đủ điều kiện; nếu chính report sai do hướng dẫn, sửa report trước khi chốt.
+   có đứng vững trước source không, có bỏ sót FIND mà Review tìm thấy không, có
+   dựa vào kết quả chạy thay lập luận không.
+3. Mỗi lỗi của một vai trò Implement được phân loại nguyên nhân và cải tiến theo
+   router, ghi vào record Review với `record` là record trong `evaluates`. EVAL
+   ghi lại nguyên nhân, `issue_key` và nơi đã sửa, hoặc trạng thái chờ người dùng.
+4. Không tạo lỗi giả. Lỗi của vai trò hay hướng dẫn không hạ verdict Business và
+   không chặn bàn giao một delivery đã đủ điều kiện; nếu chính report sai, sửa
+   report trước khi chốt.
 
 ## Mẫu report duy nhất
 
@@ -250,10 +255,10 @@ implementation_target: "<diff/commit/đường dẫn đã review>"
 | --- | --- |
 | Vai trò | <vai trò triển khai hoặc kiểm chứng của Implement> |
 | Kết quả | <PASS / FAIL / BLOCKED> |
-| Lỗi đầu ra | <quyết định sai có căn cứ của vai trò hoặc không có> |
-| Lỗi hướng dẫn | <câu/quy tắc dẫn tới quyết định sai và file sở hữu; hoặc không có> |
-| Khắc phục | <đề xuất thay thế kèm file; hoặc no_change khi không có lỗi hướng dẫn> |
-| Bằng chứng | <Implementation Record, nguồn/diff đã đối chiếu> |
+| Lỗi | <quyết định sai có căn cứ của vai trò; hoặc không có> |
+| Nguyên nhân | <instruction / ineffective_fix / input / execution kèm `issue_key`; hoặc không có> |
+| Cải tiến | <file và mục đã sửa, version cũ → mới; hoặc chờ người dùng (mode_self / safety); hoặc không cần> |
+| Bằng chứng | <Implementation Record, record Implement, nguồn/diff đã đối chiếu> |
 ````
 
 Thay placeholder bằng nội dung thực tế, chọn một giá trị cho mỗi trạng thái
@@ -274,20 +279,20 @@ python -B .agents/llm-docs/evals/validate_layer_artifact.py --kind review --path
 
 Người điều phối và mọi vai trò Review thực hiện
 [dọn tài nguyên tạm](layered-task-execution.instructions.md#dọn-tài-nguyên-tạm-trước-bàn-giao)
-sau lần kiểm chứng cuối, rồi kiểm lại trước phản hồi cuối. Quy tắc áp dụng cả
-khi Business FAIL hoặc Review bị chặn; không nhận đã hoàn tất chỉ vì report
-và validator đã đạt.
+sau lần kiểm chứng, tự đánh giá và ghi record cuối, rồi kiểm lại trước phản
+hồi cuối. Quy tắc áp dụng cả khi Business FAIL hoặc Review bị chặn; không nhận
+đã hoàn tất chỉ vì report và validator đã đạt.
 
 `verdict` bằng `business_verdict`. `status: completed` nghĩa là đã hoàn tất
-đánh giá: Business có kết luận đủ căn cứ, Evaluations bao phủ đội Implement và
-đã dọn, kiểm lại tài nguyên tạm theo hợp đồng chung. Business FAIL vẫn có thể
-là một Review hoàn tất. Thiếu đầu vào cần để đánh giá dùng `status: blocked`.
+đánh giá: Business có kết luận đủ căn cứ, Evaluations bao phủ đội Implement,
+record Review đã ghi, và đã dọn, kiểm lại tài nguyên tạm theo hợp đồng chung.
+Business FAIL vẫn có thể là một Review hoàn tất. Thiếu đầu vào cần để đánh giá dùng `status: blocked`.
 
 Thiếu Implementation Record hoặc đầu vào của lượt triển khai thì giữ bản nháp
 hai phần với đúng đầu vào còn thiếu. Bản nháp chưa đủ hợp đồng không được dùng
 làm nguồn giao sửa sản phẩm. Bổ sung ngay trên bản nháp khi có đầu vào, không
 mở một vòng chỉ để điền thông tin thiếu.
 
-Báo rõ Business, mức hoàn tất đánh giá, lỗi hướng dẫn đã phát hiện (nếu có)
-và liên kết report/Plan. Kết thúc tại bàn giao; không tự Implement sản phẩm,
+Báo rõ Business, mức hoàn tất đánh giá, kết quả tự cải tiến theo mục báo cáo
+của router và liên kết report/Plan. Kết thúc tại bàn giao; không tự Implement sản phẩm,
 chọn task kế tiếp hay mở vòng Review mới.

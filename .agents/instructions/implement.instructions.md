@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/implement.instructions.md"
 metadata:
   id: ".agents/instructions/implement"
   kind: "instruction"
-  version: "1.0.0"
+  version: "1.1.0"
   status: "active"
 ---
 
@@ -23,18 +23,22 @@ quyết định sản phẩm đã chốt, giữ bằng chứng đủ bàn giao v
 
 ## Vai trò AI Agent tại layer Implement
 
-Danh mục vai trò và nguyên tắc giao việc nằm ở [AGENTS.md](../../AGENTS.md#vai-trò-ai-agent).
+Danh mục vai trò và nguyên tắc giao việc nằm ở [AGENTS.md](../../AGENTS.md#vai-trò-ai-agent);
+chuyên môn của từng vai trò nằm trong file vai trò được liên kết trong bảng.
 Plan chọn vai trò từ bảng dưới; lượt sửa dùng `repair_roles` của report Review.
-Người điều phối Implement giao phần việc, nguồn và REQ/QG liên quan cho từng
-vai trò, rồi hợp nhất kết quả theo bằng chứng.
+Người điều phối Implement giao cho từng vai trò file vai trò, dòng của vai trò
+đó trong bảng, phần việc, nguồn và REQ/QG liên quan, rồi hợp nhất kết quả theo
+bằng chứng.
 
 | Vai trò | Loại | Trách nhiệm tại Implement | Hoàn tất khi |
 | --- | --- | --- | --- |
-| `implementer` | triển khai | Sửa source, tài liệu đi kèm và test theo FUT trong đường dẫn được phép; tự phản biện phần mình làm | Source/tài liệu/test giao đủ REQ; tự phản biện không còn nghi vấn mở |
-| `code-reviewer` | kiểm chứng | Phản biện diff để tìm bug, hồi quy, lỗ hổng quyền, mất nhất quán dữ liệu/trạng thái, vi phạm hợp đồng | `PASS\|FAIL\|BLOCKED` từng QG được giao, kèm đường đã lần, phản ví dụ, nguồn |
-| `code-analyst` | kiểm chứng | Lần luồng dữ liệu/điều khiển từ entrypoint tới trạng thái cuối qua mọi caller/consumer chịu ảnh hưởng; đối chiếu tài liệu với source | Như trên |
-| `safeguard-auditor` | kiểm chứng | Xét guard, validator, xử lý lỗi, tín hiệu thành công của sản phẩm có phân biệt đúng/sai thật không | Như trên |
-| `scenario-designer` | kiểm chứng | Lập bảng kịch bản trên giấy từ hợp đồng rồi lần từng kịch bản qua source | Như trên |
+| [`backend-developer`](../roles/backend-developer.role.md) | triển khai | Sửa code không phải giao diện, tài liệu đi kèm và test theo FUT cho phần đó, trong đường dẫn được phép; tự phản biện phần mình làm | Source/tài liệu/test giao đủ REQ của phần mình; tự phản biện không còn nghi vấn mở |
+| [`frontend-developer`](../roles/frontend-developer.role.md) | triển khai | Sửa giao diện, chuỗi giao diện theo ngôn ngữ, tài liệu đi kèm và test theo FUT; chụp layout bằng mock khi diff đổi giao diện; tự phản biện | Như trên, và `layout_verification` có lần chụp đạt mọi kiểm khi diff đổi giao diện |
+| [`technical-writer`](../roles/technical-writer.role.md) | triển khai | Tạo/cập nhật tài liệu ngữ cảnh, tài liệu hợp đồng, mục lục, bảng trạng thái đặc tả cho task chỉ có tài liệu | Tài liệu khớp source và REQ; mỗi khẳng định có nguồn |
+| [`code-reviewer`](../roles/code-reviewer.role.md) | kiểm chứng | Phản biện diff: bug, hồi quy, quyền và bảo mật, mất nhất quán dữ liệu/trạng thái, guard/validator/xử lý lỗi, vi phạm hợp đồng, test vi phạm FUT | `PASS\|FAIL\|BLOCKED` từng QG được giao, kèm đường đã lần, phản ví dụ, nguồn |
+| [`code-analyst`](../roles/code-analyst.role.md) | kiểm chứng | Lần luồng từ entrypoint tới trạng thái cuối qua mọi caller/consumer chịu ảnh hưởng; lập bảng kịch bản cho QG nhiều nhánh/trạng thái/thứ tự; đối chiếu tài liệu với source | Như trên |
+| [`ux-designer`](../roles/ux-designer.role.md) | kiểm chứng | Đối chiếu ảnh và bảng kết quả layout với QG giao diện và source hiển thị | Như trên |
+| [`process-auditor`](../roles/process-auditor.role.md) | tự đánh giá | Tự đánh giá lượt Implement theo [router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến); không ghi vào danh sách vai trò của Plan | Record đã ghi; cải tiến đã áp dụng hoặc đã tổng hợp cho người dùng |
 
 - Vai trò triển khai không kiểm chứng phần chính nó làm. Vai trò kiểm chứng
   không sửa đầu ra; FAIL được trả cho vai trò triển khai sở hữu phần đó.
@@ -110,7 +114,8 @@ vai trò, rồi hợp nhất kết quả theo bằng chứng.
 - Sửa FIND `repair` và thực hiện hành động gỡ BLOCK `retry`. RISK `deferred`
   giữ chủ và điều kiện xem lại; BLOCK `escalate` giữ chủ có thể cung cấp đầu
   vào. Retry phải có hành động/điều kiện mới có căn cứ, không chạy lại để chờ may.
-  Mục EVAL chỉ ghi lỗi hướng dẫn; Implement không biến nó thành FIND hoặc QG
+  Mục EVAL ghi đánh giá vai trò của lượt trước và cải tiến framework mà Review
+  đã áp dụng; đọc để biết quy tắc đã đổi, nhưng không biến nó thành FIND hoặc QG
   sản phẩm mới.
 - Giữ bằng chứng trước/sau cho cơ chế cần sửa bằng lập luận trên source:
   đường chạy cũ dẫn tới lỗi và điểm sửa chặn nó, kèm phản ví dụ phân biệt
@@ -123,8 +128,8 @@ vai trò, rồi hợp nhất kết quả theo bằng chứng.
 Theo [router](layered-task-execution.instructions.md#kiểm-chứng-bằng-lập-luận),
 lượt Implement không build, không chạy ứng dụng để nghiệm thu, chỉ viết,
 cập nhật và chạy test theo FUT, và không lấy kết quả test/build làm bằng chứng QG.
-Khi diff đổi giao diện, vai trò triển khai sở hữu phần đó (hoặc người điều
-phối) thực hiện [kiểm chứng layout bằng mock](layered-task-execution.instructions.md#kiểm-chứng-layout-bằng-mock)
+Khi diff đổi giao diện, `frontend-developer` (hoặc người điều phối khi tự thực
+hiện vai trò này) thực hiện [kiểm chứng layout bằng mock](layered-task-execution.instructions.md#kiểm-chứng-layout-bằng-mock)
 sau khi triển khai và trước khi giao vai trò kiểm chứng; ảnh và bảng kết quả
 là nguồn cho vai trò kiểm chứng, không thay lập luận của nó.
 Khi Plan giao test, vai trò triển khai chỉ chạy test của chức năng đang phát
@@ -143,7 +148,7 @@ Sau khi đội triển khai/sửa xong, từng vai trò kiểm chứng xử lý 
    ghi/đọc tới kết quả và trạng thái mà `Logic bắt buộc` nêu, gồm nhánh từ
    chối/thất bại cần giữ. Với QG về giao diện, xem thêm ảnh và bảng kết quả
    của lần chụp layout mới nhất; thiếu chúng khi diff đổi giao diện thì trả
-   FAIL cho vai trò triển khai.
+   FAIL cho `frontend-developer`.
 2. Chọn phản ví dụ có thể xuất hiện trong phạm vi QG, tìm guard hoặc giải
    thích cạnh tranh, rồi xét source có bác bỏ tuyên bố hoàn tất không.
 3. Khi task có test, đọc test trong diff và đối chiếu FUT: truy về REQ, đúng
@@ -159,10 +164,12 @@ FAIL được trả cho vai trò triển khai sở hữu phần đó kèm trigge
 Tối đa hai lần sửa cùng nguyên nhân trong lượt; còn FAIL thì ghi `failed`
 cùng bằng chứng. Không hạ QG để khớp code hay thêm QG giữa lượt.
 
-Implement tự kiểm tra sản phẩm, không đổi kết luận Review. Lỗi hướng dẫn được
-ghi trong `residual_risk` với quyết định sai, quy tắc gây ra và file sở hữu để
-Review hoặc người dùng xử lý; Implement không tự sửa file framework trừ khi
-Plan hoặc yêu cầu bảo trì giao quyền đó.
+Implement tự kiểm tra sản phẩm, không đổi kết luận Review. Sau khi ghi
+Implementation Record, `process-auditor` tự đánh giá lượt Implement, áp dụng cải
+tiến framework và ghi record theo
+[router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến). Lỗi
+đầu ra mà `process-auditor` tìm thấy được trả về vai trò triển khai sở hữu phần
+đó, trong cùng giới hạn hai lần sửa ở trên.
 
 ## Ghi kết quả
 
@@ -186,7 +193,7 @@ sửa nội dung Plan để hợp thức hóa hướng đã tự đổi.
 - root_cause_revalidation: <ITEM-ID=confirmed|contradicted|blocked/bằng chứng trước sửa; hoặc đúng N/A cho lượt đầu>
 - review_item_disposition: <FIND-01=resolved|failed|blocked/bằng chứng; RISK-01=deferred/chủ xử lý và điều kiện xem lại; BLOCK-01=unblocked|blocked|escalated/bằng chứng; hoặc đúng N/A cho lượt đầu>
 - role_challenge_results: <vai-trò=PASS|FAIL|BLOCKED/tuyên bố, phản biện và bằng chứng; ...>
-- residual_risk: <rủi ro còn lại và tác động, kèm lỗi hướng dẫn nếu có; hoặc none>
+- residual_risk: <rủi ro còn lại và tác động; hoặc none>
 - review_handoff: <file Plan, đối tượng triển khai, report nguồn nếu có>
 - role_selection_source: plan | <đường dẫn report nguồn tương đối>
 - effective_implementation_roles: <danh sách vai trò đúng thứ tự, phân cách bằng dấu phẩy>
@@ -215,9 +222,10 @@ Report nguồn phải cùng Plan/task và dùng `pirl-review/v1`.
 
 Người điều phối và mọi vai trò thực hiện
 [dọn tài nguyên tạm](layered-task-execution.instructions.md#dọn-tài-nguyên-tạm-trước-bàn-giao)
-sau lần kiểm chứng/ghi kết quả cuối, rồi kiểm lại trước bàn giao. Không nhận
-lượt Implement hoàn tất hoặc để Review dọn thay; áp dụng cả khi kết quả là
-failed/blocked, giữ source và bằng chứng chính thức theo hợp đồng chung.
+sau lần kiểm chứng, ghi kết quả và tự đánh giá cuối, rồi kiểm lại trước bàn
+giao. Không nhận lượt Implement hoàn tất hoặc để Review dọn thay; áp dụng cả khi
+kết quả là failed/blocked, giữ source và bằng chứng chính thức theo hợp đồng
+chung.
 
 Chỉ ghi `implemented` khi yêu cầu và trách nhiệm vai trò đạt, vai trò kiểm chứng
 kết luận mọi QG `PASS`, tự phản biện không còn nghi vấn mở và, khi diff đổi
@@ -229,7 +237,8 @@ blocker cần thiết. Không nhận đã sửa một finding mà nguyên nhân 
 `awaiting_confirmation` chỉ dùng ở checkpoint thật sự có trong Plan.
 QG chưa đủ bằng chứng ghi `BLOCKED`, không tự nhận PASS.
 
-Báo kết quả, bằng chứng có tính quyết định, phần chưa hoàn tất và liên kết
-Plan. Bàn giao source đã triển khai, đúng Plan và report nguồn cho Review hoặc
-chủ gỡ chặn; chỉ rõ điều kiện tiếp tục. Kết thúc lượt được giao, không tự mở
-Review, chọn task kế tiếp hoặc xin lại quyền cho việc đã được giao.
+Báo kết quả, bằng chứng có tính quyết định, phần chưa hoàn tất, liên kết
+Plan và kết quả tự cải tiến theo mục báo cáo của router. Bàn giao source đã
+triển khai, đúng Plan và report nguồn cho Review hoặc chủ gỡ chặn; chỉ rõ điều
+kiện tiếp tục. Kết thúc lượt được giao, không tự mở Review, chọn task kế tiếp
+hoặc xin lại quyền cho việc đã được giao.

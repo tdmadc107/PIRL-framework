@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/plan.instructions.md"
 metadata:
   id: ".agents/instructions/plan"
   kind: "instruction"
-  version: "1.0.0"
+  version: "1.1.0"
   status: "active"
 ---
 
@@ -22,16 +22,19 @@ tự quyết lại hành vi sản phẩm.
 
 ## Vai trò AI Agent tại layer Plan
 
-Danh mục vai trò và nguyên tắc giao việc nằm ở [AGENTS.md](../../AGENTS.md#vai-trò-ai-agent).
-Plan dùng các vai trò sau; chọn đội nhỏ nhất đủ chuyên môn cho yêu cầu và ghi
-vào `planning_roles`. Người dùng chỉ định vai trò thì giữ đúng danh sách đó.
-Không gọi thêm vai trò chỉ để đủ quy trình.
+Danh mục vai trò và nguyên tắc giao việc nằm ở [AGENTS.md](../../AGENTS.md#vai-trò-ai-agent);
+chuyên môn của từng vai trò nằm trong file vai trò được liên kết trong bảng.
+Plan chọn đội nhỏ nhất đủ chuyên môn cho yêu cầu theo cột "Chọn khi" và ghi vào
+`planning_roles`. Người dùng chỉ định vai trò thì giữ đúng danh sách đó. Không
+gọi thêm vai trò chỉ để đủ quy trình.
 
-| Vai trò | Trách nhiệm tại Plan | Đầu vào | Hoàn tất khi |
-| --- | --- | --- | --- |
-| `business-analyst` | Chốt REQ, logic nghiệp vụ và QG; tìm quyết định sản phẩm còn thiếu | Yêu cầu, quyết định đã có, đặc tả | Mỗi REQ có nguồn và kết quả; mỗi QG nêu được logic bắt buộc |
-| `solution-architect` | Chốt hợp đồng API/dữ liệu/ownership, ranh giới và phụ thuộc giữa task | Source, hợp đồng dùng chung | Mỗi task có kết quả nghiệm thu riêng; phụ thuộc thật được ghi |
-| `code-analyst` | Đọc caller/consumer, cấu hình và ràng buộc; xác định điểm sửa và tài liệu bị ảnh hưởng | Source của repo đích | Phạm vi sửa và đường dẫn được phép sửa có căn cứ source |
+| Vai trò | Chọn khi | Trách nhiệm tại Plan | Đầu vào | Hoàn tất khi |
+| --- | --- | --- | --- | --- |
+| [`business-analyst`](../roles/business-analyst.role.md) | Yêu cầu có hành vi nghiệp vụ cần chốt | Chốt REQ, logic nghiệp vụ và QG; tìm quyết định sản phẩm còn thiếu | Yêu cầu, quyết định đã có, đặc tả | Mỗi REQ có nguồn và kết quả; mỗi QG nêu được logic bắt buộc |
+| [`code-analyst`](../roles/code-analyst.role.md) | Yêu cầu chạm source hoặc tài liệu của repo đích | Đọc caller/consumer, cấu hình và ràng buộc; xác định điểm sửa và tài liệu bị ảnh hưởng | Source của repo đích | Phạm vi sửa và đường dẫn được phép sửa có căn cứ source |
+| [`solution-architect`](../roles/solution-architect.role.md) | Đổi hợp đồng API/dữ liệu/quyền, hoặc gói có nhiều task | Chốt hợp đồng, ownership, mô hình quyền, ranh giới và phụ thuộc giữa task | Source, hợp đồng dùng chung | Mỗi task có kết quả nghiệm thu riêng; phụ thuộc thật được ghi |
+| [`ux-designer`](../roles/ux-designer.role.md) | Yêu cầu chạm phần người dùng nhìn thấy | Chốt màn hình, trạng thái hiển thị, luồng thao tác, chuỗi giao diện theo ngôn ngữ và khổ màn hình; viết QG giao diện thành logic trạng thái và bố cục | Yêu cầu, giao diện hiện có, tài liệu ngữ cảnh của repo | Mỗi trạng thái hiển thị được tạo hoặc đổi có QG |
+| [`process-auditor`](../roles/process-auditor.role.md) | Mọi lượt Plan; không ghi vào `planning_roles` | Tự đánh giá lượt Plan theo [router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến) | Plan, nguồn đã dùng, quyết định của từng vai trò | Record đã ghi; cải tiến đã áp dụng hoặc đã tổng hợp cho người dùng |
 
 Người điều phối Plan hợp nhất kết luận của các vai trò, phân xử bất đồng bằng
 nguồn (không bỏ phiếu), viết Plan và tự rà soát. Mỗi vai trò trả quyết định
@@ -123,27 +126,30 @@ khi REQ/đặc tả cần.
   theo [hợp đồng Implement](implement.instructions.md#kiểm-chứng-quality-gate-bằng-lập-luận).
   Mỗi task có ít nhất một vai trò mỗi loại, và hai danh sách không giao nhau:
   một vai trò không kiểm chứng phần chính nó triển khai.
-- Chọn vai trò kiểm chứng trong danh mục của
+- Chọn vai trò triển khai trong danh mục của
   [Implement](implement.instructions.md#vai-trò-ai-agent-tại-layer-implement)
-  theo câu hỏi QG cần trả lời, không ghép cứng theo vai trò triển khai:
-  - `code-reviewer` phản biện diff để tìm bug, hồi quy, lỗ hổng quyền, mất nhất
-    quán dữ liệu/trạng thái hoặc vi phạm hợp đồng; hợp với sửa lỗi và thay
-    đổi có rủi ro hồi quy.
-  - `code-analyst` lần luồng dữ liệu/điều khiển từ entrypoint tới trạng thái
-    cuối cùng mọi caller/consumer chịu ảnh hưởng; hợp với đổi hợp đồng, nhiều
-    điểm tích hợp, hoặc tài liệu ngữ cảnh phải khớp source.
-  - `safeguard-auditor` xét một cơ chế kiểm tra hay tín hiệu của sản phẩm
-    (guard, validator, xử lý lỗi, trạng thái báo thành công) có thật sự phân
-    biệt đúng/sai không; hợp khi lỗi là báo thành công giả hoặc nuốt lỗi.
-  - `scenario-designer` thiết kế trên giấy bảng kịch bản từ hợp đồng rồi lần
-    từng kịch bản qua source; hợp với QG có nhiều nhánh, trạng thái hoặc thứ
-    tự đồng thời.
+  theo phần việc: `backend-developer` cho mọi code không phải giao diện (API,
+  domain, dữ liệu, job, CLI, script, công cụ), `frontend-developer` cho giao
+  diện, `technical-writer` cho task chỉ có tài liệu. Khi task có cả hai phía,
+  ghi đúng thứ tự phụ thuộc, ví dụ `backend-developer` trước khi
+  `frontend-developer` dùng API mới.
+- Chọn vai trò kiểm chứng theo câu hỏi QG cần trả lời, không ghép cứng theo vai
+  trò triển khai:
+  - `code-reviewer` phản biện diff: bug, hồi quy, quyền và bảo mật, mất nhất
+    quán dữ liệu/trạng thái, guard/validator/xử lý lỗi báo thành công giả,
+    vi phạm hợp đồng; mặc định cho mọi thay đổi code.
+  - `code-analyst` lần luồng từ entrypoint tới trạng thái cuối qua mọi
+    caller/consumer, lập bảng kịch bản cho QG nhiều nhánh, trạng thái hoặc thứ
+    tự; hợp với đổi hợp đồng, nhiều điểm tích hợp, hoặc tài liệu phải khớp
+    source.
+  - `ux-designer` đối chiếu ảnh layout với QG giao diện; chọn khi task có QG
+    giao diện.
 
-  Ví dụ: bug-fix sửa một lỗi → `code-reviewer`, hoặc `safeguard-auditor` khi
-  lỗi nằm ở cơ chế báo thành công giả; đổi API kèm tài liệu → `code-reviewer`
-  cho quyền/hồi quy và `code-analyst` cho consumer và tài liệu. Chỉ ghép nhiều
-  vai trò khi mỗi vai trò trả lời câu hỏi riêng; mỗi QG có đúng một vai trò
-  kiểm chứng chịu kết luận.
+  Ví dụ: bug-fix một lỗi → `code-reviewer`; đổi API kèm tài liệu →
+  `code-reviewer` cho quyền/hồi quy và `code-analyst` cho consumer và tài liệu;
+  thêm màn hình → `code-reviewer` và `ux-designer`. Chỉ ghép nhiều vai trò khi
+  mỗi vai trò trả lời câu hỏi riêng; mỗi QG có đúng một vai trò kiểm chứng chịu
+  kết luận.
 - Kiểm chứng không phải chạy script, tạo test hay chạy lệnh. Không giao vai trò
   kiểm chứng việc build, viết/chạy test, chạy ứng dụng hay viết công cụ; test
   thuộc vai trò triển khai. `Hoàn tất khi` của vai trò kiểm chứng là kết luận
@@ -245,15 +251,14 @@ lỗi nội dung Plan đã hoàn tất; Implement chỉ thực hiện task này 
    Validator chỉ kiểm tra đầu vào bàn giao (schema, trường bắt buộc, vai trò,
    phụ thuộc, múi giờ); nó không chấm nội dung. Người rà soát vẫn phải chứng
    minh Plan đúng.
-3. Khi nhận ra một câu hướng dẫn trong `AGENTS.md`, router, layer hoặc rule
-   đã dẫn tới quyết định sai, ghi vào bàn giao: quyết định sai, quy tắc gây ra
-   nó, file sở hữu và đề xuất thay thế. Không tự sửa file framework tại Plan;
-   việc đó cần yêu cầu bảo trì từ người dùng. Không biến lỗi hướng dẫn thành
-   yêu cầu sản phẩm mới. Không có lỗi hướng dẫn thì không ghi gì thêm.
+3. `process-auditor` tự đánh giá lượt Plan, áp dụng cải tiến và ghi record
+   theo [router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến).
+   Lỗi của chính Plan được sửa trong Plan trước khi bàn giao; lỗi hướng dẫn
+   không biến thành yêu cầu sản phẩm mới.
 
 ## Lưu và bàn giao
 
-- Sau lần rà soát cuối, người điều phối và mọi vai trò hoàn tất
+- Sau lần rà soát và tự đánh giá cuối, người điều phối và mọi vai trò hoàn tất
   [dọn tài nguyên tạm](layered-task-execution.instructions.md#dọn-tài-nguyên-tạm-trước-bàn-giao)
   và kiểm lại trước khi nhận Plan sẵn sàng. Nháp bị chặn vẫn phải dọn phần
   không còn cần; không giao rác của Plan cho Implement.
@@ -261,8 +266,8 @@ lỗi nội dung Plan đã hoàn tất; Implement chỉ thực hiện task này 
   `<NN>-plan-<todo-slug>-<timestamp>.md` trong
   `.agents/plan/<request-slug>_<YYYYMMDD-HHmmss>/`. Task ID từ T01 liên tục,
   các file cùng gói dùng cùng timestamp. Không ghi đè lịch sử.
-- Ghi rõ Plan đã đủ quyết định hay còn phần chưa chốt, đường dẫn và lỗi hướng
-  dẫn đã phát hiện (nếu có). Không gọi nháp chưa đủ đầu vào là sẵn sàng
-  Implement.
+- Ghi rõ Plan đã đủ quyết định hay còn phần chưa chốt, đường dẫn và kết quả tự
+  cải tiến theo mục báo cáo của router. Không gọi nháp chưa đủ đầu vào là sẵn
+  sàng Implement.
 - Không sửa source sản phẩm tại Plan. Kết thúc và bàn giao file cụ thể cho
   chỉ thị Implement tương ứng; không tự chạy task tiếp.
