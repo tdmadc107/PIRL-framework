@@ -1,0 +1,9 @@
+[submodule ".repos/Monify-Projector"]
+	path = .repos/Monify-Projector
+	url = https://github.com/tdmadc107/Monify-Projector.git
+[submodule ".repos/Shahmat-Projector"]
+	path = .repos/Shahmat-Projector
+	url = https://github.com/tdmadc107/Shahmat-Projector.git
+[submodule ".repos/Portfolio"]
+	path = .repos/Portfolio
+	url = https://github.com/tdmadc107/Portfolio.git
