@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/plan.instructions.md"
 metadata:
   id: ".agents/instructions/plan"
   kind: "instruction"
-  version: "1.1.0"
+  version: "1.3.0"
   status: "active"
 ---
 
@@ -30,16 +30,18 @@ gọi thêm vai trò chỉ để đủ quy trình.
 
 | Vai trò | Chọn khi | Trách nhiệm tại Plan | Đầu vào | Hoàn tất khi |
 | --- | --- | --- | --- | --- |
-| [`business-analyst`](../roles/business-analyst.role.md) | Yêu cầu có hành vi nghiệp vụ cần chốt | Chốt REQ, logic nghiệp vụ và QG; tìm quyết định sản phẩm còn thiếu | Yêu cầu, quyết định đã có, đặc tả | Mỗi REQ có nguồn và kết quả; mỗi QG nêu được logic bắt buộc |
+| [`business-analyst`](../roles/business-analyst.role.md) | Yêu cầu có hành vi nghiệp vụ cần chốt | Chốt REQ, logic nghiệp vụ và QG; tìm quyết định sản phẩm còn thiếu | Yêu cầu, quyết định đã có, đặc tả | Mỗi REQ có nguồn và kết quả; nguồn chỉ ghi là quyết định của người dùng phần có trong lời người dùng hoặc trong nguyên văn lựa chọn và mô tả lựa chọn mà người dùng đã thấy khi chọn; phần suy ra từ source hoặc quy ước repo, phần diễn giải hay mở rộng một lựa chọn, và phần agent tự chọn trong việc người dùng giao rõ cho agent đều ghi là agent quyết, kèm căn cứ; lựa chọn sản phẩm làm khác kết quả mà chưa ai quyết đã được hỏi hoặc đánh dấu chưa chốt; mỗi QG nêu được logic bắt buộc |
 | [`code-analyst`](../roles/code-analyst.role.md) | Yêu cầu chạm source hoặc tài liệu của repo đích | Đọc caller/consumer, cấu hình và ràng buộc; xác định điểm sửa và tài liệu bị ảnh hưởng | Source của repo đích | Phạm vi sửa và đường dẫn được phép sửa có căn cứ source |
-| [`solution-architect`](../roles/solution-architect.role.md) | Đổi hợp đồng API/dữ liệu/quyền, hoặc gói có nhiều task | Chốt hợp đồng, ownership, mô hình quyền, ranh giới và phụ thuộc giữa task | Source, hợp đồng dùng chung | Mỗi task có kết quả nghiệm thu riêng; phụ thuộc thật được ghi |
+| [`solution-architect`](../roles/solution-architect.role.md) | Đổi hợp đồng API/dữ liệu/quyền, hoặc gói có nhiều task | Chốt hợp đồng, ownership, mô hình quyền, ranh giới và phụ thuộc giữa task | Source, hợp đồng dùng chung | Mỗi task có kết quả nghiệm thu riêng; phụ thuộc thật được ghi; với mỗi giá trị, symbol hay file mà một task thêm, đổi hoặc bỏ, mọi đoạn của file dùng chung giữa các task (kể cả tài liệu ngữ cảnh) đang nêu nó nằm trong REQ, `Đường dẫn được phép sửa` và QG của chính task đó, nên file vẫn đúng sau khi từng task hoàn tất |
 | [`ux-designer`](../roles/ux-designer.role.md) | Yêu cầu chạm phần người dùng nhìn thấy | Chốt màn hình, trạng thái hiển thị, luồng thao tác, chuỗi giao diện theo ngôn ngữ và khổ màn hình; viết QG giao diện thành logic trạng thái và bố cục | Yêu cầu, giao diện hiện có, tài liệu ngữ cảnh của repo | Mỗi trạng thái hiển thị được tạo hoặc đổi có QG |
 | [`process-auditor`](../roles/process-auditor.role.md) | Mọi lượt Plan; không ghi vào `planning_roles` | Tự đánh giá lượt Plan theo [router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến) | Plan, nguồn đã dùng, quyết định của từng vai trò | Record đã ghi; cải tiến đã áp dụng hoặc đã tổng hợp cho người dùng |
 
 Người điều phối Plan hợp nhất kết luận của các vai trò, phân xử bất đồng bằng
 nguồn (không bỏ phiếu), viết Plan và tự rà soát. Mỗi vai trò trả quyết định
-chuyên môn kèm nguồn làm thay đổi phương án. Khi một agent đảm nhận nhiều vai
-trò, Plan ghi đó là tự thực hiện; không tuyên bố đã có phản biện độc lập.
+chuyên môn kèm nguồn làm thay đổi phương án. Mỗi file Plan ghi cách thực hiện
+các vai trò lập Plan ở dòng `Lập Plan` của mục `Vai trò tham gia`: agent riêng
+hay người điều phối tự thực hiện, theo từng vai trò khi khác nhau. Khi tự thực
+hiện, không tuyên bố đã có phản biện độc lập.
 
 ## Khảo sát và chốt quyết định
 
@@ -68,9 +70,14 @@ trò, Plan ghi đó là tự thực hiện; không tuyên bố đã có phản b
   task sau để Review có thể PASS.
 - Giảm phụ thuộc bằng hợp đồng đã chốt và phạm vi sửa rõ ràng. Với API,
   schema hoặc file dùng chung, chỉ rõ phần nào đã có, phần nào cần triển
-  khai và task nào sở hữu từng thay đổi. Hợp đồng trên giấy không thay cho
-  implementation cần để kết luận QG; hai task sửa cùng symbol/quyết định chưa
-  thể coi là độc lập chỉ vì `depends_on: []`.
+  khai và task nào sở hữu từng thay đổi. Với tài liệu nhiều task cùng sửa,
+  giao theo thay đổi, không theo mục, cột hay chủ đề: với mỗi giá trị, symbol
+  hay file mà một task thêm, đổi hoặc bỏ, tìm theo tên token, giá trị, tên
+  file mọi đoạn nêu nó, kể cả bảng liệt kê đầy đủ (danh sách component, cây
+  thư mục), rồi giao đoạn đó cho chính task đó. Hai task đổi cùng một giá
+  trị thì mỗi task cập nhật đoạn đó cho thay đổi của mình. Hợp đồng trên
+  giấy không thay cho implementation cần để kết luận QG; hai task sửa cùng
+  symbol/quyết định chưa thể coi là độc lập chỉ vì `depends_on: []`.
 - Khi có phụ thuộc thật, ghi `depends_on` và đầu ra cụ thể cần nhận trong
   `Làm như thế nào`. Task tiên quyết phải tự đạt QG trước khi task phụ thuộc
   bắt đầu phần cần đầu ra đó. Nếu không thể khép QG riêng, đổi ranh giới,
@@ -163,9 +170,9 @@ khi REQ/đặc tả cần.
   yêu cầu, không tự bổ sung nền tảng, coverage hoặc vận hành chưa được giao.
 - `Đường dẫn được phép sửa` gồm cả các tài liệu đã biết đang mô tả hành vi sẽ đổi
   (hợp đồng của task trước, mục lục, bảng trạng thái, danh mục API/lỗi/cấu hình/
-  quyền): tìm theo tên route, mã lỗi, collection, cấu hình hoặc cụm kiểu "đến
-  task N" rồi nêu tên chúng. Phần còn sót vẫn do Implement quét theo hợp đồng
-  của nó; Plan không cần liệt kê hết mọi nơi.
+  quyền): tìm theo tên route, mã lỗi, collection, cấu hình, token, tên file
+  hoặc cụm kiểu "đến task N" rồi nêu tên chúng. Phần còn sót vẫn do Implement
+  quét theo hợp đồng của nó; Plan không cần liệt kê hết mọi nơi.
 - Bước xử lý nêu điểm sửa, hướng đã chọn, thứ tự thật sự cần và kết quả. Chốt
   các quyết định ảnh hưởng API/dữ liệu/ownership; để chi tiết cài đặt tương đương
   cho Implement chọn. Không giấu một quyết định còn thiếu trong từ “tích hợp”.
@@ -227,6 +234,7 @@ lỗi nội dung Plan đã hoàn tất; Implement chỉ thực hiện task này 
 
 - ROLE-01 | Loại: triển khai | Vai trò: <vai-trò-triển-khai> | Phụ trách: <Phần việc cụ thể> | Đầu vào: <Thông tin hoặc kết quả phụ thuộc> | Hoàn tất khi: <Source/tài liệu phải giao>
 - ROLE-02 | Loại: kiểm chứng | Vai trò: <vai-trò-kiểm-chứng> | Phụ trách: <QG và câu hỏi phải trả lời> | Đầu vào: <Diff/source của ROLE-01> | Hoàn tất khi: <Kết luận PASS/FAIL/BLOCKED từng QG bằng lập luận có nguồn>
+- Lập Plan | Vai trò: <các vai trò trong planning_roles> | Cách thực hiện: <agent riêng hoặc người điều phối tự thực hiện; ghi theo từng vai trò khi khác nhau>
 
 ## Tiêu chí chất lượng bắt buộc
 
@@ -241,7 +249,9 @@ lỗi nội dung Plan đã hoàn tất; Implement chỉ thực hiện task này 
    mục chia task ở trên và xác nhận mọi yêu cầu toàn gói vẫn có task sở hữu.
    Xác nhận mỗi task tách vai trò triển khai với vai trò kiểm chứng hợp câu hỏi
    của QG, không có task, bước hay QG nào thuộc giai đoạn build/test/release
-   của người dùng, và phần test (nếu có) giới hạn theo FUT.
+   của người dùng, không có bước hay QG riêng cho việc chụp layout (bước
+   kiểm chứng giao diện chỉ ghi chạy sau khi vai trò triển khai chụp layout
+   theo router), và phần test (nếu có) giới hạn theo FUT.
 2. Chạy validator Plan và sửa lỗi cấu trúc trước khi bàn giao:
 
    ```powershell
