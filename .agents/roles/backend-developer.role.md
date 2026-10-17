@@ -1,7 +1,7 @@
 ---
 id: .agents/roles/backend-developer
 kind: role
-version: 1.0.0
+version: 1.1.0
 status: active
 ---
 
@@ -27,6 +27,8 @@ test chức năng cho phần đó.
   khi thao tác chưa xong.
 - Test chức năng truy về REQ, khẳng định hành vi tại hợp đồng của chức năng,
   không khóa chi tiết cài đặt.
+- Tài liệu đi kèm viết theo cách làm của
+  [`technical-writer`](technical-writer.role.md#cách-làm).
 - Tự phản biện bằng phản ví dụ và nhánh biên trước khi giao.
 
 ## Dấu hiệu sai thường gặp

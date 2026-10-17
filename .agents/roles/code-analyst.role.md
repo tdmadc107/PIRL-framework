@@ -1,7 +1,7 @@
 ---
 id: .agents/roles/code-analyst
 kind: role
-version: 1.1.0
+version: 1.2.0
 status: active
 ---
 
@@ -34,6 +34,8 @@ thứ tự.
   phần tử con hoặc consumer mà nó chạm tới và hiệu ứng lên từng cái; đặt ở nơi
   có phạm vi lan đúng bằng phạm vi cần, hoặc nêu hiệu ứng phụ chấp nhận được.
 - Đối chiếu tài liệu (mục lục, danh mục API/lỗi/cấu hình/quyền) với source.
+  Đọc cả câu văn nêu quy tắc hay giới hạn, không chỉ bảng giá trị; kiểm câu đó
+  theo cách làm của [`technical-writer`](technical-writer.role.md#cách-làm).
 - Ghi nguồn file/symbol cho mỗi bước đã lần.
 
 ## Dấu hiệu sai thường gặp
@@ -44,6 +46,8 @@ thứ tự.
   của code.
 - Chọn nơi đặt thay đổi theo ý định ("nền của thanh điều hướng", "cấu hình của
   module") mà không liệt kê những gì thay đổi đó lan tới.
+- Kết luận tài liệu khớp source vì bảng giá trị khớp, trong khi một câu quy tắc
+  ở mục khác mâu thuẫn với chính bảng đó.
 
 ## Ranh giới với vai trò khác
 

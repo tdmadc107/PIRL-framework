@@ -5,7 +5,7 @@ applyTo: ".repos/**/*,.agents/instructions/**/*,.agents/plan/**/*,.agents/review
 metadata:
   id: ".agents/instructions/layered-task-execution"
   kind: "instruction"
-  version: "1.2.0"
+  version: "1.3.0"
   status: "active"
 ---
 
@@ -130,12 +130,29 @@ repository, CI, report cũ hay từ lần chạy test theo FUT, không là basel
 bằng chứng PASS/FAIL của QG: test đỏ phải được giải thích bằng source, test
 xanh chỉ chứng minh case đã chạy.
 
+Nguồn bằng chứng của QG, áp dụng cho mọi vai trò ở cả ba layer:
+
+- Được dùng: nội dung file, diff, lịch sử git, kết quả tìm kiếm trên source và
+  tài liệu; với QG về giao diện, thêm ảnh và số đo của
+  [kiểm chứng layout bằng mock](#kiểm-chứng-layout-bằng-mock) (hộp bao, kiểu
+  tính toán của phần tử đã render ở từng trạng thái).
+- Không là bằng chứng, dù chạy trong hay ngoài repo: script, harness hay đầu dò
+  viết ra để kiểm chứng (so hàng loạt giá trị, tính toán thay người đọc); dùng
+  trình duyệt hay runtime để ép nhánh logic, giả lập tính năng, đo thời gian
+  hay kiểm việc gỡ listener; build, typecheck, lint và công cụ phân tích tĩnh
+  khác; kết quả test. Kết quả test theo FUT được nêu cạnh lập luận, không
+  thành dòng bằng chứng của QG.
+- Phép tính cần cho lập luận (tỉ số, đổi đơn vị, công thức) ghi kèm công thức
+  và giá trị đầu vào lấy từ source, để người đọc tự kiểm lại được.
+
+Theo từng layer:
+
 - Plan không tạo task, bước, REQ, QG hay đường dẫn được phép sửa cho việc của
   giai đoạn người dùng; test chỉ được giao theo FUT. Nếu đặc tả có mục tiêu
   thuộc giai đoạn đó, ghi một dòng rằng nó thuộc giai đoạn build/test/release
   của người dùng.
-- Implement không build, không chạy ứng dụng để nghiệm thu; chỉ viết, cập nhật
-  và chạy test theo FUT, và khi diff đổi giao diện thì kiểm chứng layout bằng
+- Implement không build, typecheck, lint, không chạy ứng dụng để nghiệm thu;
+  chỉ viết, cập nhật và chạy test theo FUT, và khi diff đổi giao diện thì kiểm chứng layout bằng
   mock theo mục dưới. Không ghi việc của giai đoạn người dùng là
   `BLOCKED` hay rủi ro còn lại của task; chỉ liệt kê ngắn những gì chuyển sang
   giai đoạn đó.

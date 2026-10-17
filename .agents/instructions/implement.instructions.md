@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/implement.instructions.md"
 metadata:
   id: ".agents/instructions/implement"
   kind: "instruction"
-  version: "1.2.0"
+  version: "1.3.0"
   status: "active"
 ---
 
@@ -32,10 +32,10 @@ bằng chứng.
 
 | Vai trò | Loại | Trách nhiệm tại Implement | Hoàn tất khi |
 | --- | --- | --- | --- |
-| [`backend-developer`](../roles/backend-developer.role.md) | triển khai | Sửa code không phải giao diện, tài liệu đi kèm và test theo FUT cho phần đó, trong đường dẫn được phép; tự phản biện phần mình làm | Source/tài liệu/test giao đủ REQ của phần mình; tự phản biện không còn nghi vấn mở |
+| [`backend-developer`](../roles/backend-developer.role.md) | triển khai | Sửa code không phải giao diện, tài liệu đi kèm và test theo FUT cho phần đó, trong đường dẫn được phép; tự phản biện phần mình làm | Source/tài liệu/test giao đủ REQ của phần mình; tự phản biện không còn nghi vấn mở; không chạy build, typecheck, lint hay script kiểm chứng |
 | [`frontend-developer`](../roles/frontend-developer.role.md) | triển khai | Sửa giao diện, chuỗi giao diện theo ngôn ngữ, tài liệu đi kèm và test theo FUT; chụp layout bằng mock khi diff đổi giao diện; tự phản biện | Như trên, và `layout_verification` có lần chụp đạt mọi kiểm khi diff đổi giao diện; khi diff đổi kích thước hoặc số phần tử trong hàng hay khung có bề rộng ràng buộc, số đo hộp bao theo [router](layered-task-execution.instructions.md#kiểm-chứng-layout-bằng-mock) nằm trong `layout_verification` và phần tử nhô ra đã được sửa trước khi giao vai trò kiểm chứng |
-| [`technical-writer`](../roles/technical-writer.role.md) | triển khai | Tạo/cập nhật tài liệu ngữ cảnh, tài liệu hợp đồng, mục lục, bảng trạng thái đặc tả cho task chỉ có tài liệu | Tài liệu khớp source và REQ; mỗi khẳng định có nguồn |
-| [`code-reviewer`](../roles/code-reviewer.role.md) | kiểm chứng | Phản biện diff: bug, hồi quy, quyền và bảo mật, mất nhất quán dữ liệu/trạng thái, guard/validator/xử lý lỗi, vi phạm hợp đồng, test vi phạm FUT | `PASS\|FAIL\|BLOCKED` từng QG được giao, kèm đường đã lần, phản ví dụ, nguồn |
+| [`technical-writer`](../roles/technical-writer.role.md) | triển khai | Tạo/cập nhật tài liệu ngữ cảnh, tài liệu hợp đồng, mục lục, bảng trạng thái đặc tả cho task chỉ có tài liệu | Tài liệu khớp source và REQ; mỗi khẳng định, kể cả câu quy tắc hay giới hạn, có nguồn |
+| [`code-reviewer`](../roles/code-reviewer.role.md) | kiểm chứng | Phản biện diff: bug, hồi quy, quyền và bảo mật, mất nhất quán dữ liệu/trạng thái, guard/validator/xử lý lỗi, vi phạm hợp đồng, test vi phạm FUT | `PASS\|FAIL\|BLOCKED` từng QG được giao, kèm đường đã lần, phản ví dụ, nguồn; mỗi dòng bằng chứng là nguồn đọc được kèm lập luận theo [router](layered-task-execution.instructions.md#kiểm-chứng-bằng-lập-luận), không phải kết quả chạy |
 | [`code-analyst`](../roles/code-analyst.role.md) | kiểm chứng | Lần luồng từ entrypoint tới trạng thái cuối qua mọi caller/consumer chịu ảnh hưởng; lập bảng kịch bản cho QG nhiều nhánh/trạng thái/thứ tự; đối chiếu tài liệu với source | Như trên |
 | [`ux-designer`](../roles/ux-designer.role.md) | kiểm chứng | Đối chiếu ảnh và bảng kết quả layout với QG giao diện và source hiển thị | Như trên |
 | [`process-auditor`](../roles/process-auditor.role.md) | tự đánh giá | Tự đánh giá lượt Implement theo [router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến); không ghi vào danh sách vai trò của Plan | Record đã ghi; cải tiến đã áp dụng hoặc đã tổng hợp cho người dùng |
@@ -97,9 +97,9 @@ bằng chứng.
   mới, test chỉ phục vụ luồng đã gỡ thì xóa, đều theo
   [quy tắc FUT](../llm-docs/rules/test-verification.rule.md#quy-tắc-fut-test-chức-năng);
   không đụng test của chức năng không liên quan, không dựng harness hay script
-  kiểm chứng mới trong repo (script mock chụp layout nằm trong `.tmp/` theo
-  [router](layered-task-execution.instructions.md#kiểm-chứng-layout-bằng-mock)
-  không thuộc điều cấm này). Điểm cần quyết định sản phẩm thì ghi vào nơi dự
+  kiểm chứng mới, dù trong hay ngoài repo (ngoại lệ duy nhất là script mock và
+  chụp layout trong `.tmp/` theo
+  [router](layered-task-execution.instructions.md#kiểm-chứng-layout-bằng-mock)). Điểm cần quyết định sản phẩm thì ghi vào nơi dự
   án lưu khoảng trống đã biết và vào rủi ro còn lại, không tự chọn. Không sửa
   hồ sơ lịch sử (Plan đã chốt, report Review, nội dung đặc tả gốc); mục lục
   và bảng trạng thái triển khai của thư mục đặc tả là tài liệu sống nên vẫn
@@ -119,15 +119,18 @@ bằng chứng.
   sản phẩm mới.
 - Giữ bằng chứng trước/sau cho cơ chế cần sửa bằng lập luận trên source:
   đường chạy cũ dẫn tới lỗi và điểm sửa chặn nó, kèm phản ví dụ phân biệt
-  lỗi với hành vi hợp lệ. Không build hay chạy ứng dụng để làm bằng chứng;
-  test theo FUT, khi Plan giao, chỉ bổ sung cho lập luận. Lượt sửa chạm giao
+  lỗi với hành vi hợp lệ. Không build, typecheck, lint hay chạy ứng dụng; kết
+  quả test theo FUT, khi Plan giao, chỉ nêu cạnh lập luận, không là dòng bằng
+  chứng ([nguồn bằng chứng](layered-task-execution.instructions.md#kiểm-chứng-bằng-lập-luận)). Lượt sửa chạm giao
   diện chụp lại layout theo mục kiểm chứng bên dưới vào thư mục lần chạy mới.
 
 ## Kiểm chứng quality gate bằng lập luận
 
 Theo [router](layered-task-execution.instructions.md#kiểm-chứng-bằng-lập-luận),
-lượt Implement không build, không chạy ứng dụng để nghiệm thu, chỉ viết,
-cập nhật và chạy test theo FUT, và không lấy kết quả test/build làm bằng chứng QG.
+lượt Implement không build, typecheck, lint, không chạy ứng dụng để nghiệm thu,
+chỉ viết, cập nhật và chạy test theo FUT. Mỗi dòng bằng chứng QG lấy từ nguồn
+mà router cho phép; script, đầu dò, trình duyệt ép nhánh logic, công cụ tĩnh và
+kết quả test không là bằng chứng.
 Khi diff đổi giao diện, `frontend-developer` (hoặc người điều phối khi tự thực
 hiện vai trò này) thực hiện [kiểm chứng layout bằng mock](layered-task-execution.instructions.md#kiểm-chứng-layout-bằng-mock)
 sau khi triển khai và trước khi giao vai trò kiểm chứng; ảnh và bảng kết quả

@@ -1,7 +1,7 @@
 ---
 id: .agents/roles/frontend-developer
 kind: role
-version: 1.0.0
+version: 1.1.0
 status: active
 ---
 
@@ -27,6 +27,8 @@ năng, và mock để chụp layout.
 - Giới hạn style trong phạm vi component, tránh selector toàn cục.
 - Khi chụp layout: trả mọi lời gọi API bằng mock trong trình duyệt, dẫn tới từng
   trạng thái, chụp mỗi trạng thái theo mọi ngôn ngữ và khổ màn hình.
+- Tài liệu đi kèm viết theo cách làm của
+  [`technical-writer`](technical-writer.role.md#cách-làm).
 - Tự phản biện bằng phản ví dụ và nhánh biên trước khi giao.
 
 ## Dấu hiệu sai thường gặp

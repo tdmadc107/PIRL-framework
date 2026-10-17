@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/review.instructions.md"
 metadata:
   id: ".agents/instructions/review"
   kind: "instruction"
-  version: "1.1.0"
+  version: "1.2.0"
   status: "active"
 ---
 
@@ -50,6 +50,12 @@ vai trò tìm một lỗi.
 - Đọc đúng Plan `pirl-plan/v1`, Implementation Record, source/diff của lượt
   được giao và report trước cùng task nếu có. Xác định snapshot trước khi kết
   luận; thay đổi hiện tại không tự là bằng chứng về quyết định của một lượt cũ.
+- Khi nhiều task của một gói nằm chung một snapshot (cùng commit hoặc cùng bộ
+  thay đổi chưa tách được theo task), kết luận mỗi QG trên source cuối và ghi
+  snapshot chung trong `implementation_target`. Chỗ lệch với QG của task trước
+  mà do task chạy sau đổi trong phạm vi REQ của chính task sau thì không là
+  FAIL của task trước. Task sau đổi phần làm vỡ QG của task trước mà nằm ngoài
+  REQ của mình thì là FIND của task sau.
 - Source sản phẩm, test, config, Plan và Implementation Record là đầu vào chỉ
   đọc. Review ghi report của lượt này; file framework chỉ do `process-auditor`
   sửa theo [router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến).
@@ -122,8 +128,12 @@ Review biết thêm các FIND mà lượt Implement bỏ sót, nên đây là l�
 nhiều bằng chứng hơn lần tự đánh giá của chính Implement.
 
 1. Tìm record của lượt Implement được review bằng
-   `python -B .agents/llm-docs/evals/layer_record.py query --layer implement --plan-set <plan-set> --task <task-id>`
-   (lấy record mới nhất của lượt đó) và ghi nó vào `evaluates` của record Review.
+   `python -B .agents/llm-docs/evals/layer_record.py query --layer implement --plan-set <plan-set> --task <task-id>`.
+   Trong kết quả, chọn record mới nhất có danh sách `roles` chứa các vai trò
+   Implement cần đánh giá và ghi nó vào `evaluates` của record Review. Record chỉ áp
+   dụng cải tiến hay đính chính (`supersedes` có giá trị, `roles` chỉ có
+   `coordinator`) không là record được đánh giá; nêu nó trong mục Bằng chứng
+   của EVAL. Record đính chính mang đủ vai trò thì chính nó được đánh giá.
 2. Lập một EVAL cho mỗi vai trò trong `effective_implementation_roles` rồi mỗi
    vai trò kiểm chứng của Plan, đúng thứ tự Implementation Record. Đánh giá theo
    phần việc, thông tin và chỉ dẫn thực sự được giao; không đánh trượt cả đội
