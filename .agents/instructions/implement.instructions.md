@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/implement.instructions.md"
 metadata:
   id: ".agents/instructions/implement"
   kind: "instruction"
-  version: "1.1.1"
+  version: "1.2.0"
   status: "active"
 ---
 
@@ -33,7 +33,7 @@ bằng chứng.
 | Vai trò | Loại | Trách nhiệm tại Implement | Hoàn tất khi |
 | --- | --- | --- | --- |
 | [`backend-developer`](../roles/backend-developer.role.md) | triển khai | Sửa code không phải giao diện, tài liệu đi kèm và test theo FUT cho phần đó, trong đường dẫn được phép; tự phản biện phần mình làm | Source/tài liệu/test giao đủ REQ của phần mình; tự phản biện không còn nghi vấn mở |
-| [`frontend-developer`](../roles/frontend-developer.role.md) | triển khai | Sửa giao diện, chuỗi giao diện theo ngôn ngữ, tài liệu đi kèm và test theo FUT; chụp layout bằng mock khi diff đổi giao diện; tự phản biện | Như trên, và `layout_verification` có lần chụp đạt mọi kiểm khi diff đổi giao diện |
+| [`frontend-developer`](../roles/frontend-developer.role.md) | triển khai | Sửa giao diện, chuỗi giao diện theo ngôn ngữ, tài liệu đi kèm và test theo FUT; chụp layout bằng mock khi diff đổi giao diện; tự phản biện | Như trên, và `layout_verification` có lần chụp đạt mọi kiểm khi diff đổi giao diện; khi diff đổi kích thước hoặc số phần tử trong hàng hay khung có bề rộng ràng buộc, số đo hộp bao theo [router](layered-task-execution.instructions.md#kiểm-chứng-layout-bằng-mock) nằm trong `layout_verification` và phần tử nhô ra đã được sửa trước khi giao vai trò kiểm chứng |
 | [`technical-writer`](../roles/technical-writer.role.md) | triển khai | Tạo/cập nhật tài liệu ngữ cảnh, tài liệu hợp đồng, mục lục, bảng trạng thái đặc tả cho task chỉ có tài liệu | Tài liệu khớp source và REQ; mỗi khẳng định có nguồn |
 | [`code-reviewer`](../roles/code-reviewer.role.md) | kiểm chứng | Phản biện diff: bug, hồi quy, quyền và bảo mật, mất nhất quán dữ liệu/trạng thái, guard/validator/xử lý lỗi, vi phạm hợp đồng, test vi phạm FUT | `PASS\|FAIL\|BLOCKED` từng QG được giao, kèm đường đã lần, phản ví dụ, nguồn |
 | [`code-analyst`](../roles/code-analyst.role.md) | kiểm chứng | Lần luồng từ entrypoint tới trạng thái cuối qua mọi caller/consumer chịu ảnh hưởng; lập bảng kịch bản cho QG nhiều nhánh/trạng thái/thứ tự; đối chiếu tài liệu với source | Như trên |
@@ -188,7 +188,7 @@ sửa nội dung Plan để hợp thức hóa hướng đã tự đổi.
 - checkpoint_evidence: <checkpoint, bằng chứng và đầu vào tiếp tục; hoặc N/A>
 - quality_gate_results: <QG-01=PASS|FAIL|BLOCKED theo kết luận của vai trò kiểm chứng; ...>
 - quality_gate_evidence: <từng QG -> vai trò kiểm chứng, file/symbol, đường đã lần, phản ví dụ và kết luận>
-- layout_verification: <N/A khi diff không đổi giao diện; hoặc trạng thái đã chụp, ngôn ngữ, khổ màn hình, số ảnh, kiểm đạt/không đạt và thư mục .tmp/layout-snapshots/...>
+- layout_verification: <N/A khi diff không đổi giao diện; hoặc trạng thái đã chụp, ngôn ngữ, khổ màn hình, revision nền, số ảnh, kiểm đạt/không đạt và thư mục .tmp/layout-snapshots/...>
 - repair_closure_evidence: <từng mục report -> REQ/QG, nguyên nhân, giải pháp/disposition và bằng chứng trước/sau phù hợp; hoặc đúng N/A cho lượt đầu>
 - root_cause_revalidation: <ITEM-ID=confirmed|contradicted|blocked/bằng chứng trước sửa; hoặc đúng N/A cho lượt đầu>
 - review_item_disposition: <FIND-01=resolved|failed|blocked/bằng chứng; RISK-01=deferred/chủ xử lý và điều kiện xem lại; BLOCK-01=unblocked|blocked|escalated/bằng chứng; hoặc đúng N/A cho lượt đầu>

@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/plan.instructions.md"
 metadata:
   id: ".agents/instructions/plan"
   kind: "instruction"
-  version: "1.3.0"
+  version: "1.4.0"
   status: "active"
 ---
 
@@ -31,7 +31,7 @@ gọi thêm vai trò chỉ để đủ quy trình.
 | Vai trò | Chọn khi | Trách nhiệm tại Plan | Đầu vào | Hoàn tất khi |
 | --- | --- | --- | --- | --- |
 | [`business-analyst`](../roles/business-analyst.role.md) | Yêu cầu có hành vi nghiệp vụ cần chốt | Chốt REQ, logic nghiệp vụ và QG; tìm quyết định sản phẩm còn thiếu | Yêu cầu, quyết định đã có, đặc tả | Mỗi REQ có nguồn và kết quả; nguồn chỉ ghi là quyết định của người dùng phần có trong lời người dùng hoặc trong nguyên văn lựa chọn và mô tả lựa chọn mà người dùng đã thấy khi chọn; phần suy ra từ source hoặc quy ước repo, phần diễn giải hay mở rộng một lựa chọn, và phần agent tự chọn trong việc người dùng giao rõ cho agent đều ghi là agent quyết, kèm căn cứ; lựa chọn sản phẩm làm khác kết quả mà chưa ai quyết đã được hỏi hoặc đánh dấu chưa chốt; mỗi QG nêu được logic bắt buộc |
-| [`code-analyst`](../roles/code-analyst.role.md) | Yêu cầu chạm source hoặc tài liệu của repo đích | Đọc caller/consumer, cấu hình và ràng buộc; xác định điểm sửa và tài liệu bị ảnh hưởng | Source của repo đích | Phạm vi sửa và đường dẫn được phép sửa có căn cứ source |
+| [`code-analyst`](../roles/code-analyst.role.md) | Yêu cầu chạm source hoặc tài liệu của repo đích | Đọc caller/consumer, cấu hình và ràng buộc; xác định điểm sửa và tài liệu bị ảnh hưởng | Source của repo đích | Phạm vi sửa và đường dẫn được phép sửa có căn cứ source; với thay đổi lan sang phần tử hay consumer khác (thuộc tính kế thừa, tạo khối chứa hay stacking, cấu hình mặc định), đã nêu phần tử mang thay đổi và danh sách chịu ảnh hưởng |
 | [`solution-architect`](../roles/solution-architect.role.md) | Đổi hợp đồng API/dữ liệu/quyền, hoặc gói có nhiều task | Chốt hợp đồng, ownership, mô hình quyền, ranh giới và phụ thuộc giữa task | Source, hợp đồng dùng chung | Mỗi task có kết quả nghiệm thu riêng; phụ thuộc thật được ghi; với mỗi giá trị, symbol hay file mà một task thêm, đổi hoặc bỏ, mọi đoạn của file dùng chung giữa các task (kể cả tài liệu ngữ cảnh) đang nêu nó nằm trong REQ, `Đường dẫn được phép sửa` và QG của chính task đó, nên file vẫn đúng sau khi từng task hoàn tất |
 | [`ux-designer`](../roles/ux-designer.role.md) | Yêu cầu chạm phần người dùng nhìn thấy | Chốt màn hình, trạng thái hiển thị, luồng thao tác, chuỗi giao diện theo ngôn ngữ và khổ màn hình; viết QG giao diện thành logic trạng thái và bố cục | Yêu cầu, giao diện hiện có, tài liệu ngữ cảnh của repo | Mỗi trạng thái hiển thị được tạo hoặc đổi có QG |
 | [`process-auditor`](../roles/process-auditor.role.md) | Mọi lượt Plan; không ghi vào `planning_roles` | Tự đánh giá lượt Plan theo [router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến) | Plan, nguồn đã dùng, quyết định của từng vai trò | Record đã ghi; cải tiến đã áp dụng hoặc đã tổng hợp cho người dùng |
@@ -251,7 +251,22 @@ lỗi nội dung Plan đã hoàn tất; Implement chỉ thực hiện task này 
    của QG, không có task, bước hay QG nào thuộc giai đoạn build/test/release
    của người dùng, không có bước hay QG riêng cho việc chụp layout (bước
    kiểm chứng giao diện chỉ ghi chạy sau khi vai trò triển khai chụp layout
-   theo router), và phần test (nếu có) giới hạn theo FUT.
+   theo router), và phần test (nếu có) giới hạn theo FUT. Trước khi tuyên bố sẵn
+   sàng, đọc lại Plan với bốn kiểm sau và sửa Plan nếu sai:
+   - Mọi khẳng định về hiện trạng (mục, bảng, file, hành vi, ngôn ngữ đang có)
+     đã được mở ra và xác nhận tại đúng từng vị trí hoặc ngôn ngữ mà Plan nêu;
+     phần chưa có thì REQ ghi rõ là tạo mới.
+   - Mọi bảng giá trị hay số dẫn xuất kèm ràng buộc đo được (tương phản, độ
+     sáng, kích thước, giới hạn) đã được tính lại từng giá trị với từng ràng
+     buộc; mâu thuẫn thì sửa bảng hoặc ràng buộc, không bàn giao cả hai.
+   - REQ đổi một phần tử ghép từ nhiều phần (nhãn, biểu tượng, đường viền,
+     nền) nêu phần nào giữ, bỏ, thêm.
+   - Lệnh FUT chỉ nêu file test đã có, hoặc file test mà REQ chốt tên để task
+     tạo; khi Plan để Implement chọn giữa sửa hay thay một đơn vị (ví dụ thay
+     một hook), gọi file test theo đơn vị đó ("file test của hook thay thế")
+     thay vì đặt tên một file có thể không còn. `Đường dẫn được phép sửa` gồm
+     file thiết lập hay cấu hình dùng chung của test mà thay đổi cần (ví dụ bản
+     giả của một API trình duyệt mà môi trường test thiếu).
 2. Chạy validator Plan và sửa lỗi cấu trúc trước khi bàn giao:
 
    ```powershell

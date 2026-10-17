@@ -5,7 +5,7 @@ applyTo: ".repos/**/*,.agents/instructions/**/*,.agents/plan/**/*,.agents/review
 metadata:
   id: ".agents/instructions/layered-task-execution"
   kind: "instruction"
-  version: "1.1.1"
+  version: "1.2.0"
   status: "active"
 ---
 
@@ -189,12 +189,28 @@ chỉ làm khi người dùng yêu cầu.
   và khổ điện thoại mà tài liệu ngữ cảnh của repo (`context_docs` trong
   `.repos/manifest.yaml`) quy định. Tài liệu chưa quy định thì lấy ngôn ngữ từ
   cấu hình i18n và khổ màn hình từ breakpoint CSS của repo, và ghi rõ bộ
-  khổ/ngôn ngữ đã dùng. Kiểm thêm điều ảnh không cho thấy: văn bản đúng ngôn
-  ngữ, thành phần nằm trong khung nhìn, không cuộn ngang, focus và phím Esc
-  khi hộp chồng lên nhau, trang cuộn được sau khi đóng. Cách này dành cho giao
-  diện web phục vụ qua dev server; giao diện khác (extension, ứng dụng native)
-  thì phần layout `BLOCKED` kèm chủ xử lý, không tự chế phương tiện. Công cụ
-  và đường dẫn runtime thuộc ghi chú của repo, không thuộc framework.
+  khổ/ngôn ngữ đã dùng. Khi diff đổi kích thước hoặc số phần tử trong một hàng
+  hay khung có bề rộng ràng buộc (thanh điều hướng, thanh công cụ, hàng thẻ),
+  thêm khổ ở hai phía của mọi ngưỡng breakpoint tác động tới hàng hay khung đó
+  (theo tài liệu ngữ cảnh hoặc CSS), và đo hộp bao của khung cùng từng phần tử
+  con trong trình duyệt: phần tử con nằm trong khung và không chồng nhau, so
+  với cùng số đo ở trạng thái chưa có diff; ảnh ở khổ chính không đủ để kết
+  luận điều đó. Kiểm thêm
+  điều ảnh không cho thấy: văn bản đúng ngôn ngữ, thành phần nằm trong khung
+  nhìn, không cuộn ngang, focus và phím Esc khi hộp chồng lên nhau, trang cuộn
+  được sau khi đóng. Cách này dành cho giao diện web phục vụ qua dev server;
+  giao diện khác (extension, ứng dụng native) thì phần layout `BLOCKED` kèm
+  chủ xử lý, không tự chế phương tiện. Công cụ, cách dựng server ổn định và
+  trở ngại môi trường đã biết thuộc mục ghi chú công cụ trong tài liệu ngữ
+  cảnh của repo ([AGENTS.md](../../AGENTS.md#định-tuyến-repo)), không thuộc
+  framework.
+- **Trạng thái chưa có diff:** là lần chụp sau diff của task đứng trước trong
+  cùng gói, khi lần đó đã chụp đúng màn hình và khổ cần so. Nếu không có, xuất
+  bản nguyên vẹn của revision nền vào thư mục tạm của lượt (ví dụ
+  `git archive <revision>` vào `.tmp/`), dựng và chụp riêng. Không dùng stash,
+  checkout hay reset trên repo đang làm việc
+  ([quy tắc an toàn](../llm-docs/rules/core-agent.rule.md#safety)). Ghi
+  revision nền trong `layout_verification`.
 - **Lưu ở đâu:** script mock, ảnh và bảng kết quả trong
   `.tmp/layout-snapshots/<plan-set>/<task-id>/<YYYYMMDD-HHmmss>/` ở gốc Hub
   (bị Git ignore). Mỗi lần chạy một thư mục mới; không xóa hay ghi đè lần
@@ -213,8 +229,9 @@ chỉ làm khi người dùng yêu cầu.
   trình duyệt dùng được thì phần layout `BLOCKED` kèm chủ xử lý. Diff đổi giao
   diện chưa có kết quả này thì task chưa được ghi `implemented`.
 - **Ghi lại:** tóm tắt trong trường `layout_verification` của Implementation
-  Record: trạng thái đã chụp, ngôn ngữ, khổ màn hình, số ảnh, kiểm đạt/không
-  đạt và đường dẫn thư mục. `.tmp/` không đi theo commit nên tóm tắt là bằng
+  Record: trạng thái đã chụp, ngôn ngữ, khổ màn hình (kể cả khổ sát ngưỡng đã
+  đo), revision nền dùng để so, số ảnh, kiểm đạt/không đạt và đường dẫn thư
+  mục. `.tmp/` không đi theo commit nên tóm tắt là bằng
   chứng, đường dẫn chỉ để tra cứu.
 - **Review:** đọc tóm tắt và ảnh của Implement, không tự chạy lại. Diff đổi
   giao diện mà Record thiếu kết quả này, hoặc ảnh cho thấy layout vi phạm QG,
