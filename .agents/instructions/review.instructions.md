@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/review.instructions.md"
 metadata:
   id: ".agents/instructions/review"
   kind: "instruction"
-  version: "1.2.0"
+  version: "1.2.2"
   status: "active"
 ---
 
@@ -56,6 +56,14 @@ vai trò tìm một lỗi.
   mà do task chạy sau đổi trong phạm vi REQ của chính task sau thì không là
   FAIL của task trước. Task sau đổi phần làm vỡ QG của task trước mà nằm ngoài
   REQ của mình thì là FIND của task sau.
+- Plan có chú thích `Thay đổi đã xác nhận` là Plan hiện hành: kết luận QG theo
+  nó, sau khi tìm được dấu vết của từng chú thích theo
+  [quy tắc Implement](implement.instructions.md#thay-đổi-so-với-plan-do-người-dùng-xác-nhận):
+  mục `plan_amendments` của Implementation Record, hoặc record của lượt Plan
+  cùng task mà chú thích ghi `record_id`. Chú thích không có dấu vết nào, hoặc
+  dấu vết không nêu xác nhận của người dùng cho thay đổi đó, thì không là
+  baseline: kết luận QG theo giá trị trước thay đổi và ghi BLOCK `escalate` để
+  người dùng xác nhận.
 - Source sản phẩm, test, config, Plan và Implementation Record là đầu vào chỉ
   đọc. Review ghi report của lượt này; file framework chỉ do `process-auditor`
   sửa theo [router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến).
@@ -267,7 +275,7 @@ implementation_target: "<diff/commit/đường dẫn đã review>"
 | Kết quả | <PASS / FAIL / BLOCKED> |
 | Lỗi | <quyết định sai có căn cứ của vai trò; hoặc không có> |
 | Nguyên nhân | <instruction / ineffective_fix / input / execution kèm `issue_key`; hoặc không có> |
-| Cải tiến | <file và mục đã sửa, version cũ → mới; hoặc chờ người dùng (mode_self / safety); hoặc không cần> |
+| Cải tiến | <file và mục đã sửa, version cũ → mới; hoặc chờ người dùng (safety); hoặc không cần> |
 | Bằng chứng | <Implementation Record, record Implement, nguồn/diff đã đối chiếu> |
 ````
 

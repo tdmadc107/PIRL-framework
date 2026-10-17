@@ -46,12 +46,13 @@ verification_roles: [code-reviewer, code-analyst, ux-designer]
   | `--color-ember` | `#E4572E` cam lửa | `#FF7A45` | Hỏa | Trang trí, chữ lớn |
   | `--color-violet` | `#7B3FA0` tím | `#CDA6EE` tím nhạt | Hỏa | Trang trí, chữ nhấn |
   | `--color-jade` | `#1B6F53` lục ngọc | `#6FD3A8` lục bạc hà | Mộc | Điểm nhấn phụ, chấm chip |
-  | `--color-footer-bg` | `#2A1222` | `#0E241D` | Hỏa / Mộc | Nền footer |
+  | `--color-footer-bg` | `#2A1222` | `#0F261F` | Hỏa / Mộc | Nền footer |
   | `--color-footer-text` | `#F7EDE9` | `#F8EEEA` | Kim | Chữ footer |
   | `--color-footer-muted` | `#CBB3BE` | `#CBB3BE` | Hỏa | Chữ phụ footer |
   | `--color-shadow-rgb` | `42, 18, 34` | `6, 18, 14` | — | Kênh màu cho mọi bóng đổ |
   | `--gradient-flame` | `linear-gradient(135deg, #B3261E 0%, #E4572E 55%, #7B3FA0 100%)` | `linear-gradient(135deg, #F05A5E 0%, #FF7A45 55%, #CDA6EE 100%)` | Hỏa | Chỉ cho trang trí: viền, vòng, vạch |
 
+  - Thay đổi đã xác nhận (người dùng, 2026-10-17, record plan-20261017-142513-T05): `--color-footer-bg` theme tối `#0E241D` -> `#0F261F`; lý do: độ sáng HSL = (max + min) / 2 / 255 là (36 + 14) / 2 / 255 = 9,80% với `#0E241D`, thấp hơn ngưỡng 10% của chính REQ-03, và (38 + 15) / 2 / 255 = 10,39% với `#0F261F`. Implement đã dùng `#0F261F`; người dùng chọn giữ giá trị này sau Review vòng 1 (BLOCK-01 của report T05). Tỉ số `--color-footer-muted` trên `--color-footer-bg` tối được tính lại ở REQ-05.
   - Không màu nào trong `src/**/*.css` thuộc ba nhóm sau, kể cả `rgba`, `hsl` hay `color-mix` (trừ kênh `--color-shadow-rgb`, chỉ dùng cho bóng đổ có độ mờ):
     - sắc độ 180°–260° với độ bão hòa > 15% (xanh dương, xanh nước biển);
     - độ bão hòa < 10% với độ sáng < 20% (đen, xám đen);
@@ -66,13 +67,15 @@ verification_roles: [code-reviewer, code-analyst, ux-designer]
   - Chữ không đặt trên `--gradient-flame` (chữ trắng trên `#E4572E` < 4.5:1).
   - Giá trị đã tính khi lập Plan:
     - sáng: `--color-text` trên `--color-bg` 15.99; `--color-text-muted` trên `--color-surface-raised` 6.18; `--color-accent-text` trên `--color-surface-raised` 6.25; `--color-jade` trên `--color-surface-raised` 5.02; `--color-violet` trên `--color-surface-raised` 5.65; `--color-on-accent` trên `--color-accent` 6.54; `--color-footer-muted` trên `--color-footer-bg` 8.88;
-    - tối: `--color-text` trên `--color-surface-raised` 10.24; `--color-text-muted` trên `--color-surface-raised` 5.97; `--color-accent-text` trên `--color-surface-raised` 5.06; `--color-violet` trên `--color-surface-raised` 5.72; `--color-jade` trên `--color-surface-raised` 6.43; `--color-on-accent` trên `--color-accent` 5.31; `--color-accent` với `--color-surface` 4.15; `--color-footer-muted` trên `--color-footer-bg` 8.33.
+    - tối: `--color-text` trên `--color-surface-raised` 10.24; `--color-text-muted` trên `--color-surface-raised` 5.97; `--color-accent-text` trên `--color-surface-raised` 5.06; `--color-violet` trên `--color-surface-raised` 5.72; `--color-jade` trên `--color-surface-raised` 6.43; `--color-on-accent` trên `--color-accent` 5.31; `--color-accent` với `--color-surface` 4.15; `--color-footer-muted` trên `--color-footer-bg` 8.15.
+    - Thay đổi đã xác nhận (người dùng, 2026-10-17, record plan-20261017-142513-T05): `--color-footer-muted` trên `--color-footer-bg` tối 8.33 -> 8.15, hệ quả của việc đổi `--color-footer-bg` ở REQ-03. Tính lại bằng (L1 + 0,05) / (L2 + 0,05) với L1 = 0,48654 (`#CBB3BE`) và L2 = 0,01587 (`#0F261F`) = 0,53654 / 0,06587 = 8,15; bản đầu dùng L2 = 0,01444 (`#0E241D`) cho 8,33.
 - REQ-06 | Nguồn: người dùng cho phép viết lại `docs/DESIGN.md` theo màu hợp mệnh. Agent quyết theo quy tắc giao tài liệu theo thay đổi: mọi đoạn nêu token, giá trị màu, tên hệ thiết kế, theme hay thư mục mà task này thêm, đổi hoặc bỏ | Yêu cầu: Sau task, các đoạn sau khớp source:
   - `docs/DESIGN.md`: đổi tiêu đề thành hệ thiết kế "Sơn Đầu Hỏa"; viết lại mục 1 (ý tưởng: lửa trên đỉnh núi; theme sáng hồng ngà, theme tối rừng núi lục thẫm, nhấn đỏ son, cam lửa, tím) và mục 2 (bảng REQ-03 cho hai theme, bảng ngũ hành, quy tắc tương phản, quy tắc gradient); sửa mọi câu nhắc màu ở mục khác và "Quick Color Reference"; thêm mục theme sáng/tối (cách chọn, nút chuyển, token theo theme). Giữ nguyên nội dung về font (T04 đã sửa).
   - `docs/RESPONSIVE.md`: mọi câu nêu token màu, màu nền (ví dụ nền Experience `--color-lifted` do T03 ghi) hoặc tên hệ thiết kế.
   - Chú thích đầu `variables.css`; tên hệ thiết kế trong ghi chú đầu `docs/UPDATE_SUMMARY.md`.
   - `DOCUMENTATION_COMPLETE.md` (cả hai ngôn ngữ): mục màu, Dark Mode, danh sách tính năng (thêm theme sáng/tối), cây "Cấu Trúc Dự Án" và bảng "Folder Purposes" (thêm `src/theme/`).
   - Tài liệu ngữ cảnh: mục Kiến trúc (thư mục theme, `data-theme`, khóa `portfolio_theme`); "Kiểm chứng layout bằng mock" thêm chiều theme `light`/`dark` và cách đặt (localStorage `portfolio_theme` trước khi tải, hoặc giả lập `prefers-color-scheme`); dòng `docs/DESIGN.md` ở bảng "Đọc trước khi làm".
+  - Thay đổi đã xác nhận (người dùng giao agent chọn phương án cho mục "Cần bạn xác nhận" của báo cáo Implement, 2026-10-17, record plan-20261017-145032-T05): `docs/DESIGN.md` được viết lại toàn bộ (giữ đánh số mục 1–9, giữ nội dung font của T04, thêm mục 10 về theme) thay vì chỉ mục 1, 2 và các câu nhắc màu, vì tài liệu còn hàng chục mã màu và tên thương hiệu cũ ở mọi mục.
 - Hợp đồng đã chốt khi lập Plan (vai trò `solution-architect`, người điều phối tự thực hiện; agent quyết, căn cứ source và cơ chế ngôn ngữ của T02):
   - `Theme = 'light' | 'dark'` khai trong `src/types/index.ts`. Provider và hook theme ở thư mục mới `src/theme/`, cùng mẫu với `src/i18n/` của T02; bọc cây trong `src/App.tsx`.
   - Theme áp bằng thuộc tính `data-theme` trên `<html>`; CSS đặt token theo `:root[data-theme='dark']` và `:root[data-theme='light']`, kèm `color-scheme` tương ứng.
@@ -81,6 +84,7 @@ verification_roles: [code-reviewer, code-analyst, ux-designer]
   - Chuyển theme có chuyển màu ≤ 300ms trên nền, chữ, viền; tắt khi `prefers-reduced-motion: reduce`.
   - Không thêm thư viện.
 - Phạm vi: chỉ màu, theme và nút chuyển. Không đổi font (T04), cỡ chữ, bo góc, độ sâu thẻ, chi tiết nhấn (T06), hiệu ứng chuyển động khác (T07), bố cục, nội dung.
+  - Thay đổi đã xác nhận (người dùng giao agent chọn phương án cho mục "Cần bạn xác nhận" của báo cáo Implement, 2026-10-17, record plan-20261017-145032-T05): dưới 480px ẩn dòng phụ của logo (`.subtitle` trong `Header.module.css`) để logo, nút theme và nút menu vừa viên thuốc rộng 312px ở 360px; đây là chỗ ngoài "không đổi bố cục" ở trên. Người dùng sau đó (2026-10-17) chọn hiện lại chức danh bằng cách khác; việc đó thuộc gói `portfolio-header-subtitle-mobile_20261017-142710`, nên lượt chỉnh này chỉ ghi hiện trạng đã duyệt.
 - Đường dẫn được phép sửa: `index.html` (script theme, `meta theme-color`); `src/App.tsx`; thư mục mới `src/theme/`; `src/types/index.ts`; `src/i18n/` (thêm khóa chuỗi của nút); `src/components/Header.tsx`; `src/styles/variables.css`, `src/styles/global.css`, `src/index.css`, `src/App.module.css`, mọi `src/components/*.module.css`; test: file mới `src/theme/theme.test.tsx`; tài liệu: `docs/DESIGN.md`, `docs/RESPONSIVE.md`, `docs/UPDATE_SUMMARY.md` (chỉ ghi chú đầu file), `DOCUMENTATION_COMPLETE.md` (các đoạn ở REQ-06); ở Hub: `.agents/llm-docs/repos/Portfolio.md`.
 - Kết quả riêng của task: người xem chuyển được giữa hai theme với bảng màu mới; lựa chọn được ghi nhớ; mọi section dùng đúng token.
 

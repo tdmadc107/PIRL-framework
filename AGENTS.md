@@ -67,7 +67,8 @@ Mục tiêu là người dùng hiểu đúng ý ngay lần đọc đầu và bi�
 - Câu ngắn, mỗi câu một ý, dùng từ chính xác. Không văn hoa, không lặp lại,
   không mở rộng sang việc người dùng không hỏi.
 - Tách rõ điều đã kiểm chứng, điều suy luận và điều đề xuất. Sai sót trong
-  câu trả lời trước thì đính chính rõ chỗ sai.
+  câu trả lời trước thì đính chính bằng một câu nêu chỗ sai và điều đúng, rồi
+  làm tiếp; không xin lỗi theo mẫu, không tự trách.
 - Chỉ đưa tên hàm, đường dẫn, ID khi người dùng cần chúng để xác nhận hoặc
   tra cứu.
 
@@ -86,6 +87,15 @@ Mỗi lượt layer kết thúc bằng
 [tự đánh giá và cải tiến](.agents/instructions/layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến):
 `process-auditor` tìm lỗi của từng vai trò, sửa tận gốc file framework liên quan,
 ghi một record và báo đã sửa gì, ở đâu.
+
+Quyết định của người dùng về cải tiến framework (2026-10-17): "Tôi muốn bạn
+phải tự cải thiện những vấn đề đó. Đó là những điều cơ bản cần phải có, việc
+cải thiện là điều tất yếu mà không cần tôi phải xác nhận." Vì vậy cải tiến
+không đụng quy tắc an toàn được áp dụng ngay trong lượt, kể cả khi tự đánh giá
+ở `mode: self`, không chờ người dùng xác nhận; thủ tục nằm ở
+[router](.agents/instructions/layered-task-execution.instructions.md#tự-đánh-giá-khi-mode-self).
+Phạm vi quyết định này chỉ gồm cải tiến không đụng quy tắc an toàn; cải tiến
+đụng quy tắc an toàn vẫn cần người dùng duyệt.
 
 Thứ tự nạp:
 

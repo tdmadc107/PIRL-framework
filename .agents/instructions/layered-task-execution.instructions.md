@@ -5,7 +5,7 @@ applyTo: ".repos/**/*,.agents/instructions/**/*,.agents/plan/**/*,.agents/review
 metadata:
   id: ".agents/instructions/layered-task-execution"
   kind: "instruction"
-  version: "1.3.0"
+  version: "1.4.0"
   status: "active"
 ---
 
@@ -31,9 +31,15 @@ không là đầu vào bàn giao; không tự tạo migration hoặc reader cho 
 
 1. Suy mục tiêu từ lời người dùng và ngữ cảnh đã rõ, không từ từ khóa. Khi
    người dùng chỉ định vai trò, giữ danh sách và thứ tự; không hỏi lại phần đã có.
-2. Khảo sát nguồn để giải quyết thông tin có thể tìm được. Chỉ hỏi quyết định
-   còn thiếu làm khác kết quả, phạm vi hoặc quyền thực hiện; dừng phần phụ
-   thuộc quyết định đó, tiếp tục phần độc lập đã đủ căn cứ.
+2. Khảo sát nguồn để giải quyết thông tin có thể tìm được, kể cả điều người
+   dùng đã nói: quyết định họ đã đưa ra (xác nhận, giao quyền chọn, từ chối)
+   nằm trong Plan, Implementation Record, record và report; lịch sử phiên của
+   host chỉ là nguồn dự phòng khi host có lưu. Chỉ hỏi quyết định còn thiếu làm
+   khác kết quả, phạm vi hoặc quyền thực hiện, và không hỏi lại điều đã có câu
+   trả lời; dừng phần phụ thuộc quyết định đó, tiếp tục phần độc lập đã đủ căn
+   cứ. Lượt làm theo câu trả lời của người dùng trích câu đó trong đầu ra của
+   mình (`summary` của record, Implementation Record) để lượt sau tìm được mà
+   không cần lịch sử phiên.
 3. Nếu chỉ được hỏi giải thích hoặc khảo sát, trả kết luận đúng phạm vi; không
    tự biến câu hỏi thành gói bàn giao. Khi yêu cầu là delivery sản phẩm, chọn
    đúng layer dưới đây; không tự chuyển layer chỉ vì đã xong phần hiện tại.
@@ -297,10 +303,11 @@ Lỗi đầu ra (source sản phẩm, Plan, report) còn được trả về vai
 sửa trong lượt, theo hợp đồng và giới hạn của layer (ví dụ giới hạn hai lần sửa
 của Implement). `process-auditor` chỉ sửa file framework.
 
-### Cải tiến triệt để khi `mode: agent`
+### Cải tiến triệt để
 
-Mỗi lỗi phải có cải tiến được áp dụng ngay trong lượt. Không có vùng cấm và
-không chờ đề xuất:
+Áp dụng ở `mode: agent`, và ở `mode: self` theo mục
+[Tự đánh giá khi `mode: self`](#tự-đánh-giá-khi-mode-self). Mỗi lỗi phải có cải
+tiến được áp dụng ngay trong lượt. Không có vùng cấm và không chờ đề xuất:
 
 1. Sửa mọi nơi sở hữu nguyên nhân: file layer, file vai trò, `AGENTS.md`,
    router, rule, công cụ framework cùng test của nó, `context_docs`, manifest.
@@ -319,11 +326,22 @@ với lý do `safety` và hỏi người dùng.
 
 ### Tự đánh giá khi `mode: self`
 
-Không sửa file framework. Mọi cải tiến ghi `pending_user` với lý do `mode_self`.
-Phản hồi cuối có mục "Tự đánh giá cần bạn quyết định": mỗi mục nêu lỗi, nguyên
-nhân, quy tắc, thay đổi cụ thể sẽ áp dụng và bằng chứng. Người dùng chọn áp
-dụng, bỏ qua, hoặc đánh giá lại bằng agent riêng. Lượt thực hiện lựa chọn đó ghi
-record mới có `supersedes` trỏ tới record cũ.
+Chính lượt tự đánh giá không sửa file framework: mọi cải tiến trong record của
+nó ghi `pending_user` với lý do `mode_self`, và công cụ từ chối `applied` ở
+`mode: self`. Người dùng đã cho phép áp dụng cải tiến mà không cần xác nhận
+([quyết định ở AGENTS.md](../../AGENTS.md#luồng-làm-việc)), nên trong cùng lượt
+người điều phối áp dụng từng cải tiến không đụng quy tắc an toàn như bảo trì
+framework do người dùng chỉ định, theo sáu bước của mục
+[Cải tiến triệt để](#cải-tiến-triệt-để). Sau đó ghi record mới có `supersedes`
+trỏ tới record tự đánh giá, `issues` và `fixes` rỗng, `summary` nêu từng
+`issue_key`, file và mục đã sửa, version cũ → mới, lệnh kiểm tra đã chạy và dẫn
+quyết định của người dùng. Phản hồi cuối báo ở mục "Tự cải tiến", không hỏi.
+
+Cải tiến đụng quy tắc an toàn (làm lỏng, thu hẹp, bỏ hoặc lách) không áp dụng:
+record ghi `pending_user` với lý do `safety`, và phản hồi cuối có mục "Tự đánh
+giá cần bạn quyết định" nêu lỗi, nguyên nhân, quy tắc, thay đổi cụ thể và bằng
+chứng. Người dùng chọn áp dụng, bỏ qua, hoặc đánh giá lại bằng agent riêng; lượt
+thực hiện lựa chọn đó ghi record mới có `supersedes` trỏ tới record cũ.
 
 ### Record
 
@@ -355,8 +373,9 @@ Mỗi lỗi phải nằm trong ít nhất một cải tiến.
 
 Phản hồi cuối của lượt có mục "Tự cải tiến": `record_id`, rồi với mỗi cải tiến
 đã áp dụng nêu lỗi, nguyên nhân, file và mục đã sửa, version cũ → mới, tóm tắt
-thay đổi; hoặc một câu "không phát hiện lỗi". Cải tiến chờ người dùng đi trong
-mục "Tự đánh giá cần bạn quyết định".
+thay đổi; hoặc một câu "không phát hiện lỗi". Ở `mode: self`, `record_id` là
+record bảo trì thay thế record tự đánh giá. Cải tiến chờ người dùng vì lý do
+`safety` đi trong mục "Tự đánh giá cần bạn quyết định".
 
 ## Dọn tài nguyên tạm trước bàn giao
 

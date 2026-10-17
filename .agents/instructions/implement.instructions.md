@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/implement.instructions.md"
 metadata:
   id: ".agents/instructions/implement"
   kind: "instruction"
-  version: "1.3.0"
+  version: "1.4.0"
   status: "active"
 ---
 
@@ -79,7 +79,9 @@ bằng chứng.
    tên biến hoặc cách tái sử dụng source phù hợp không cần lập Plan mới.
    Chỉ chuyển lại quyết định làm đổi hành vi, quyền, dữ liệu, phạm vi hoặc
    đánh đổi đã được người dùng chốt. Nêu đúng phần thiếu và tiếp tục phần
-   độc lập; không mặc định cả task bị chặn vì một nhánh chưa rõ.
+   độc lập; không mặc định cả task bị chặn vì một nhánh chưa rõ. Chỗ lệch Plan
+   mà người dùng xác nhận đi theo mục
+   [Thay đổi so với Plan do người dùng xác nhận](#thay-đổi-so-với-plan-do-người-dùng-xác-nhận).
 
 ## Triển khai và sửa theo Review
 
@@ -100,10 +102,12 @@ bằng chứng.
   kiểm chứng mới, dù trong hay ngoài repo (ngoại lệ duy nhất là script mock và
   chụp layout trong `.tmp/` theo
   [router](layered-task-execution.instructions.md#kiểm-chứng-layout-bằng-mock)). Điểm cần quyết định sản phẩm thì ghi vào nơi dự
-  án lưu khoảng trống đã biết và vào rủi ro còn lại, không tự chọn. Không sửa
-  hồ sơ lịch sử (Plan đã chốt, report Review, nội dung đặc tả gốc); mục lục
-  và bảng trạng thái triển khai của thư mục đặc tả là tài liệu sống nên vẫn
-  đồng bộ. Quét lại khi hành vi đổi sau lần quét.
+  án lưu khoảng trống đã biết và vào rủi ro còn lại, không tự chọn. Lần quét
+  này không sửa hồ sơ lịch sử (Plan đã chốt, report Review, nội dung đặc tả
+  gốc); Plan chỉ đổi theo mục
+  [Thay đổi so với Plan do người dùng xác nhận](#thay-đổi-so-với-plan-do-người-dùng-xác-nhận).
+  Mục lục và bảng trạng thái triển khai của thư mục đặc tả là tài liệu sống nên
+  vẫn đồng bộ. Quét lại khi hành vi đổi sau lần quét.
 - Với lượt sửa, đọc mọi FIND/RISK/BLOCK, EVAL và disposition trong report. Xác nhận
   trigger và nguyên nhân bằng lập luận trên source (chỉ tái hiện khi lượt này
   được yêu cầu điều tra nguyên nhân gốc rễ theo router), tìm guard hay
@@ -123,6 +127,29 @@ bằng chứng.
   quả test theo FUT, khi Plan giao, chỉ nêu cạnh lập luận, không là dòng bằng
   chứng ([nguồn bằng chứng](layered-task-execution.instructions.md#kiểm-chứng-bằng-lập-luận)). Lượt sửa chạm giao
   diện chụp lại layout theo mục kiểm chứng bên dưới vào thư mục lần chạy mới.
+
+## Thay đổi so với Plan do người dùng xác nhận
+
+Plan là chuẩn mà vai trò kiểm chứng và Review đối chiếu, nên khi người dùng đã
+chốt một chỗ khác Plan thì Plan phải khớp ngay trong phiên, không để đến Review.
+
+- **Khi nào:** trong phiên Implement (lượt đầu hoặc lượt sửa), phần triển khai
+  lệch một giá trị, bảng, phạm vi, đường dẫn được phép sửa, REQ hoặc QG của
+  Plan, và người dùng xác nhận đúng chỗ lệch đó trong cùng phiên, kể cả khi họ
+  trả lời sau khi Implement nêu quyết định ngoài chữ Plan.
+- **Làm gì:** trước khi vai trò kiểm chứng kết luận QG, sửa tại chỗ các dòng
+  Plan bị ảnh hưởng và thêm ngay dưới mỗi dòng đã sửa một chú thích
+  `Thay đổi đã xác nhận (người dùng, <YYYY-MM-DD>): <cũ> -> <mới>; <lý do>`.
+  Tính lại mọi bảng giá trị hay số dẫn xuất phụ thuộc vào giá trị đã đổi (ví
+  dụ tỉ số tương phản của màu vừa đổi). Ghi từng chỗ sửa vào `plan_amendments`
+  của Implementation Record. Vai trò kiểm chứng kết luận QG theo Plan đã sửa.
+- **Không áp dụng:** chỗ lệch do agent tự chọn mà người dùng chưa xác nhận.
+  Không sửa Plan cho khớp code: hỏi người dùng trong phiên, và QG bị ảnh hưởng
+  ghi `BLOCKED` kèm quyết định cần chọn cho tới khi họ trả lời. Thay đổi làm
+  đổi vai trò, `depends_on` hoặc ranh giới task cũng không thuộc mục này mà
+  chuyển lại layer Plan. Người dùng xác nhận sau khi phiên Implement đã kết
+  thúc thì việc sửa Plan là lượt Plan: dùng cùng dạng chú thích kèm `record_id`
+  của lượt Plan đó, và record này là dấu vết thay cho `plan_amendments`.
 
 ## Kiểm chứng quality gate bằng lập luận
 
@@ -178,8 +205,10 @@ tiến framework và ghi record theo
 
 Cập nhật trạng thái Plan và một mục `Implementation Record` bên dưới bốn mục
 nội dung Plan. Ghi việc thực tế, nguồn, thay đổi, bằng chứng QG, tự phản biện
-và giới hạn. Lượt sửa thay tham chiếu bằng record của chính lượt đó, không
-sửa nội dung Plan để hợp thức hóa hướng đã tự đổi.
+và giới hạn. Lượt sửa thay tham chiếu bằng record của chính lượt đó. Nội dung
+Plan chỉ đổi theo mục
+[Thay đổi so với Plan do người dùng xác nhận](#thay-đổi-so-với-plan-do-người-dùng-xác-nhận);
+không sửa Plan để hợp thức hóa hướng agent tự đổi.
 
 ```markdown
 ## Implementation Record
@@ -195,6 +224,7 @@ sửa nội dung Plan để hợp thức hóa hướng đã tự đổi.
 - repair_closure_evidence: <từng mục report -> REQ/QG, nguyên nhân, giải pháp/disposition và bằng chứng trước/sau phù hợp; hoặc đúng N/A cho lượt đầu>
 - root_cause_revalidation: <ITEM-ID=confirmed|contradicted|blocked/bằng chứng trước sửa; hoặc đúng N/A cho lượt đầu>
 - review_item_disposition: <FIND-01=resolved|failed|blocked/bằng chứng; RISK-01=deferred/chủ xử lý và điều kiện xem lại; BLOCK-01=unblocked|blocked|escalated/bằng chứng; hoặc đúng N/A cho lượt đầu>
+- plan_amendments: <từng chỗ sửa Plan theo mục "Thay đổi so với Plan do người dùng xác nhận": dòng Plan, giá trị cũ -> mới, người dùng xác nhận gì và lúc nào; hoặc đúng N/A>
 - role_challenge_results: <vai-trò=PASS|FAIL|BLOCKED/tuyên bố, phản biện và bằng chứng; ...>
 - residual_risk: <rủi ro còn lại và tác động; hoặc none>
 - review_handoff: <file Plan, đối tượng triển khai, report nguồn nếu có>
@@ -219,6 +249,7 @@ quét ảnh hưởng là ngoại lệ thứ hai: liệt kê riêng trong `change
 lý do đồng bộ, và ghi rõ trong `role_work` đã quét những gì để người đọc biết
 phần nào được kiểm tra. `root_cause_revalidation` và `review_item_disposition`
 luôn có mặt: lượt đầu ghi `N/A`, lượt sửa bao phủ mọi mục report theo thứ tự.
+`plan_amendments` cũng luôn có mặt, ghi `N/A` khi không sửa Plan.
 Report nguồn phải cùng Plan/task và dùng `pirl-review/v1`.
 
 ## Kết thúc và bàn giao
