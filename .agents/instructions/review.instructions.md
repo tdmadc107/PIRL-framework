@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/review.instructions.md"
 metadata:
   id: ".agents/instructions/review"
   kind: "instruction"
-  version: "1.2.2"
+  version: "1.3.0"
   status: "active"
 ---
 
@@ -39,9 +39,10 @@ vai trò tìm một lỗi.
 | [`process-auditor`](../roles/process-auditor.role.md) | Mọi vòng Review; không ghi vào `review_roles` | Đánh giá lại vai trò Implement (mục Evaluations) và tự đánh giá lượt Review theo [router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến) | Evaluations bao phủ đội Implement; record đã ghi; cải tiến đã áp dụng hoặc đã tổng hợp cho người dùng |
 
 - Phân xử bất đồng bằng source, hợp nhất nghi vấn cùng nguyên nhân; không bỏ
-  phiếu. Agent riêng chỉ hữu ích khi có câu hỏi độc lập; không giả lập giao
-  việc, không bắt có nhiều agent mới được kết luận. Khi một agent đảm nhận
-  nhiều vai trò, report ghi đó là tự thực hiện.
+  phiếu. Giao từng vai trò trong `review_roles` theo
+  [nguyên tắc giao việc](../../AGENTS.md#vai-trò-ai-agent). Report ghi cách
+  thực hiện của từng vai trò (agent riêng, hoặc tự thực hiện kèm lý do) và mức
+  độc lập thực tế khi một vai trò đã đọc bản nháp hay kết luận của lượt.
 - Với từng record Implement, phân một chủ đánh giá và đối chiếu chéo khi có
   nghi vấn.
 
@@ -49,13 +50,17 @@ vai trò tìm một lỗi.
 
 - Đọc đúng Plan `pirl-plan/v1`, Implementation Record, source/diff của lượt
   được giao và report trước cùng task nếu có. Xác định snapshot trước khi kết
-  luận; thay đổi hiện tại không tự là bằng chứng về quyết định của một lượt cũ.
-- Khi nhiều task của một gói nằm chung một snapshot (cùng commit hoặc cùng bộ
-  thay đổi chưa tách được theo task), kết luận mỗi QG trên source cuối và ghi
-  snapshot chung trong `implementation_target`. Chỗ lệch với QG của task trước
-  mà do task chạy sau đổi trong phạm vi REQ của chính task sau thì không là
-  FAIL của task trước. Task sau đổi phần làm vỡ QG của task trước mà nằm ngoài
-  REQ của mình thì là FIND của task sau.
+  luận và đọc nó theo
+  [mục Snapshot chung và hồ sơ cũ](layered-task-execution.instructions.md#snapshot-chung-và-hồ-sơ-cũ)
+  của router.
+- Kết luận mỗi QG trên source cuối; khi nhiều task chung snapshot, ghi snapshot
+  chung trong `implementation_target`. Chỗ lệch với QG của task trước mà thuộc
+  task chạy sau theo thứ tự dựng ở router không là FAIL của task trước và không
+  tính cho vai trò Implement của task trước; nếu nó nằm ngoài REQ của task sau
+  thì là FIND của task sau. Thay đổi chưa có chủ không là FIND của task nào: nếu
+  nó làm vỡ QG của task đang review, ghi QG đó `BLOCKED` kèm BLOCK `escalate`
+  vì chưa có chủ để giao `repair`; còn lại nêu nó trong `implementation_target`
+  và `Tiếp theo`.
 - Plan có chú thích `Thay đổi đã xác nhận` là Plan hiện hành: kết luận QG theo
   nó, sau khi tìm được dấu vết của từng chú thích theo
   [quy tắc Implement](implement.instructions.md#thay-đổi-so-với-plan-do-người-dùng-xác-nhận):
@@ -120,8 +125,11 @@ vai trò tìm một lỗi.
    quyết định đã chốt thì dùng `replan`. Khi còn `replan`, để `repair_roles`
    rỗng và bàn giao Plan. Nếu chỉ sửa trong phạm vi, đội sửa gồm đúng các
    vai trò triển khai chịu FIND `repair` và BLOCK `retry`, theo thứ tự bàn giao.
-   RISK được trì hoãn; BLOCK `escalate` chuyển chủ. Chỉ giao `retry` khi có
-   hành động/điều kiện mới, không mở vòng khác với cùng một blocker.
+   RISK được trì hoãn: `Chỉ dẫn` và `Xem lại khi` nêu task và layer sẽ xử lý
+   hoặc việc người dùng cần giao; chưa có task chủ thì không dùng "lượt sau"
+   hay "lần kế tiếp chỉnh <file>", và chỉ dẫn cho task khác xử lý thì ghi tên
+   task đó. BLOCK `escalate` chuyển chủ. Chỉ giao `retry` khi có hành động/điều
+   kiện mới, không mở vòng khác với cùng một blocker.
 7. Ghi QG `PASS|FAIL|BLOCKED`. Business `FAIL` khi đã có QG thất bại hoặc
    FIND `FUT`, nếu chưa có thất bại nhưng thiếu căn cứ bắt buộc thì `BLOCKED`,
    còn lại `PASS`. Risk và lỗi hướng dẫn tự thân không đảo ngược kết luận này.
@@ -149,8 +157,11 @@ nhiều bằng chứng hơn lần tự đánh giá của chính Implement.
    có đứng vững trước source không, có bỏ sót FIND mà Review tìm thấy không, có
    dựa vào kết quả chạy thay lập luận không.
 3. Mỗi lỗi của một vai trò Implement được phân loại nguyên nhân và cải tiến theo
-   router, ghi vào record Review với `record` là record trong `evaluates`. EVAL
-   ghi lại nguyên nhân, `issue_key` và nơi đã sửa, hoặc trạng thái chờ người dùng.
+   router, ghi vào record Review với `record` là record trong `evaluates`; lỗi
+   được quy cho task và lượt đã làm ra nó theo
+   [mục Snapshot chung và hồ sơ cũ](layered-task-execution.instructions.md#snapshot-chung-và-hồ-sơ-cũ)
+   của router. EVAL ghi lại nguyên nhân, `issue_key` và nơi đã sửa, hoặc trạng
+   thái chờ người dùng.
 4. Không tạo lỗi giả. Lỗi của vai trò hay hướng dẫn không hạ verdict Business và
    không chặn bàn giao một delivery đã đủ điều kiện; nếu chính report sai, sửa
    report trước khi chốt.

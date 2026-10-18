@@ -123,10 +123,10 @@ Cuối mỗi lượt Plan, Implement hoặc Review, phản hồi của Agent có
 - **Tự cải tiến:** mã record, và với mỗi cải tiến đã áp dụng: lỗi, nguyên nhân,
   file và mục đã sửa, version cũ → mới. Hãy xem diff các file này trước khi
   commit.
-- **Tự đánh giá cần bạn quyết định:** xuất hiện trong hai trường hợp. Một là
-  Agent không giao được việc đánh giá cho một agent riêng, nên đã tự đánh giá
-  chính mình. Hai là cải tiến sẽ làm lỏng một quy tắc an toàn. Bạn chọn áp dụng,
-  bỏ qua, hoặc cho đánh giá lại bằng agent riêng.
+- **Tự đánh giá cần bạn quyết định:** chỉ xuất hiện khi cải tiến sẽ làm lỏng
+  một quy tắc an toàn. Bạn chọn áp dụng, bỏ qua, hoặc cho đánh giá lại bằng
+  agent riêng. Việc đánh giá luôn được giao cho một agent riêng; chỉ khi host
+  không tạo được agent, Agent mới tự đánh giá và nêu lý do.
 
 Quy tắc an toàn (commit, push, secret, thao tác phá hủy, các điểm cần bạn quyết
 định) không bao giờ bị tự cải tiến làm lỏng khi chưa có bạn đồng ý. Định nghĩa
@@ -164,6 +164,7 @@ Chọn lệnh kiểm tra theo phần đã sửa: xem
 
 ```text
 AGENTS.md        gốc: cấu trúc, luồng, vai trò, định tuyến repo
+CONTEXT.md       cách trình bày phản hồi gửi người dùng
 .agents/         hướng dẫn layer, vai trò, quy tắc, công cụ, Plan, report, record
 .repos/          manifest và submodule của repo sản phẩm
 .tools/          dashboard, claude-resume, claude-schedule
@@ -177,6 +178,7 @@ Cây đầy đủ: [`AGENTS.md`](AGENTS.md#cấu-trúc).
 | Muốn biết | Đọc |
 | --- | --- |
 | Cấu trúc, luồng, vai trò, đăng ký repo | [`AGENTS.md`](AGENTS.md) |
+| Cách Agent trình bày câu trả lời, tóm tắt, đề xuất | [`CONTEXT.md`](CONTEXT.md) |
 | Cách chọn layer, hợp đồng chung, tự cải tiến | [Router](.agents/instructions/layered-task-execution.instructions.md) |
 | Chi tiết từng layer | [Plan](.agents/instructions/plan.instructions.md), [Implement](.agents/instructions/implement.instructions.md), [Review](.agents/instructions/review.instructions.md) |
 | Chuyên môn từng vai trò | [`.agents/roles/`](.agents/roles/) |

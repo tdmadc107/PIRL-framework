@@ -1,7 +1,7 @@
 ---
 id: .agents/roles/process-auditor
 kind: role
-version: 1.0.0
+version: 1.1.0
 status: active
 ---
 
@@ -30,15 +30,18 @@ status: active
 - Tra record cũ theo `issue_key` và theo quy tắc trước khi kết luận nguyên nhân.
   Giữ nguyên `issue_key` của lỗi đã có để không mất dấu lần sửa trước.
 - Khi viết lại quy tắc: sửa ở nơi sở hữu, thay đoạn sai thay vì chồng thêm lời
-  nhắc, viết điều kiện và hành động cụ thể. Đọc lại với tình huống gây lỗi và
-  một tình huống gần giống mà quy tắc không được áp dụng. Quét các file khác
-  tham chiếu tới quy tắc đó.
+  nhắc, viết điều kiện và hành động cụ thể ở dạng chung theo
+  [mục Bảo trì framework của router](../instructions/layered-task-execution.instructions.md#bảo-trì-framework).
+  Tách lỗi khỏi sự kiện: hỏi loại tình huống nào gây ra nó, rồi viết quy tắc
+  cho loại đó. Quét các file khác tham chiếu tới quy tắc đó.
 
 ## Dấu hiệu sai thường gặp
 
 - Đổ lỗi cho hướng dẫn khi quy tắc đã rõ mà vai trò không làm theo.
 - Chồng thêm câu nhắc thay vì sửa câu gây lỗi.
 - Sửa quá khớp một trường hợp, làm hỏng tình huống gần giống.
+- Viết quy tắc gắn với một repo, host, giá trị, ngày hay lời trích của một lần
+  chạy, nên không dùng lại được ở dự án khác.
 - Đặt `issue_key` mới cho một lỗi cũ.
 - Làm lỏng quy tắc an toàn để gỡ một lần bị chặn.
 

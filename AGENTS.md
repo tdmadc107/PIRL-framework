@@ -10,10 +10,15 @@ repo có lịch sử và nhánh riêng; danh sách repo đăng ký nằm trong
 Luôn áp dụng [quy tắc lõi](.agents/llm-docs/rules/core-agent.rule.md) về an
 toàn, phạm vi và bằng chứng, kể cả khi không mở layer nào.
 
+Đọc [CONTEXT.md](CONTEXT.md) trước câu trả lời đầu tiên của mỗi phiên và áp
+dụng cho mọi câu trả lời, tóm tắt, báo cáo và đề xuất gửi người dùng, kể cả khi
+không mở layer nào.
+
 # Cấu trúc
 
 ```text
 AGENTS.md                         gốc: cấu trúc, luồng, vai trò Agent, định tuyến repo
+CONTEXT.md                        cách trình bày phản hồi gửi người dùng
 .agents/
   instructions/
     layered-task-execution.instructions.md   router: chọn layer, hợp đồng chung
@@ -38,7 +43,8 @@ AGENTS.md                         gốc: cấu trúc, luồng, vai trò Agent, �
 | Nguồn | Sở hữu |
 | --- | --- |
 | `AGENTS.md` | Cấu trúc, luồng, danh mục vai trò, định tuyến repo, lệnh kiểm tra |
-| Router | Cách chọn layer, ranh giới layer, hợp đồng chung (kiểm chứng bằng lập luận, layout, tự đánh giá và cải tiến, dọn tài nguyên) |
+| `CONTEXT.md` | Cách trình bày câu trả lời, tóm tắt, báo cáo, đề xuất và tổng hợp gửi người dùng |
+| Router | Cách chọn layer, ranh giới layer, hợp đồng chung (kiểm chứng bằng lập luận, layout, snapshot chung và hồ sơ cũ, tự đánh giá và cải tiến, dọn tài nguyên) |
 | Layer instruction | Trình tự, trách nhiệm của từng vai trò tại layer, đầu ra và điều kiện kết thúc của một layer |
 | File vai trò | Chuyên môn dùng chung của một vai trò, giống nhau ở mọi layer |
 | Rule | Một ràng buộc dùng lại cho nhiều layer |
@@ -46,31 +52,6 @@ AGENTS.md                         gốc: cấu trúc, luồng, vai trò Agent, �
 | Record | Lịch sử tự đánh giá và cải tiến của từng lượt layer; chỉ ghi thêm qua công cụ |
 
 Mỗi quy tắc chỉ nằm ở một nơi sở hữu; file khác trỏ tới đó, không sao chép.
-
-# Cách trình bày khi trả lời
-
-Áp dụng cho mọi câu trả lời, tóm tắt và báo cáo gửi người dùng trong phiên.
-Mục tiêu là người dùng hiểu đúng ý ngay lần đọc đầu và biết mình cần xác nhận gì.
-
-- Trả lời thẳng câu được hỏi trước, trong một hai câu; chi tiết đặt sau.
-  Có nhiều câu hỏi thì trả lời theo đúng thứ tự người dùng hỏi.
-- Mỗi issue, bug, rủi ro hoặc mục cần quyết định trình bày theo thứ tự:
-  tình huống cụ thể (ai, thao tác gì, khi nào) → hậu quả người dùng hoặc dữ
-  liệu gặp phải → nguyên nhân → đã làm gì hoặc đề xuất gì → điều cần người
-  dùng quyết định. Mỗi phần một hai câu; bỏ phần không có.
-- Gọi đúng tên đối tượng (người gửi, người nhận, chủ sở hữu cũ, trường
-  `ownerId`...). Không dùng đại từ, ẩn dụ hay từ tự đặt (như "dấu",
-  "nó") khi có thể hiểu nhầm. Một thuật ngữ chỉ mang một nghĩa trong cả câu
-  trả lời.
-- Với rủi ro, nêu điều kiện xảy ra thực tế (ai làm, cần thao tác gì, cửa sổ
-  thời gian) và mức hậu quả, để người dùng tự đánh giá khả năng gặp phải.
-- Câu ngắn, mỗi câu một ý, dùng từ chính xác. Không văn hoa, không lặp lại,
-  không mở rộng sang việc người dùng không hỏi.
-- Tách rõ điều đã kiểm chứng, điều suy luận và điều đề xuất. Sai sót trong
-  câu trả lời trước thì đính chính bằng một câu nêu chỗ sai và điều đúng, rồi
-  làm tiếp; không xin lỗi theo mẫu, không tự trách.
-- Chỉ đưa tên hàm, đường dẫn, ID khi người dùng cần chúng để xác nhận hoặc
-  tra cứu.
 
 # Luồng làm việc
 
@@ -88,14 +69,12 @@ Mỗi lượt layer kết thúc bằng
 `process-auditor` tìm lỗi của từng vai trò, sửa tận gốc file framework liên quan,
 ghi một record và báo đã sửa gì, ở đâu.
 
-Quyết định của người dùng về cải tiến framework (2026-10-17): "Tôi muốn bạn
-phải tự cải thiện những vấn đề đó. Đó là những điều cơ bản cần phải có, việc
-cải thiện là điều tất yếu mà không cần tôi phải xác nhận." Vì vậy cải tiến
+Cải tiến framework là phần bắt buộc của mỗi lượt, không phải đề xuất: cải tiến
 không đụng quy tắc an toàn được áp dụng ngay trong lượt, kể cả khi tự đánh giá
 ở `mode: self`, không chờ người dùng xác nhận; thủ tục nằm ở
 [router](.agents/instructions/layered-task-execution.instructions.md#tự-đánh-giá-khi-mode-self).
-Phạm vi quyết định này chỉ gồm cải tiến không đụng quy tắc an toàn; cải tiến
-đụng quy tắc an toàn vẫn cần người dùng duyệt.
+Quyền này chỉ gồm cải tiến không đụng quy tắc an toàn; cải tiến đụng quy tắc
+an toàn vẫn cần người dùng duyệt.
 
 Thứ tự nạp:
 
@@ -106,7 +85,8 @@ Thứ tự nạp:
    - [Task độc lập](.agents/instructions/layered-task-execution.instructions.md#task-độc-lập),
      tức việc giao thẳng ngoài chuỗi của một Plan: không kích hoạt layer.
    - [Bảo trì framework](.agents/instructions/layered-task-execution.instructions.md#bảo-trì-framework):
-     sửa chính `AGENTS.md`, instruction, rule hoặc công cụ theo phạm vi người dùng giao.
+     sửa chính `AGENTS.md`, `CONTEXT.md`, instruction, rule hoặc công cụ theo
+     phạm vi người dùng giao.
    - Câu hỏi chỉ cần giải thích, không tạo đầu ra bền vững: trả lời đúng phạm
      vi, không tạo file.
 3. Với việc chạm repo sản phẩm, đọc [định tuyến repo](#định-tuyến-repo) rồi nạp
@@ -154,21 +134,35 @@ Ràng buộc để vai trò không thành skill:
 - Vai trò không có artifact, công cụ hay cơ chế đánh giá riêng; vai trò được
   đánh giá qua record của layer.
 - Kiến thức riêng của một repo nằm trong `context_docs` của repo đó, không nằm
-  trong file vai trò. Vai trò không dựa vào cơ chế skill hay agent riêng của host.
+  trong file vai trò. Vai trò không dựa vào cơ chế skill hay cấu hình agent
+  tùy biến của host.
 
 Nguyên tắc giao việc, áp dụng cho cả ba layer:
 
 - Người điều phối (Agent nhận yêu cầu từ người dùng) chịu trách nhiệm kết quả
   cuối: giao việc, hợp nhất theo bằng chứng, không theo số vai trò đồng ý.
-- Giao cho agent riêng (sub-agent của host) khi host cho phép và có một câu hỏi
-  độc lập hữu ích. Truyền file vai trò, dòng của vai trò trong bảng của file
-  layer, nguồn, ràng buộc, hướng đã chốt và phần cần xét; không giấu giải pháp,
-  không áp đặt kết luận.
-- Host không có khả năng giao việc thì người điều phối đảm nhận lần lượt từng
-  vai trò theo thứ tự layer và ghi đó là tự thực hiện (`mode: self`). Thiếu khả
-  năng giao việc không chặn công việc.
-- Mô tả vai trò không chứng minh agent độc lập. Tự kiểm tra được ghi đúng là
-  tự kiểm tra; không tuyên bố đã có phản biện hay kiểm chứng độc lập khi chưa có.
+- Framework này vận hành layer bằng AI agent: mỗi vai trò được chọn của một
+  lượt layer, kể cả `process-auditor`, chạy trong một agent riêng (sub-agent
+  của host). Yêu cầu chạy một layer là yêu cầu rõ để giao việc cho agent; chỉ
+  dẫn mặc định của host đòi người dùng yêu cầu trước khi tạo agent được thỏa
+  bởi quy tắc này, không cần người dùng nhắc lại trong từng lượt.
+- Vai trò không cần kết quả của nhau chạy song song; vai trò cần kết quả của
+  vai trò khác chạy sau vai trò đó (`process-auditor` chạy sau khi đầu ra của
+  layer đã chốt). Người điều phối không tự làm thay phần đã giao.
+- Khi giao, truyền file vai trò, dòng của vai trò trong bảng của file layer,
+  nguồn, ràng buộc, hướng đã chốt và phần cần xét; không giấu giải pháp, không
+  áp đặt kết luận.
+- Chỉ tự thực hiện (`mode: self`) khi host không có cơ chế tạo agent trong
+  phiên hoặc lời gọi tạo agent thất bại. Khi đó người điều phối đảm nhận lần
+  lượt từng vai trò theo thứ tự layer và ghi lý do cụ thể trong `summary` của
+  record và trong đầu ra của layer. Thiếu khả năng giao việc không chặn công việc.
+- Mô tả vai trò không chứng minh agent độc lập. Muốn một vai trò độc lập với
+  bản nháp hay kết luận có sẵn của chính lượt (do người điều phối hoặc vai trò
+  khác viết), không đưa chúng vào lời giao và nêu đường dẫn chứa chúng là không
+  được đọc, hoặc đặt chúng ngoài vùng agent đọc được. Khi chưa bảo đảm được
+  điều đó, ghi mức độc lập thực tế của từng vai trò trong đầu ra. Tự kiểm tra
+  được ghi đúng là tự kiểm tra; không tuyên bố đã có phản biện hay kiểm chứng
+  độc lập khi chưa có.
 - Một vai trò không kiểm chứng phần chính nó làm ra.
 
 # Định tuyến repo

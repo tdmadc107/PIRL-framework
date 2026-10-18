@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/plan.instructions.md"
 metadata:
   id: ".agents/instructions/plan"
   kind: "instruction"
-  version: "1.4.0"
+  version: "1.4.1"
   status: "active"
 ---
 
@@ -40,8 +40,8 @@ Người điều phối Plan hợp nhất kết luận của các vai trò, phâ
 nguồn (không bỏ phiếu), viết Plan và tự rà soát. Mỗi vai trò trả quyết định
 chuyên môn kèm nguồn làm thay đổi phương án. Mỗi file Plan ghi cách thực hiện
 các vai trò lập Plan ở dòng `Lập Plan` của mục `Vai trò tham gia`: agent riêng
-hay người điều phối tự thực hiện, theo từng vai trò khi khác nhau. Khi tự thực
-hiện, không tuyên bố đã có phản biện độc lập.
+hay người điều phối tự thực hiện kèm lý do không giao được, theo từng vai trò
+khi khác nhau. Khi tự thực hiện, không tuyên bố đã có phản biện độc lập.
 
 ## Khảo sát và chốt quyết định
 
@@ -234,7 +234,7 @@ lỗi nội dung Plan đã hoàn tất; Implement chỉ thực hiện task này 
 
 - ROLE-01 | Loại: triển khai | Vai trò: <vai-trò-triển-khai> | Phụ trách: <Phần việc cụ thể> | Đầu vào: <Thông tin hoặc kết quả phụ thuộc> | Hoàn tất khi: <Source/tài liệu phải giao>
 - ROLE-02 | Loại: kiểm chứng | Vai trò: <vai-trò-kiểm-chứng> | Phụ trách: <QG và câu hỏi phải trả lời> | Đầu vào: <Diff/source của ROLE-01> | Hoàn tất khi: <Kết luận PASS/FAIL/BLOCKED từng QG bằng lập luận có nguồn>
-- Lập Plan | Vai trò: <các vai trò trong planning_roles> | Cách thực hiện: <agent riêng hoặc người điều phối tự thực hiện; ghi theo từng vai trò khi khác nhau>
+- Lập Plan | Vai trò: <các vai trò trong planning_roles> | Cách thực hiện: <agent riêng hoặc người điều phối tự thực hiện kèm lý do không giao được; ghi theo từng vai trò khi khác nhau>
 
 ## Tiêu chí chất lượng bắt buộc
 

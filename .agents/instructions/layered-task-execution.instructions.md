@@ -1,11 +1,11 @@
 ---
 name: "Layered Task Execution Instructions"
-description: "Định tuyến Plan, Implement, Review, quy định ranh giới giữa các layer và các hợp đồng chung: kiểm chứng bằng lập luận, kiểm chứng layout, tự đánh giá và cải tiến, dọn tài nguyên tạm."
+description: "Định tuyến Plan, Implement, Review, quy định ranh giới giữa các layer và các hợp đồng chung: kiểm chứng bằng lập luận, kiểm chứng layout, snapshot chung và hồ sơ cũ, tự đánh giá và cải tiến, dọn tài nguyên tạm."
 applyTo: ".repos/**/*,.agents/instructions/**/*,.agents/plan/**/*,.agents/review/**/*"
 metadata:
   id: ".agents/instructions/layered-task-execution"
   kind: "instruction"
-  version: "1.4.0"
+  version: "1.5.1"
   status: "active"
 ---
 
@@ -83,22 +83,34 @@ chứng không thay kết luận của Review.
 
 ## Bảo trì framework
 
-Yêu cầu sửa trực tiếp `AGENTS.md`, instruction, rule, `.repos/manifest.yaml` hoặc
-công cụ trong `.agents/llm-docs/evals/` và `.tools/` là bảo trì framework theo
-phạm vi người dùng giao. Không ép tạo Plan hay report sản phẩm trước khi sửa.
+Yêu cầu sửa trực tiếp `AGENTS.md`, `CONTEXT.md`, instruction, rule,
+`.repos/manifest.yaml` hoặc công cụ trong `.agents/llm-docs/evals/` và `.tools/`
+là bảo trì framework theo phạm vi người dùng giao. Không ép tạo Plan hay report sản phẩm trước khi sửa.
 Cải tiến do `process-auditor` áp dụng trong một lượt layer theo
 [mục Tự đánh giá và cải tiến](#tự-đánh-giá-và-cải-tiến) cũng là bảo trì framework,
 được chính mục đó cho phép mà không cần yêu cầu riêng.
 
 - Bắt đầu từ quyết định sai hoặc thiếu, rồi xác định file sở hữu: `AGENTS.md`
-  cho cấu trúc, vai trò và định tuyến; router cho ranh giới layer và hợp đồng
-  chung; layer cho trình tự và đầu ra; rule cho ràng buộc dùng lại. Đọc các
+  cho cấu trúc, vai trò và định tuyến; `CONTEXT.md` cho cách trình bày phản
+  hồi gửi người dùng; router cho ranh giới layer và hợp đồng chung; layer cho
+  trình tự và đầu ra; rule cho ràng buộc dùng lại. Đọc các
   file tham chiếu tới quy tắc trước khi thay, để file khác không khôi phục
   hành vi cũ.
+- Viết quy tắc ở dạng chung của framework, dùng lại được cho mọi repo, host và
+  tình huống cùng loại: điều kiện nêu theo loại tình huống, hành động nêu theo
+  vai trò và đầu ra, không theo một sự kiện đã xảy ra. Nội dung của `AGENTS.md`,
+  `CONTEXT.md`, instruction, file vai trò, rule và công cụ không chứa chi tiết riêng của một
+  lần chạy hay một dự án làm điều kiện hoặc căn cứ: tên repo hay sản phẩm,
+  đường dẫn trong repo sản phẩm, token hay giá trị cụ thể, ID task hay record,
+  ngày, lời trích người dùng, tên host hay công cụ cụ thể. Ví dụ minh họa, nếu
+  cần, ghi rõ là ví dụ và không thành điều kiện. Kiến thức riêng của một repo
+  nằm trong `context_docs` của repo đó; quyết định và bằng chứng của một lượt
+  nằm trong Plan, Implementation Record, report và record.
 - Sửa bằng điều kiện và hành động đủ cụ thể; thay đoạn sai thay vì chồng thêm
-  lời nhắc. Đọc lại bằng tình huống gây lỗi và một tình huống gần giống mà quy
-  tắc không được áp dụng. Không thêm test, validator hay schema để thay cho
-  cải thiện nội dung.
+  lời nhắc. Đọc lại bằng ba tình huống: tình huống gây lỗi, một tình huống gần
+  giống mà quy tắc không được áp dụng, và một tình huống cùng loại ở repo hoặc
+  host khác; quy tắc phải áp dụng được cho tình huống thứ ba mà không cần sửa.
+  Không thêm test, validator hay schema để thay cho cải thiện nội dung.
 - Sau khi sửa, chạy lệnh kiểm tra tương ứng ở mục
   [Kiểm tra framework](../../AGENTS.md#kiểm-tra-framework) của `AGENTS.md`.
   Kiểm tra chỉ xác nhận cấu trúc, không chứng minh chất lượng câu chữ.
@@ -108,7 +120,8 @@ Cải tiến do `process-auditor` áp dụng trong một lượt layer theo
 Framework không chọn hoặc yêu cầu provider, model, reasoning effort hay host.
 Không suy từ công cụ thiếu hoặc test bị skip ra yêu cầu cài runtime hay hỗ trợ
 hệ điều hành mới. Chỉ điều kiện cần cho kết quả đã được giao mới có thể chặn
-phần đó. Một vai trò không cần agent riêng để được thực hiện; xem
+phần đó. Host không có cơ chế tạo agent không chặn việc: người điều phối thực
+hiện vai trò kèm lý do, theo
 [nguyên tắc giao việc](../../AGENTS.md#vai-trò-ai-agent).
 
 ## Kiểm chứng bằng lập luận
@@ -260,6 +273,36 @@ chỉ làm khi người dùng yêu cầu.
   giao diện mà Record thiếu kết quả này, hoặc ảnh cho thấy layout vi phạm QG,
   là FIND `repair` cho `frontend-developer`.
 
+## Snapshot chung và hồ sơ cũ
+
+Áp dụng cho mọi layer khi kết luận về source, tài liệu hay một hồ sơ cũ
+(Implementation Record, report, record). Tách ba điều: source hiện tại, điều hồ
+sơ ghi, và thay đổi nằm giữa hai mốc đó.
+
+- Source hiện tại khác điều một hồ sơ cũ ghi chỉ chứng minh source đã đổi sau
+  hồ sơ đó, không chứng minh hồ sơ sai lúc được ghi. Chỉ coi hồ sơ là sai khi
+  có nguồn gắn thời điểm (lần chụp, diff, commit, số đo) cho thấy điều ghi sai
+  ngay lúc ghi; nếu không, ghi chỗ lệch là thay đổi xảy ra sau hồ sơ đó.
+- Thay đổi trong snapshot mà không Implementation Record nào của gói ghi
+  (không nằm trong `changed_paths` của task nào) là thay đổi chưa có chủ. Nêu
+  nó trong đầu ra của lượt kèm đường dẫn và tác động lên kết luận; không gán
+  cho task hay vai trò nào, không dùng làm căn cứ lỗi của vai trò. Người dùng
+  giao một lượt Implement hoặc task độc lập để ghi nó.
+- Khi nhiều task của một gói nằm chung một snapshot (cùng commit hoặc cùng bộ
+  thay đổi chưa tách được theo task), quy một chỗ lệch (QG vỡ, câu tài liệu
+  sai, giá trị không khớp) cho task đã làm nó sai, theo thứ tự chạy: dựng
+  trạng thái sau từng task từ revision nền, REQ và `changed_paths` của task đó.
+  Điều còn đúng khi một task hoàn tất và chỉ sai sau thay đổi thuộc REQ của
+  task chạy sau là chỗ lệch của task sau, kể cả khi task trước đã viết hay
+  đồng bộ nó. Phạm vi viết lại cả một file không làm task đó sở hữu mọi câu
+  của file sau khi task khác đổi điều câu mô tả. Khi source, diff và hồ sơ
+  không đủ tách thứ tự, ghi kết luận là suy luận kèm căn cứ.
+
+Review áp dụng các quy tắc này để kết luận QG và quy lỗi cho vai trò Implement
+theo [mục Đầu vào và quyền](review.instructions.md#đầu-vào-và-quyền); Implement
+áp dụng quy tắc đầu khi đính chính hồ sơ cũ, theo
+[mục Ghi kết quả](implement.instructions.md#ghi-kết-quả).
+
 ## Tự đánh giá và cải tiến
 
 Mỗi lượt Plan, Implement hoặc Review (kể cả lượt sửa và mỗi vòng Review) tự
@@ -278,8 +321,10 @@ bị chặn. Task độc lập và bảo trì framework không áp dụng mục 
   nhất kết quả). Ở Review, `process-auditor` còn đánh giá lại các vai trò của
   lượt Implement được review theo
   [mục Evaluations](review.instructions.md#evaluations-đánh-giá-vai-trò-implement).
-- Giao `process-auditor` cho agent riêng khi host cho phép và ghi `mode: agent`.
-  Không giao được thì người điều phối tự đánh giá và ghi `mode: self`.
+- Giao `process-auditor` cho agent riêng theo
+  [nguyên tắc giao việc](../../AGENTS.md#vai-trò-ai-agent) và ghi `mode: agent`.
+  Chỉ khi host không có công cụ tạo sub-agent hoặc lời gọi thất bại, người điều
+  phối mới tự đánh giá, ghi `mode: self` và nêu lý do đó trong `summary`.
 
 ### Lỗi và nguyên nhân
 
@@ -312,10 +357,11 @@ tiến được áp dụng ngay trong lượt. Không có vùng cấm và không
 1. Sửa mọi nơi sở hữu nguyên nhân: file layer, file vai trò, `AGENTS.md`,
    router, rule, công cụ framework cùng test của nó, `context_docs`, manifest.
 2. Quét toàn framework tìm chỗ còn mô tả hành vi cũ và sửa trong cùng lượt.
-3. Thay đoạn sai bằng điều kiện và hành động cụ thể, không chồng thêm lời nhắc.
+3. Thay đoạn sai bằng điều kiện và hành động cụ thể, không chồng thêm lời nhắc,
+   viết ở dạng chung theo [mục Bảo trì framework](#bảo-trì-framework).
 4. Tăng `version` của file có version.
-5. Đọc lại phần đã sửa với tình huống gây lỗi và một tình huống gần giống mà quy
-   tắc mới không được áp dụng.
+5. Đọc lại phần đã sửa với ba tình huống của
+   [mục Bảo trì framework](#bảo-trì-framework).
 6. Chạy các lệnh ở [Kiểm tra framework](../../AGENTS.md#kiểm-tra-framework)
    tương ứng với phần đã sửa.
 
@@ -328,14 +374,14 @@ với lý do `safety` và hỏi người dùng.
 
 Chính lượt tự đánh giá không sửa file framework: mọi cải tiến trong record của
 nó ghi `pending_user` với lý do `mode_self`, và công cụ từ chối `applied` ở
-`mode: self`. Người dùng đã cho phép áp dụng cải tiến mà không cần xác nhận
-([quyết định ở AGENTS.md](../../AGENTS.md#luồng-làm-việc)), nên trong cùng lượt
+`mode: self`. Cải tiến không đụng quy tắc an toàn không cần người dùng xác nhận
+([AGENTS.md](../../AGENTS.md#luồng-làm-việc)), nên trong cùng lượt
 người điều phối áp dụng từng cải tiến không đụng quy tắc an toàn như bảo trì
 framework do người dùng chỉ định, theo sáu bước của mục
 [Cải tiến triệt để](#cải-tiến-triệt-để). Sau đó ghi record mới có `supersedes`
 trỏ tới record tự đánh giá, `issues` và `fixes` rỗng, `summary` nêu từng
 `issue_key`, file và mục đã sửa, version cũ → mới, lệnh kiểm tra đã chạy và dẫn
-quyết định của người dùng. Phản hồi cuối báo ở mục "Tự cải tiến", không hỏi.
+quyền ở `AGENTS.md`. Phản hồi cuối báo ở mục "Tự cải tiến", không hỏi.
 
 Cải tiến đụng quy tắc an toàn (làm lỏng, thu hẹp, bỏ hoặc lách) không áp dụng:
 record ghi `pending_user` với lý do `safety`, và phản hồi cuối có mục "Tự đánh

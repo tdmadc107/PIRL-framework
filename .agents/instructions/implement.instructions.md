@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/implement.instructions.md"
 metadata:
   id: ".agents/instructions/implement"
   kind: "instruction"
-  version: "1.4.0"
+  version: "1.5.0"
   status: "active"
 ---
 
@@ -32,7 +32,7 @@ bằng chứng.
 
 | Vai trò | Loại | Trách nhiệm tại Implement | Hoàn tất khi |
 | --- | --- | --- | --- |
-| [`backend-developer`](../roles/backend-developer.role.md) | triển khai | Sửa code không phải giao diện, tài liệu đi kèm và test theo FUT cho phần đó, trong đường dẫn được phép; tự phản biện phần mình làm | Source/tài liệu/test giao đủ REQ của phần mình; tự phản biện không còn nghi vấn mở; không chạy build, typecheck, lint hay script kiểm chứng |
+| [`backend-developer`](../roles/backend-developer.role.md) | triển khai | Sửa code không phải giao diện, tài liệu đi kèm và test theo FUT cho phần đó, trong đường dẫn được phép; tự phản biện phần mình làm | Source/tài liệu/test giao đủ REQ của phần mình; câu quy tắc, phạm vi hay danh sách trong tài liệu đi kèm mà vai trò viết hoặc đổi đã dò từng phần tử và nơi dùng trong source theo [`technical-writer`](../roles/technical-writer.role.md#cách-làm); tự phản biện không còn nghi vấn mở; không chạy build, typecheck, lint hay script kiểm chứng |
 | [`frontend-developer`](../roles/frontend-developer.role.md) | triển khai | Sửa giao diện, chuỗi giao diện theo ngôn ngữ, tài liệu đi kèm và test theo FUT; chụp layout bằng mock khi diff đổi giao diện; tự phản biện | Như trên, và `layout_verification` có lần chụp đạt mọi kiểm khi diff đổi giao diện; khi diff đổi kích thước hoặc số phần tử trong hàng hay khung có bề rộng ràng buộc, số đo hộp bao theo [router](layered-task-execution.instructions.md#kiểm-chứng-layout-bằng-mock) nằm trong `layout_verification` và phần tử nhô ra đã được sửa trước khi giao vai trò kiểm chứng |
 | [`technical-writer`](../roles/technical-writer.role.md) | triển khai | Tạo/cập nhật tài liệu ngữ cảnh, tài liệu hợp đồng, mục lục, bảng trạng thái đặc tả cho task chỉ có tài liệu | Tài liệu khớp source và REQ; mỗi khẳng định, kể cả câu quy tắc hay giới hạn, có nguồn |
 | [`code-reviewer`](../roles/code-reviewer.role.md) | kiểm chứng | Phản biện diff: bug, hồi quy, quyền và bảo mật, mất nhất quán dữ liệu/trạng thái, guard/validator/xử lý lỗi, vi phạm hợp đồng, test vi phạm FUT | `PASS\|FAIL\|BLOCKED` từng QG được giao, kèm đường đã lần, phản ví dụ, nguồn; mỗi dòng bằng chứng là nguồn đọc được kèm lập luận theo [router](layered-task-execution.instructions.md#kiểm-chứng-bằng-lập-luận), không phải kết quả chạy |
@@ -44,9 +44,10 @@ bằng chứng.
   không sửa đầu ra; FAIL được trả cho vai trò triển khai sở hữu phần đó.
 - Vai trò kiểm chứng nhận thêm diff và tuyên bố của vai trò triển khai như
   điều cần kiểm, không như kết luận. Đồng thuận của đội không là bằng chứng.
-- Khi một agent đảm nhận cả triển khai lẫn kiểm chứng, Implementation Record
-  ghi đó là tự thực hiện và QG vẫn do đúng vai trò kiểm chứng lập luận lại
-  trên diff; không tuyên bố đã có kiểm chứng độc lập.
+- Khi một agent đảm nhận cả triển khai lẫn kiểm chứng (chỉ khi không giao được
+  theo nguyên tắc giao việc), Implementation Record ghi đó là tự thực hiện kèm
+  lý do và QG vẫn do đúng vai trò kiểm chứng lập luận lại trên diff; không
+  tuyên bố đã có kiểm chứng độc lập.
 
 ## Đọc đầu vào và xác định phạm vi
 
@@ -73,8 +74,9 @@ bằng chứng.
    Dùng quyền đã có trong phiên; không thêm checkpoint phê duyệt thường lệ.
 4. Mỗi vai trò nhận phần việc, nguồn, chỉ dẫn và REQ/QG liên quan. Chỉ nạp
    context phục vụ quyết định đó. Khi giao việc cho agent riêng, truyền đủ
-   hướng đã chốt; không giấu giải pháp để tạo vẻ độc lập. Thiếu khả năng giao
-   việc không ngăn người điều phối thực hiện các vai trò lần lượt.
+   hướng đã chốt; không giấu giải pháp để tạo vẻ độc lập. Chỉ khi không giao
+   được theo nguyên tắc giao việc, người điều phối thực hiện các vai trò lần
+   lượt.
 5. Tự chọn chi tiết cài đặt tương đương trong hướng đã chốt: vị trí helper,
    tên biến hoặc cách tái sử dụng source phù hợp không cần lập Plan mới.
    Chỉ chuyển lại quyết định làm đổi hành vi, quyền, dữ liệu, phạm vi hoặc
@@ -118,6 +120,11 @@ bằng chứng.
 - Sửa FIND `repair` và thực hiện hành động gỡ BLOCK `retry`. RISK `deferred`
   giữ chủ và điều kiện xem lại; BLOCK `escalate` giữ chủ có thể cung cấp đầu
   vào. Retry phải có hành động/điều kiện mới có căn cứ, không chạy lại để chờ may.
+  Mục của task khác (RISK, FIND hay BLOCK trong report khác) chỉ vào lượt sửa
+  này khi report nguồn của lượt này liệt kê nó với task và layer của lượt này
+  là chủ; `repair_closure_evidence` ghi report gốc và ID mục. Mục không có chủ
+  như vậy giữ nguyên chủ và điều kiện xem lại; thấy chúng khi quét thì nêu
+  trong `residual_risk`, không sửa kèm.
   Mục EVAL ghi đánh giá vai trò của lượt trước và cải tiến framework mà Review
   đã áp dụng; đọc để biết quy tắc đã đổi, nhưng không biến nó thành FIND hoặc QG
   sản phẩm mới.
@@ -216,7 +223,7 @@ không sửa Plan để hợp thức hóa hướng agent tự đổi.
 - updated_at: "<ISO-8601 với +07:00>"
 - changed_paths: <đường dẫn tương đối hoặc []>
 - role_work: <vai-trò=trạng thái/bằng chứng, kèm lệnh và phạm vi test theo FUT nếu có; ...>
-- execution_mode: <agent riêng theo vai trò | tự thực hiện lần lượt>
+- execution_mode: <agent riêng theo vai trò | tự thực hiện lần lượt, kèm lý do không giao được>
 - checkpoint_evidence: <checkpoint, bằng chứng và đầu vào tiếp tục; hoặc N/A>
 - quality_gate_results: <QG-01=PASS|FAIL|BLOCKED theo kết luận của vai trò kiểm chứng; ...>
 - quality_gate_evidence: <từng QG -> vai trò kiểm chứng, file/symbol, đường đã lần, phản ví dụ và kết luận>
@@ -249,7 +256,12 @@ quét ảnh hưởng là ngoại lệ thứ hai: liệt kê riêng trong `change
 lý do đồng bộ, và ghi rõ trong `role_work` đã quét những gì để người đọc biết
 phần nào được kiểm tra. `root_cause_revalidation` và `review_item_disposition`
 luôn có mặt: lượt đầu ghi `N/A`, lượt sửa bao phủ mọi mục report theo thứ tự.
-`plan_amendments` cũng luôn có mặt, ghi `N/A` khi không sửa Plan.
+`plan_amendments` cũng luôn có mặt, ghi `N/A` khi không sửa Plan. Khi lượt sửa
+đính chính một ghi nhận của Implementation Record trước, `repair_closure_evidence`
+theo [mục Snapshot chung và hồ sơ cũ](layered-task-execution.instructions.md#snapshot-chung-và-hồ-sơ-cũ)
+của router: nêu nguồn gắn thời điểm cho thấy ghi nhận sai lúc được ghi; không có
+nguồn đó thì ghi chỗ lệch giữa record và source là thay đổi chưa có record,
+không tuyên bố ghi nhận cũ sai.
 Report nguồn phải cùng Plan/task và dùng `pirl-review/v1`.
 
 ## Kết thúc và bàn giao
