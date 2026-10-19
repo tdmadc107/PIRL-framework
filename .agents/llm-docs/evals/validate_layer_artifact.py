@@ -14,12 +14,12 @@ from typing import Any
 
 PLAN_SCHEMA = "pirl-plan/v1"
 REVIEW_SCHEMA = "pirl-review/v1"
-PLAN_HEADINGS = ("Cần làm gì", "Làm như thế nào", "Vai trò tham gia", "Tiêu chí chất lượng bắt buộc")
+PLAN_HEADINGS = ("What to do", "How to do it", "Participating roles", "Required quality gates")
 REVIEW_HEADINGS = ("Business", "Evaluations")
 PLAN_STATUSES = ("planned", "awaiting_confirmation", "implemented", "blocked", "failed")
 TASK_PATTERN = re.compile(r"T\d{2,}")
 ROLE_USAGES = ("plan", "implement", "verify", "review", "audit")
-ROLE_SECTION = re.compile(r"(?ms)^# Vai trò AI Agent\s*$(.*?)(?=^# |\Z)")
+ROLE_SECTION = re.compile(r"(?ms)^# AI Agent roles\s*$(.*?)(?=^# |\Z)")
 ROLE_ROW = re.compile(r"^\|\s*`([a-z0-9]+(?:-[a-z0-9]+)*)`\s*\|(.*)\|\s*$")
 MANIFEST = ".repos/manifest.yaml"
 
@@ -145,7 +145,7 @@ def load_roles(root: Path) -> dict[str, set[str]]:
         raise LayerArtifactError(f"AGENTS.md: cannot read role catalog: {exc}") from exc
     section = ROLE_SECTION.search(text)
     if section is None:
-        raise LayerArtifactError("AGENTS.md: missing '# Vai trò AI Agent' section")
+        raise LayerArtifactError("AGENTS.md: missing '# AI Agent roles' section")
     roles: dict[str, set[str]] = {}
     for line in section.group(1).splitlines():
         row = ROLE_ROW.match(line.strip())
@@ -256,8 +256,8 @@ def _basic(path: Path, root: Path, kind: str) -> tuple[list[str], dict[str, Any]
     task = metadata.get("task_id")
     if not isinstance(task, str) or not TASK_PATTERN.fullmatch(task):
         errors.append("task_id must identify a task, for example T01")
-    if metadata.get("content_language") != "vi":
-        errors.append("content_language must be vi")
+    if metadata.get("content_language") != "en":
+        errors.append("content_language must be en")
     for heading in PLAN_HEADINGS if kind == "plan" else REVIEW_HEADINGS:
         if not re.search(rf"(?m)^## {re.escape(heading)}\s*$", body):
             errors.append(f"missing handoff section: {heading}")

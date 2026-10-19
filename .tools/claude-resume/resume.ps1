@@ -1,7 +1,8 @@
-# Chạy lại phiên Claude Code sau khi hạn mức 5h reset (được Task Scheduler gọi).
-# -SessionId: nối tiếp đúng phiên đó; phải là UUID đầy đủ (panel AGENTS của dashboard) hoặc tên
-# phiên khớp chính xác, vì -p không nhận ID rút gọn. Bỏ trống thì nối tiếp phiên gần nhất của repo.
-# Log ghi vào .tmp\claude-resume\logs của Hub (.tmp/ không vào git).
+# Resumes a Claude Code session after the 5h quota resets (called by Task Scheduler).
+# -SessionId: continue exactly that session; it must be the full UUID (dashboard AGENTS panel) or an
+# exactly matching session name, because -p does not accept a shortened ID. Leave it empty to continue
+# the repository's most recent session.
+# Logs go to the Hub's .tmp\claude-resume\logs (.tmp/ is not in git).
 param([string]$SessionId = "")
 
 $repo = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
@@ -9,7 +10,7 @@ $logDir = Join-Path $repo ".tmp\claude-resume\logs"
 New-Item -ItemType Directory -Force $logDir | Out-Null
 $log = Join-Path $logDir ("resume-{0:yyyyMMdd-HHmmss}.log" -f (Get-Date))
 
-$prompt = "Hạn mức 5h đã reset. Tiếp tục đúng công việc đang dở trong phiên này từ chỗ dừng, tuân thủ AGENTS.md. Không commit hoặc push nếu trước đó chưa được yêu cầu. Kết thúc bằng tóm tắt việc đã làm và việc còn lại."
+$prompt = "The 5h quota has reset. Continue exactly the unfinished work in this session from where it stopped, following AGENTS.md. Do not commit or push unless that was requested earlier. End with a summary of what was done and what remains."
 $session = if ($SessionId) { @("--resume", $SessionId) } else { @("--continue") }
 
 Set-Location $repo

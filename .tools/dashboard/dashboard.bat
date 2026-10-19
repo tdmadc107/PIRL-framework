@@ -1,12 +1,12 @@
 @echo off
-rem Khoi dong dashboard cua Hub PIRL: double-click file nay hoac chay tu terminal.
-rem Tham so duoc chuyen thang cho dashboard.js, vi du: dashboard.bat --interval 5 --no-intro
+rem Starts the PIRL Hub dashboard: double-click this file or run it from a terminal.
+rem Arguments are passed straight to dashboard.js, for example: dashboard.bat --interval 5 --no-intro
 setlocal
 title PIRL Hub
 
 where node >nul 2>nul
 if errorlevel 1 (
-  echo Khong tim thay Node.js trong PATH. Cai Node.js roi chay lai.
+  echo Node.js was not found in PATH. Install Node.js and run this again.
   pause
   exit /b 1
 )

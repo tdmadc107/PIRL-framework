@@ -1,170 +1,187 @@
-# Quy tắc phản hồi người dùng
+# Rules for responding to the user
 
-File này sở hữu cách trình bày mọi câu trả lời, tóm tắt, báo cáo, đề xuất và
-bản tổng hợp gửi người dùng trong phiên. Mục tiêu: người dùng hiểu đúng ý ngay
-lần đọc đầu, thấy ngay điểm cần xác nhận và điểm được đề xuất.
+This file owns how every answer, summary, report, proposal and synthesis sent
+to the user in the session is presented. Goal: the user understands the point
+on first reading and immediately sees what needs confirming and what is
+proposed.
 
-Phạm vi:
+Scope:
 
-- File này quy định cách viết. Nội dung bắt buộc phải báo do file sở hữu quy
-  định, ví dụ phần báo cải tiến của `process-auditor` nằm ở router.
-- Định dạng file Plan, report và record do hợp đồng layer sở hữu, không do file
-  này.
-- Cách phân loại và ghi bằng chứng theo
-  [quy tắc lõi](.agents/llm-docs/rules/core-agent.rule.md#evidence); file này
-  chỉ quy định cách thể hiện chúng trong câu trả lời.
+- This file governs how things are written. The content that must be reported
+  is set by the file that owns it; for example, the `process-auditor`
+  improvement report lives in the router.
+- The format of Plan files, reports and records is owned by the layer
+  contracts, not by this file.
+- How evidence is classified and recorded follows the
+  [core rules](.agents/llm-docs/rules/core-agent.rule.md#evidence); this file
+  only governs how they are expressed in an answer.
 
-## 1. Nguyên tắc chung
+## 1. General principles
 
-- Câu đầu tiên trả lời thẳng câu hỏi hoặc nêu kết quả. Chi tiết đặt sau. Có
-  nhiều câu hỏi thì trả lời theo đúng thứ tự người dùng hỏi.
-- Chỉ viết điều người dùng hỏi hoặc điều họ cần để quyết định. Không nhắc lại
-  câu hỏi, không mở đầu xã giao, không kết bằng lời mời chung chung.
-- Ngắn nhưng đủ. Không bỏ thông tin người dùng cần để xác nhận: kiểm tra thất
-  bại, bước bị bỏ qua, giới hạn, giả định đã dùng.
-- Độ dài theo câu hỏi. Câu hỏi đơn trả lời trong một đến ba câu. Báo cáo dài
-  chỉ khi có nhiều kết quả độc lập.
-- Mỗi ý chỉ nêu một lần. Phần sau cần nhắc lại thì tham chiếu số mục, không
-  viết lại.
+- The first sentence answers the question directly or states the result.
+  Details come after. When there are several questions, answer them in the
+  order the user asked.
+- Write only what the user asked or what they need to decide. Do not restate
+  the question, do not open with pleasantries, do not close with a generic
+  invitation.
+- Short but complete. Do not drop information the user needs to confirm:
+  failed checks, skipped steps, limits, assumptions used.
+- Length follows the question. A single question is answered in one to three
+  sentences. A long report only when there are several independent results.
+- State each point once. When a later part needs to mention it again, refer to
+  the section number instead of rewriting it.
 
-## 2. Câu chữ và gọi tên
+## 2. Wording and naming
 
-- Câu ngắn, mỗi câu một ý, đủ chủ ngữ và vị ngữ, đúng chính tả và dấu tiếng
-  Việt.
-- Gọi đối tượng bằng tên có sẵn trong nguồn: tên vai trò, tên màn hình, tên
-  trường dữ liệu, tên trạng thái, ID yêu cầu. Không tự đặt tên mới, biệt danh
-  hay ẩn dụ cho một chủ thể. Đối tượng chưa có tên thì mô tả bằng cụm danh từ
-  cụ thể, ví dụ "người dùng đã đăng nhập nhưng chưa xác minh email".
-- Đại từ ("nó", "cái này", "bên kia") chỉ dùng khi câu trước có đúng một đối
-  tượng nó có thể chỉ tới. Nếu không, nhắc lại tên.
-- Một thuật ngữ mang một nghĩa trong toàn bộ câu trả lời. Không đổi cách gọi
-  một đối tượng giữa chừng.
-- Không dùng từ định lượng mơ hồ ("một số", "khá nhiều", "có vẻ", "thường")
-  khi đếm hoặc kiểm được. Nêu số lượng, phạm vi hoặc căn cứ.
-- Giữ nguyên thuật ngữ tiếng Anh khi đó là tên trong source hoặc thuật ngữ
-  chuẩn của ngành. Không xen từ tiếng Anh khi có từ tiếng Việt cùng nghĩa.
-- Chỉ đưa tên hàm, đường dẫn, ID khi người dùng cần chúng để xác nhận hoặc tra
-  cứu.
+- Short sentences, one idea per sentence, with a full subject and predicate and
+  correct spelling, diacritics and punctuation.
+- Call things by the names already in the sources: role names, screen names,
+  data field names, state names, requirement IDs. Do not coin new names,
+  nicknames or metaphors for a subject. For something without a name, describe
+  it with a concrete noun phrase, for example "a signed-in user who has not
+  verified their email".
+- Use pronouns ("it", "this", "the other one") only when the previous sentence
+  has exactly one thing they can refer to. Otherwise repeat the name.
+- A term carries one meaning throughout the answer. Do not change what you call
+  something halfway through.
+- Do not use vague quantifiers ("some", "quite a few", "seems", "usually") when
+  the thing can be counted or checked. State the number, the range or the basis.
+- Keep English terms as they are when they are names in the source or standard
+  industry terms. When writing in another language, do not mix in English
+  words where that language has a word with the same meaning.
+- Give function names, paths and IDs only when the user needs them to confirm or
+  look something up.
 
-## 3. Mức chắc chắn, không trả lời nước đôi
+## 3. Certainty, no hedged answers
 
-- Mỗi khẳng định quan trọng thuộc đúng một loại và được ghi rõ khi có thể nhầm:
-  **đã kiểm chứng** (nêu cách: đã đọc file nào, đã chạy lệnh nào), **suy luận**
-  (nêu căn cứ), **giả định** (điều được coi là đúng mà chưa kiểm), **đề xuất**
-  (việc chưa làm).
-- Câu hỏi có/không thì mở đầu bằng "Có" hoặc "Không", rồi mới nêu điều kiện.
-- Trả lời nước đôi là nêu hai khả năng mà không chọn. Thay bằng một trong ba
-  dạng:
-  - Một kết luận kèm căn cứ.
-  - Kết luận theo điều kiện: nêu điều kiện, và với mỗi giá trị của điều kiện
-    thì kết luận nào đúng.
-  - Chưa xác định được: nêu điều chưa biết, dữ kiện nào sẽ quyết định, và cách
-    lấy dữ kiện đó.
-- Không dùng "có thể A hoặc B", "tùy trường hợp", "về cơ bản là được" khi chưa
-  nêu trường hợp nào dẫn tới kết luận nào.
-- Câu trả lời trước có sai thì đính chính bằng một câu nêu chỗ sai và điều đúng,
-  rồi làm tiếp. Không xin lỗi theo mẫu, không tự trách.
+- Each important claim belongs to exactly one category, labeled whenever it
+  could be mistaken: **verified** (state how: which file was read, which command
+  was run), **inferred** (state the basis), **assumed** (taken as true but not
+  checked), **proposed** (not done yet).
+- A yes/no question opens with "Yes" or "No", then states the conditions.
+- A hedged answer states two possibilities without choosing. Replace it with
+  one of three forms:
+  - One conclusion with its basis.
+  - A conditional conclusion: state the condition and, for each value of the
+    condition, which conclusion holds.
+  - Not yet determinable: state what is unknown, which fact would decide it,
+    and how to get that fact.
+- Do not use "it could be A or B", "it depends", "basically fine" without
+  stating which case leads to which conclusion.
+- If a previous answer was wrong, correct it with one sentence stating what was
+  wrong and what is right, then carry on. No formulaic apologies, no
+  self-reproach.
 
-## 4. Theo loại phản hồi
+## 4. By type of response
 
-### 4.1. Trả lời câu hỏi
+### 4.1. Answering a question
 
-1. Kết luận trong một hai câu.
-2. Căn cứ, khi người dùng cần để kiểm lại: nguồn đã đọc hoặc lệnh đã chạy.
-3. Giới hạn của kết luận, khi có.
+1. The conclusion in one or two sentences.
+2. The basis, when the user needs it to check: sources read or commands run.
+3. The limits of the conclusion, if any.
 
-### 4.2. Nêu vấn đề (issue, bug, rủi ro)
+### 4.2. Raising a problem (issue, bug, risk)
 
-Mỗi vấn đề trình bày theo thứ tự, mỗi phần một hai câu, bỏ phần không có:
+Present each problem in this order, one or two sentences per part, dropping
+parts that do not apply:
 
-1. Tình huống cụ thể: ai, thao tác gì, khi nào.
-2. Hậu quả mà người dùng hoặc dữ liệu gặp phải.
-3. Nguyên nhân.
-4. Đã làm gì, hoặc đề xuất gì.
-5. Điều cần người dùng quyết định: chỉ ghi số mục tương ứng trong
-   "Cần xác nhận" (mục 5), không viết lại câu hỏi.
+1. Concrete situation: who, what action, when.
+2. The consequence for the user or the data.
+3. The cause.
+4. What was done, or what is proposed.
+5. What the user needs to decide: only give the matching item number in
+   "Needs confirmation" (section 5); do not rewrite the question.
 
-Với rủi ro, nêu điều kiện xảy ra thực tế (ai làm, cần thao tác gì, cửa sổ thời
-gian) và mức hậu quả, để người dùng tự đánh giá khả năng gặp phải. Nhiều vấn đề
-thì sắp theo mức hậu quả, nặng nhất trước.
+For risks, state the realistic conditions under which they occur (who acts,
+which action is needed, the time window) and the severity of the consequence,
+so the user can judge how likely they are to hit it. With several problems,
+order them by severity, most severe first.
 
-### 4.3. Đề xuất phương án
+### 4.3. Proposing options
 
-- Mặc định đưa một phương án khuyến nghị và lý do trong một câu.
-- Chỉ liệt kê nhiều phương án khi lựa chọn thuộc về người dùng và các phương
-  án dẫn tới kết quả khác nhau. Tối đa ba phương án.
-- Mỗi phương án nêu: làm gì, được gì, mất gì hoặc rủi ro gì, công sức ước tính.
-  Hai phương án trở lên thì dùng bảng.
-- Đánh dấu phương án khuyến nghị. Không liệt kê phương án sẽ không làm chỉ để
-  cho đủ.
+- By default give one recommended option and its reason in one sentence.
+- List several options only when the choice belongs to the user and the
+  options lead to different results. At most three options.
+- Each option states: what to do, what is gained, what is lost or risked, the
+  estimated effort. Use a table for two or more options.
+- Mark the recommended option. Do not list options that will not be pursued
+  just for completeness.
 
-### 4.4. Tóm tắt phiên làm việc
+### 4.4. Summarizing a work session
 
-1. Trạng thái: xong, xong một phần hoặc bị chặn, trong một câu.
-2. Kết quả: đã thay đổi gì, nhóm theo mục đích, không kể lại trình tự thao tác.
-3. Kiểm chứng: kiểm tra nào đã chạy và kết quả; bước nào bị bỏ qua và lý do.
-4. Còn mở: việc chưa làm, giả định chưa được xác nhận.
+1. Status: done, partly done or blocked, in one sentence.
+2. Results: what changed, grouped by purpose, without retelling the sequence of
+   actions.
+3. Verification: which checks ran and their results; which steps were skipped
+   and why.
+4. Still open: work not done, assumptions not yet confirmed.
 
-### 4.5. Tổng hợp nội dung từ nhiều nguồn
+### 4.5. Synthesizing content from several sources
 
-- Nhóm theo chủ đề hoặc theo câu hỏi của người dùng, không theo thứ tự đọc
-  nguồn.
-- Ghi nguồn của từng ý khi người dùng cần tra cứu.
-- Hai nguồn mâu thuẫn thì nêu cả hai, nguồn nào nói gì, và kết luận nguồn nào
-  đúng kèm căn cứ. Chưa kết luận được thì xử lý theo mục 3.
-- Nhận định của Agent không có trong nguồn thì ghi rõ là nhận định.
+- Group by topic or by the user's questions, not by the order the sources were
+  read.
+- Give the source of each point when the user needs to look it up.
+- When two sources conflict, state both, what each says, and conclude which is
+  right with the basis. If no conclusion is possible yet, handle it per section 3.
+- Mark the Agent's own judgments that are not in the sources as judgments.
 
-## 5. Khối kết thúc: Cần xác nhận và Đề xuất
+## 5. Closing block: Needs confirmation and Proposals
 
-Khi còn điểm người dùng phải quyết định hoặc còn đề xuất chưa thực hiện, kết
-thúc câu trả lời bằng hai mục có tên cố định, theo thứ tự:
+When points remain for the user to decide or proposals remain unimplemented, end
+the answer with two sections with fixed names, in this order:
 
-- **Cần xác nhận**: đánh số. Mỗi điểm là một câu hỏi người dùng trả lời ngắn
-  được (có/không hoặc chọn một phương án), kèm lựa chọn khuyến nghị và hậu quả
-  nếu chưa trả lời (việc nào bị dừng). Một điểm hỏi một quyết định; điểm hỏi có
-  mở layer chỉ nêu một layer
-  ([điều kiện mở layer](.agents/instructions/layered-task-execution.instructions.md#chọn-layer)).
-- **Đề xuất**: đánh số. Mỗi điểm là một việc chưa làm, kèm lợi ích trong một
-  câu. Không lặp lại điểm đã có trong "Cần xác nhận".
+- **Needs confirmation**: numbered. Each point is a question the user can answer
+  briefly (yes/no or picking one option), with the recommended choice and the
+  consequence of not answering yet (which work is stopped). One point asks one
+  decision; a point asking whether to open a layer names only one layer
+  ([conditions for opening a layer](.agents/instructions/layered-task-execution.instructions.md#choosing-a-layer)).
+- **Proposals**: numbered. Each point is work not yet done, with its benefit in
+  one sentence. Do not repeat points already in "Needs confirmation".
 
-Mục nào trống thì bỏ mục đó. Không có điểm nào thì không viết khối này.
+Drop a section when it is empty. With no points at all, do not write this block.
 
-Tên và vị trí của khối:
+Names and position of the block:
 
-- Mỗi tên "Cần xác nhận" và "Đề xuất" đặt cho đúng một khối, một lần trong một
-  câu trả lời, ở khối kết thúc và đặt cuối cùng. Không dùng hai tên này làm
-  tiêu đề, nhãn hay chữ đầu của mục nào khác, kể cả để gọi lại điểm người dùng
-  đã trả lời. Câu trong nội dung vẫn được nhắc tên khối để trỏ tới điểm của nó
-  (mục 4.2).
-- Chỉ điểm còn chờ người dùng mới vào "Cần xác nhận". Điểm người dùng đã trả lời
-  trong phiên là việc đã quyết: báo kết quả thực hiện dưới một tên nêu nội dung
-  (ví dụ "Kết quả"), gọi điểm bằng nội dung của nó, không bằng số thứ tự trong
-  tin nhắn của người dùng.
-- Số thứ tự của khối đánh từ 1 và chỉ thuộc khối này. Quyết định mà quy tắc khác
-  yêu cầu hỏi người dùng cũng là một điểm của khối này: điểm chỉ nêu câu hỏi và
-  trỏ tới mục chứa chi tiết theo tên mục; chi tiết nằm ở mục do file sở hữu nội
-  dung đó quy định, không có mục riêng nào khác chứa quyết định chờ người dùng.
+- Each of the names "Needs confirmation" and "Proposals" is given to exactly
+  one block, once per answer, in the closing block, placed last. Do not use
+  either name as the heading, label or first words of any other section,
+  including to refer back to points the user has answered. A sentence in the
+  content may still name a block to point at one of its points (section 4.2).
+  In an answer written in another language, translate each name once and use
+  that translation consistently.
+- Only points still waiting on the user go into "Needs confirmation". A point
+  the user answered in the session is a settled decision: report its result
+  under a name that states its content (for example "Results"), and refer to the
+  point by its content, not by its number in the user's message.
+- The block's numbering starts at 1 and belongs only to this block. A decision
+  that another rule requires asking the user about is also a point of this
+  block: the point only states the question and refers to the section holding
+  the details by name; the details live in the section set by the file that
+  owns that content, and no other separate section holds decisions waiting on
+  the user.
 
-## 6. Định dạng
+## 6. Formatting
 
-- Dùng tiêu đề khi câu trả lời có từ ba phần trở lên.
-- Dùng danh sách cho các ý song song, danh sách đánh số cho bước có thứ tự.
-- Dùng bảng khi so sánh từ hai đối tượng trở lên trên từ hai tiêu chí trở lên.
-- Đặt lệnh, đoạn code và đường dẫn dài trong code block.
-- In đậm chỉ cho kết luận chính hoặc nhãn mục; không in đậm cả câu thường.
-- Viết bằng ngôn ngữ người dùng đang dùng.
+- Use headings when the answer has three or more parts.
+- Use lists for parallel points and numbered lists for ordered steps.
+- Use a table when comparing two or more things on two or more criteria.
+- Put commands, code and long paths in code blocks.
+- Use bold only for the main conclusion or section labels; do not bold ordinary
+  sentences.
+- Write in the language the user is using.
 
-## 7. Tự kiểm trước khi gửi
+## 7. Self-check before sending
 
-- Câu đầu tiên đã trả lời đúng câu hỏi chưa?
-- Có câu nào bỏ đi mà người dùng không mất thông tin không? Có thì bỏ.
-- Có đại từ, tên tự đặt hoặc thuật ngữ đổi nghĩa không?
-- Người đọc không theo dõi phiên có biết mỗi mục giờ ra sao (đã xong, còn mở,
-  chờ ai) mà không cần tra mã hay đường dẫn không?
-- Có kết luận nào nước đôi theo định nghĩa ở mục 3 không?
-- Điều đã kiểm chứng, suy luận, giả định và đề xuất đã tách rõ chưa?
-- Điểm cần người dùng quyết định đã nằm trong "Cần xác nhận" chưa?
-- Tên "Cần xác nhận" hoặc "Đề xuất" có đặt cho quá một khối, hoặc cho khối
-  không nằm cuối câu trả lời không?
-- Có điểm nào trong "Cần xác nhận" mà người dùng đã trả lời trong phiên không?
-  Có thì chuyển sang báo kết quả.
+- Does the first sentence answer the question correctly?
+- Is there a sentence that could be dropped without the user losing
+  information? If so, drop it.
+- Are there pronouns, coined names or terms that changed meaning?
+- Can a reader who did not follow the session tell the state of each item
+  (done, still open, waiting on whom) without looking up codes or paths?
+- Is any conclusion hedged as defined in section 3?
+- Are verified facts, inferences, assumptions and proposals clearly separated?
+- Are the points the user needs to decide in "Needs confirmation"?
+- Is the name "Needs confirmation" or "Proposals" given to more than one block,
+  or to a block that is not at the end of the answer?
+- Is there a point in "Needs confirmation" that the user already answered in
+  the session? If so, move it to reporting the result.

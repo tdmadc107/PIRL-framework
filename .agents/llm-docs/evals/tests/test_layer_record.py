@@ -13,40 +13,42 @@ from pathlib import Path
 EVALS = Path(__file__).resolve().parents[1]
 TOOL = EVALS / "layer_record.py"
 
-AGENTS = """# Vai trò AI Agent
+AGENTS = """# AI Agent roles
 
-| ID | Chuyên môn | Dùng ở |
+| ID | Expertise | Used in |
 | --- | --- | --- |
-| `business-analyst` | Logic nghiệp vụ | plan, review |
-| `code-analyst` | Lần luồng | plan, verify, review |
-| `backend-developer` | Code không phải giao diện | implement |
-| `code-reviewer` | Phản biện diff | verify, review |
-| `process-auditor` | Tự đánh giá | audit |
+| `business-analyst` | Business logic | plan, review |
+| `code-analyst` | Flow tracing | plan, verify, review |
+| `backend-developer` | Non-UI code | implement |
+| `code-reviewer` | Challenges the diff | verify, review |
+| `process-auditor` | Self-evaluation | audit |
 
-# Mục khác
+# Other section
 """
+# Records are stored as UTF-8 without escaping; this sample checks that non-ASCII text survives.
+NON_ASCII = "Không quét tài liệu ngoài đường dẫn Plan"
 REF = {"commit": "none", "files": {"AGENTS.md": "0123456789ab"}}
 IMPLEMENT = {
     "layer": "implement",
     "framework_ref": REF,
-    "task": {"plan_set": "dang-nhap_20261014-090000", "task_ids": ["T01"]},
+    "task": {"plan_set": "sign-in_20261014-090000", "task_ids": ["T01"]},
     "target_repo": ".",
-    "outcome": {"status": "implemented", "summary": "Đã thêm kiểm tra mã OTP hết hạn"},
+    "outcome": {"status": "implemented", "summary": "Added a check for expired OTP codes"},
     "roles": [
-        {"role": "backend-developer", "mode": "agent", "assignment": "Sửa xác thực OTP", "result": "PASS"},
-        {"role": "code-reviewer", "mode": "agent", "assignment": "Kết luận QG-01", "result": "PASS"},
+        {"role": "backend-developer", "mode": "agent", "assignment": "Fix OTP verification", "result": "PASS"},
+        {"role": "code-reviewer", "mode": "agent", "assignment": "Conclude QG-01", "result": "PASS"},
     ],
     "audit": {"role": "process-auditor", "mode": "agent", "result": "issues"},
     "issues": [{
         "id": "ISSUE-01", "issue_key": "skip-consistency-sweep", "role": "backend-developer", "record": None,
-        "cause": "instruction", "decision": "Không quét tài liệu ngoài đường dẫn Plan",
-        "rule": ".agents/instructions/implement.instructions.md#triển-khai-và-sửa-theo-review",
-        "evidence": "Mục lục API còn mô tả hành vi cũ", "prior_fix": None,
+        "cause": "instruction", "decision": "Did not sweep documentation outside the Plan paths",
+        "rule": ".agents/instructions/implement.instructions.md#implementing-and-repairing-per-review",
+        "evidence": "The API index still describes the old behavior", "prior_fix": None,
     }],
     "fixes": [{
         "id": "FIX-01", "issues": ["ISSUE-01"], "status": "applied",
-        "files": [{"path": ".agents/instructions/implement.instructions.md", "section": "Triển khai và sửa theo Review"}],
-        "summary": "Nêu rõ phải quét mục lục và bảng trạng thái", "checks": ["python -B -m unittest discover"],
+        "files": [{"path": ".agents/instructions/implement.instructions.md", "section": "Implementing and repairing per Review"}],
+        "summary": "State that indexes and status tables must be swept", "checks": ["python -B -m unittest discover"],
     }],
     "evaluates": None,
     "supersedes": None,
@@ -59,7 +61,7 @@ class LayerRecordTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
         (self.root / "AGENTS.md").write_text(AGENTS, encoding="utf-8")
-        self.report = self.root / ".agents/review/dang-nhap_20261014-090000/t01-otp/round-01.md"
+        self.report = self.root / ".agents/review/sign-in_20261014-090000/t01-otp/round-01.md"
         self.report.parent.mkdir(parents=True)
         self.report.write_text("---\n---\n", encoding="utf-8")
 
@@ -76,25 +78,29 @@ class LayerRecordTests(unittest.TestCase):
                 for line in path.read_text(encoding="utf-8").splitlines()]
 
     def test_append_stores_one_utf8_line_with_tool_fields(self):
-        code, result = self.append(IMPLEMENT)
+        payload = copy.deepcopy(IMPLEMENT)
+        payload["outcome"]["summary"] = NON_ASCII
+        code, result = self.append(payload)
         self.assertEqual(code, 0, result)
         self.assertTrue(result["record_id"].startswith("implement-") and result["record_id"].endswith("-T01"))
         self.assertTrue(result["path"].startswith(".agents/records/implement/"))
         [record] = self.stored()
         self.assertEqual(record["schema"], "pirl-record/v1")
-        self.assertEqual(record["outcome"]["summary"], "Đã thêm kiểm tra mã OTP hết hạn")
+        self.assertEqual(record["outcome"]["summary"], NON_ASCII)
         self.assertTrue(record["recorded_at"].endswith("+07:00"))
         code, again = self.append(IMPLEMENT)
         self.assertEqual(code, 0, again)
         self.assertNotEqual(again["record_id"], result["record_id"])
 
-    def test_input_file_with_bom_keeps_vietnamese_text(self):
+    def test_input_file_with_bom_keeps_non_ascii_text(self):
+        payload = copy.deepcopy(IMPLEMENT)
+        payload["issues"][0]["decision"] = NON_ASCII
         source = self.root / "record.json"
-        source.write_bytes(b"\xef\xbb\xbf" + json.dumps(IMPLEMENT, ensure_ascii=False).encode("utf-8"))
+        source.write_bytes(b"\xef\xbb\xbf" + json.dumps(payload, ensure_ascii=False).encode("utf-8"))
         code, result = self.run_tool("append", "--input", str(source))
         self.assertEqual(code, 0, result)
-        self.assertEqual(self.stored()[0]["issues"][0]["decision"], "Không quét tài liệu ngoài đường dẫn Plan")
-        code, result = self.run_tool("append", raw="không phải JSON".encode("utf-8"))
+        self.assertEqual(self.stored()[0]["issues"][0]["decision"], NON_ASCII)
+        code, result = self.run_tool("append", raw="not JSON".encode("utf-8"))
         self.assertNotEqual(code, 0)
 
     def test_rejections_name_the_broken_rule(self):
@@ -139,14 +145,14 @@ class LayerRecordTests(unittest.TestCase):
         review = {
             **copy.deepcopy(IMPLEMENT),
             "layer": "review",
-            "task": {"plan_set": "dang-nhap_20261014-090000", "task_ids": ["T01"],
+            "task": {"plan_set": "sign-in_20261014-090000", "task_ids": ["T01"],
                      "report_file": self.report.relative_to(self.root).as_posix()},
-            "outcome": {"status": "completed", "verdict": "FAIL", "summary": "FIND-01 hết hạn OTP"},
-            "roles": [{"role": "code-reviewer", "mode": "agent", "assignment": "Phản biện diff", "result": "PASS"}],
+            "outcome": {"status": "completed", "verdict": "FAIL", "summary": "FIND-01 expired OTP"},
+            "roles": [{"role": "code-reviewer", "mode": "agent", "assignment": "Challenge the diff", "result": "PASS"}],
             "evaluates": second["record_id"],
         }
         review["issues"][0].update(role="code-reviewer", record=second["record_id"], cause="execution",
-                                   decision="Bỏ sót nhánh OTP hết hạn")
+                                   decision="Missed the expired OTP branch")
         code, result = self.append(review)
         self.assertEqual(code, 0, result)
         missing = copy.deepcopy(review)
@@ -162,10 +168,10 @@ class LayerRecordTests(unittest.TestCase):
         review = {
             **copy.deepcopy(IMPLEMENT),
             "layer": "review",
-            "task": {"plan_set": "dang-nhap_20261014-090000", "task_ids": ["T01"],
+            "task": {"plan_set": "sign-in_20261014-090000", "task_ids": ["T01"],
                      "report_file": self.report.relative_to(self.root).as_posix()},
-            "outcome": {"status": "completed", "verdict": "FAIL", "summary": "FIND-01 hết hạn OTP"},
-            "roles": [{"role": "code-reviewer", "mode": "agent", "assignment": "Phản biện diff", "result": "PASS"}],
+            "outcome": {"status": "completed", "verdict": "FAIL", "summary": "FIND-01 expired OTP"},
+            "roles": [{"role": "code-reviewer", "mode": "agent", "assignment": "Challenge the diff", "result": "PASS"}],
             "evaluates": first["record_id"],
         }
         review["issues"][0].update(role="code-reviewer", record=first["record_id"], cause="execution")
@@ -204,7 +210,7 @@ class LayerRecordTests(unittest.TestCase):
         subprocess.run([*git, "init", "-q"], check=True)
         subprocess.run([*git, "add", "-A"], check=True)
         subprocess.run([*git, "commit", "-qm", "init"], check=True)
-        (self.root / "AGENTS.md").write_text(AGENTS + "\nđổi\n", encoding="utf-8")
+        (self.root / "AGENTS.md").write_text(AGENTS + "\nchanged\n", encoding="utf-8")
         ref = self.run_tool("start")[1]["framework_ref"]
         self.assertRegex(ref["commit"], r"^[0-9a-f]{40}$")
         self.assertEqual(list(ref["files"]), ["AGENTS.md"])

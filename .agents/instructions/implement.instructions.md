@@ -1,307 +1,346 @@
 ---
-name: "Hướng dẫn layer Implement"
-description: "Triển khai đúng Plan hoặc chỉ dẫn sửa của Review, để vai trò kiểm chứng kết luận quality gate bằng lập luận và ghi Implementation Record vào Plan."
+name: "Implement Layer Instructions"
+description: "Implement exactly the Plan or the Review's repair instructions, have verification roles conclude the quality gates by reasoning, and write the Implementation Record into the Plan."
 applyTo: ".agents/instructions/implement.instructions.md"
 metadata:
   id: ".agents/instructions/implement"
   kind: "instruction"
-  version: "1.6.4"
+  version: "1.7.0"
   status: "active"
 ---
 
-# Hướng dẫn layer Implement
+# Implement Layer Instructions
 
-Chỉ áp dụng quy trình Implement khi yêu cầu và [router](layered-task-execution.instructions.md)
-đã chọn layer này. Đọc hoặc cập nhật một file Plan/report không tự kích hoạt
-layer khác. Việc giao thẳng ngoài một Plan theo
-[task độc lập của router](layered-task-execution.instructions.md#task-độc-lập);
-không mượn quy tắc chờ Review của layer này cho việc đó.
+Apply the Implement process only when the request and the [router](layered-task-execution.instructions.md)
+have selected this layer. Reading or updating a Plan/report file does not
+activate another layer. Work assigned directly outside a Plan follows the
+[router's standalone tasks](layered-task-execution.instructions.md#standalone-tasks);
+do not borrow this layer's wait-for-Review rules for that work.
 
-Đây là nguồn quy trình và sổ kết quả Implement. Mục tiêu là thực hiện đúng
-quyết định sản phẩm đã chốt, giữ bằng chứng đủ bàn giao và nhận ra lúc quyết
-định đó không còn phù hợp.
+This is the source of the Implement process and its results ledger. The goal
+is to carry out the settled product decisions exactly, keep enough evidence
+for handoff and recognize when those decisions no longer fit.
 
-## Vai trò AI Agent tại layer Implement
+## AI Agent roles at the Implement layer
 
-Danh mục vai trò và nguyên tắc giao việc nằm ở [AGENTS.md](../../AGENTS.md#vai-trò-ai-agent);
-chuyên môn của từng vai trò nằm trong file vai trò được liên kết trong bảng.
-Plan chọn vai trò từ bảng dưới; lượt sửa dùng `repair_roles` của report Review.
-Người điều phối Implement giao cho từng vai trò file vai trò, dòng của vai trò
-đó trong bảng cùng dòng của vai trò mà cột "Hoàn tất khi" dẫn chiếu bằng
-"Như `<vai trò>`" (kể cả khi dòng đó lại dẫn chiếu tiếp), phần việc, nguồn và
-REQ/QG liên quan, rồi hợp nhất kết quả theo bằng chứng.
+The role catalog and assignment principles live in [AGENTS.md](../../AGENTS.md#ai-agent-roles);
+each role's expertise lives in the role file linked in the table.
+The Plan picks roles from the table below; a repair run uses the `repair_roles`
+of the Review report. The Implement coordinator gives each role its role file,
+its row in the table together with the row of the role that the "Done when"
+column refers to with "As `<role>`" (also when that row refers on again), the
+work, the sources and the related REQs/QGs, then merges the results by evidence.
 
-| Vai trò | Loại | Trách nhiệm tại Implement | Hoàn tất khi |
+| Role | Type | Responsibility at Implement | Done when |
 | --- | --- | --- | --- |
-| [`backend-developer`](../roles/backend-developer.role.md) | triển khai | Sửa code không phải giao diện, tài liệu đi kèm và test theo FUT cho phần đó, trong đường dẫn được phép; tự phản biện phần mình làm | Như `technical-writer` về mọi câu tài liệu đi kèm mà vai trò viết hoặc đổi, và source/tài liệu/test giao đủ REQ của phần mình; tự phản biện không còn nghi vấn mở; không chạy build, typecheck, lint hay script kiểm chứng |
-| [`frontend-developer`](../roles/frontend-developer.role.md) | triển khai | Sửa giao diện, chuỗi giao diện theo ngôn ngữ, tài liệu đi kèm và test theo FUT; chụp layout bằng mock khi diff đổi giao diện; tự phản biện | Như `backend-developer`, và `layout_verification` có lần chụp đạt mọi kiểm khi diff đổi giao diện (trừ kiểm không đạt mà Plan đã loại trừ theo [router](layered-task-execution.instructions.md#kiểm-chứng-layout-bằng-mock)); khi diff đổi kích thước hoặc số phần tử trong hàng hay khung có bề rộng ràng buộc, số đo hộp bao theo [router](layered-task-execution.instructions.md#kiểm-chứng-layout-bằng-mock) nằm trong `layout_verification` và phần tử nhô ra đã được sửa trước khi giao vai trò kiểm chứng; khẳng định chung hay phủ định trong `layout_verification` và báo cáo bàn giao đã đối chiếu đủ nguồn theo bullet về phát hiện ngoài phạm vi dưới bảng |
-| [`technical-writer`](../roles/technical-writer.role.md) | triển khai | Tạo/cập nhật tài liệu ngữ cảnh, tài liệu hợp đồng, mục lục, bảng trạng thái đặc tả cho task chỉ có tài liệu | Tài liệu khớp source và REQ; mọi khẳng định trong mỗi câu viết hoặc đổi, kể cả mệnh đề giữ nguyên từ bản cũ, có nguồn và đã đối chiếu theo [cách làm của vai trò](../roles/technical-writer.role.md#cách-làm): câu quy tắc, phạm vi hay danh sách, và câu dẫn hay tiêu đề của bảng hoặc danh sách, dò từng phần tử và nơi dùng; đại lượng hay công thức nêu bằng chữ tính lại từ định nghĩa trong source |
-| [`code-reviewer`](../roles/code-reviewer.role.md) | kiểm chứng | Phản biện diff: bug, hồi quy, quyền và bảo mật, mất nhất quán dữ liệu/trạng thái, guard/validator/xử lý lỗi, vi phạm hợp đồng, test vi phạm FUT | `PASS\|FAIL\|BLOCKED` từng QG được giao, kèm đường đã lần, phản ví dụ, nguồn; mỗi dòng bằng chứng là nguồn đọc được kèm lập luận theo [router](layered-task-execution.instructions.md#kiểm-chứng-bằng-lập-luận), không phải kết quả chạy |
-| [`code-analyst`](../roles/code-analyst.role.md) | kiểm chứng | Lần luồng từ entrypoint tới trạng thái cuối qua mọi caller/consumer chịu ảnh hưởng; lập bảng kịch bản cho QG nhiều nhánh/trạng thái/thứ tự; đối chiếu tài liệu với source | Như `code-reviewer` |
-| [`ux-designer`](../roles/ux-designer.role.md) | kiểm chứng | Đối chiếu ảnh và số đo của các kiểm layout theo router với QG giao diện và source hiển thị | Như `code-reviewer` |
-| [`process-auditor`](../roles/process-auditor.role.md) | tự đánh giá | Tự đánh giá lượt Implement theo [router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến); không ghi vào danh sách vai trò của Plan | Record đã ghi; cải tiến đã áp dụng hoặc đã tổng hợp cho người dùng |
+| [`backend-developer`](../roles/backend-developer.role.md) | implementation | Edit non-UI code, accompanying documentation and tests under FUT for that part, within the allowed paths; self-challenge its own work | As `technical-writer` for every sentence of accompanying documentation the role writes or changes, and source/docs/tests deliver all REQs of its part; self-challenge has no open doubts; no builds, typechecks, lint or verification scripts are run |
+| [`frontend-developer`](../roles/frontend-developer.role.md) | implementation | Edit the UI, UI strings per language, accompanying documentation and tests under FUT; capture layout with mocks when the diff changes the UI; self-challenge | As `backend-developer`, and `layout_verification` has a capture run that passes every check when the diff changes the UI (except failed checks the Plan excluded per the [router](layered-task-execution.instructions.md#layout-verification-with-mocks)); when the diff changes the size or number of elements in a row or frame of constrained width, the bounding-box measurements per the [router](layered-task-execution.instructions.md#layout-verification-with-mocks) are in `layout_verification` and protruding elements were fixed before handing over to the verification roles; general or negative claims in `layout_verification` and the handoff report have been checked against all sources per the bullet on out-of-scope findings below the table |
+| [`technical-writer`](../roles/technical-writer.role.md) | implementation | Create/update context documentation, contract documents, indexes and specification status tables for documentation-only tasks | Documentation matches the source and the REQs; every claim in each sentence written or changed, including clauses kept from the old version, has a source and has been checked per the [role's way of working](../roles/technical-writer.role.md#how-it-works): sentences stating a rule, scope or list, and the lead-in sentence or heading of a table or list, are checked element by element and at every place of use; quantities or formulas stated in words are recalculated from their definition in the source |
+| [`code-reviewer`](../roles/code-reviewer.role.md) | verification | Challenge the diff: bugs, regressions, permissions and security, data/state inconsistency, guards/validators/error handling, contract violations, tests that violate FUT | `PASS\|FAIL\|BLOCKED` for each assigned QG, with the path traced, counterexamples and sources; each evidence line is a readable source with reasoning per the [router](layered-task-execution.instructions.md#verification-by-reasoning), not a run result |
+| [`code-analyst`](../roles/code-analyst.role.md) | verification | Trace the flow from the entrypoint to the final state through every affected caller/consumer; build scenario tables for QGs with many branches/states/orderings; check documentation against the source | As `code-reviewer` |
+| [`ux-designer`](../roles/ux-designer.role.md) | verification | Check the screenshots and measurements of the layout checks per the router against the UI QGs and the display source | As `code-reviewer` |
+| [`process-auditor`](../roles/process-auditor.role.md) | self-evaluation | Self-evaluate the Implement run per the [router](layered-task-execution.instructions.md#self-evaluation-and-improvement); not recorded in the Plan's role lists | Record written; improvements applied or summarized for the user |
 
-- Vai trò triển khai không kiểm chứng phần chính nó làm. Vai trò kiểm chứng
-  không sửa đầu ra; FAIL được trả cho vai trò triển khai sở hữu phần đó.
-- Vai trò kiểm chứng nhận thêm diff và tuyên bố của vai trò triển khai như
-  điều cần kiểm, không như kết luận. Đồng thuận của đội không là bằng chứng.
-- Phát hiện ngoài phạm vi và mọi khẳng định chung hay phủ định (lệch source,
-  "không có", "luôn", "mọi") trong báo cáo của vai trò triển khai không thuộc QG
-  nào nên không vai trò kiểm chứng nào nhận. Vai trò nêu chúng chỉ như quan sát
-  sau khi đối chiếu đủ nguồn có thể bác bỏ chúng, theo
-  [quy tắc Evidence](../llm-docs/rules/core-agent.rule.md#evidence). Người điều
-  phối đối chiếu lại với source trước khi đưa chúng vào `residual_risk`,
-  `summary` của record hay phản hồi cho người dùng, hoặc ghi rõ là chưa kiểm
-  cùng điều chưa đọc.
-- Khi một agent đảm nhận cả triển khai lẫn kiểm chứng (chỉ khi không giao được
-  theo nguyên tắc giao việc), Implementation Record ghi đó là tự thực hiện kèm
-  lý do và QG vẫn do đúng vai trò kiểm chứng lập luận lại trên diff; không
-  tuyên bố đã có kiểm chứng độc lập.
+- An implementation role does not verify its own work. A verification role
+  does not edit the output; a FAIL is returned to the implementation role that
+  owns that part.
+- Verification roles receive the implementation roles' diff and claims as
+  things to check, not as conclusions. Team consensus is not evidence.
+- Out-of-scope findings and every general or negative claim (a mismatch with
+  the source, "there is no", "always", "every") in an implementation role's
+  report belong to no QG, so no verification role receives them. The role
+  states them only as observations after checking them against all sources that
+  could refute them, per the
+  [Evidence rule](../llm-docs/rules/core-agent.rule.md#evidence). The coordinator
+  checks them against the source again before putting them in `residual_risk`,
+  the record's `summary` or a response to the user, or states that they are
+  unchecked and what was not read.
+- When one agent takes on both implementation and verification (only when
+  delegation is not possible under the assignment principles), the
+  Implementation Record states that it was self-performed with the reason, and
+  the QGs are still reasoned again on the diff by the right verification role;
+  do not claim independent verification.
 
-## Đọc đầu vào và xác định phạm vi
+## Reading inputs and determining scope
 
-1. Layer này đã được người dùng yêu cầu theo
-   [router](layered-task-execution.instructions.md#chọn-layer). Xác định đúng
-   file Plan mà lời họ hoặc ngữ cảnh đã chốt chỉ định. Đọc Plan `pirl-plan/v1`, source liên quan và Implementation Record nếu có.
-   Kiểm tra các task trong `depends_on` đã thực hiện phần mà task này cần; chỉ
-   dừng phần phụ thuộc chưa sẵn sàng. Không yêu cầu task tương lai hoàn tất,
-   không tự chọn task tiếp theo. Plan sai nội dung phải được làm rõ trước
-   mutation phụ thuộc; thiếu một lần chạy validator không tự chứng minh Plan sai.
-   Nếu QG cần phần việc giao cho task chạy sau/song song, đối chiếu
-   [ranh giới task của Plan](plan.instructions.md#chia-task-để-triển-khai-và-nghiệm-thu-riêng),
-   ghi QG bị ảnh hưởng `BLOCKED` và bàn giao đúng quyết định chia task cho
-   Plan. Không tự làm task kia, hạ QG hay lặp sửa code khi đầu vào chưa đổi;
-   tiếp tục phần độc lập đã rõ.
-2. Lượt đầu dùng `implementation_roles` của Plan đúng thứ tự để triển khai,
-   rồi `verification_roles` của Plan đúng thứ tự để kiểm chứng. Lượt sửa
-   dùng `repair_roles` của report Review được chỉ định, cùng Plan/task,
-   rồi vẫn `verification_roles` của Plan. Không tự gộp hai đội, đổi vai trò
-   theo tên lỗi, thêm hoặc bỏ vai trò được giao. Report còn FIND `replan`
-   quay về Plan; chỉ có risk trì hoãn hoặc blocker chuyển chủ không mở lượt
-   sửa sản phẩm.
-3. Đối chiếu yêu cầu, trách nhiệm, đường dẫn cho phép, phụ thuộc và QG với
-   hiện trạng. Phân biệt thay đổi có sẵn của người dùng với phần mình sẽ sửa.
-   Dùng quyền đã có trong phiên; không thêm checkpoint phê duyệt thường lệ.
-4. Mỗi vai trò nhận phần việc, nguồn, chỉ dẫn và REQ/QG liên quan. Chỉ nạp
-   context phục vụ quyết định đó. Khi giao việc cho agent riêng, truyền đủ
-   hướng đã chốt; không giấu giải pháp để tạo vẻ độc lập. Chỉ khi không giao
-   được theo nguyên tắc giao việc, người điều phối thực hiện các vai trò lần
-   lượt.
-5. Tự chọn chi tiết cài đặt tương đương trong hướng đã chốt: vị trí helper,
-   tên biến hoặc cách tái sử dụng source phù hợp không cần lập Plan mới.
-   Chỉ chuyển lại quyết định làm đổi hành vi, quyền, dữ liệu, phạm vi hoặc
-   đánh đổi đã được người dùng chốt. Nêu đúng phần thiếu và tiếp tục phần
-   độc lập; không mặc định cả task bị chặn vì một nhánh chưa rõ. Chỗ lệch Plan
-   mà người dùng xác nhận đi theo mục
-   [Thay đổi so với Plan do người dùng xác nhận](#thay-đổi-so-với-plan-do-người-dùng-xác-nhận).
+1. The user has asked for this layer per the
+   [router](layered-task-execution.instructions.md#choosing-a-layer). Identify
+   exactly the Plan file that their words or the settled context name. Read the
+   `pirl-plan/v1` Plan, the related source and the Implementation Record if any. Check that the tasks in `depends_on` have done the part this
+   task needs; stop only the dependent part that is not ready. Do not require
+   future tasks to be complete and do not pick the next task yourself. A Plan
+   with wrong content must be clarified before dependent mutations; a missing
+   validator run does not by itself prove the Plan wrong.
+   If a QG needs work assigned to a later/parallel task, check against the
+   [Plan's task boundaries](plan.instructions.md#splitting-tasks-for-separate-implementation-and-acceptance),
+   record the affected QG as `BLOCKED` and hand exactly the task-splitting
+   decision back to Plan. Do not do the other task yourself, weaken the QG or
+   repeatedly edit code while the input has not changed; continue the
+   independent parts that are clear.
+2. The first run uses the Plan's `implementation_roles` in order to implement,
+   then the Plan's `verification_roles` in order to verify. A repair run uses
+   the `repair_roles` of the named Review report for the same Plan/task, then
+   still the Plan's `verification_roles`. Do not merge the two teams, change
+   roles based on the name of a defect, or add or drop assigned roles. A report
+   that still has a `replan` FIND goes back to Plan; deferred risks or blockers
+   handed to another owner alone do not open a product repair run.
+3. Check the requirements, responsibilities, allowed paths, dependencies and
+   QGs against the current state. Distinguish the user's pre-existing changes
+   from what you are about to edit. Use the permissions already granted in the
+   session; do not add routine approval checkpoints.
+4. Each role receives its work, sources, instructions and related REQs/QGs.
+   Load only the context that serves that decision. When delegating to a
+   separate agent, pass the full settled direction; do not hide the solution
+   to create an appearance of independence. Only when delegation is not
+   possible under the assignment principles does the coordinator perform the
+   roles in turn.
+5. Choose equivalent implementation details within the settled direction
+   yourself: helper placement, variable names or how to reuse source do not
+   need a new Plan. Hand back only decisions that change behavior, permissions,
+   data, scope or trade-offs the user has settled. State exactly what is
+   missing and continue the independent parts; do not assume the whole task is
+   blocked because one branch is unclear. A deviation from the Plan that the
+   user confirms follows the
+   [Changes to the Plan confirmed by the user](#changes-to-the-plan-confirmed-by-the-user)
+   section.
 
-## Triển khai và sửa theo Review
+## Implementing and repairing per Review
 
-- Lần theo đường chạy từ đầu vào tới kết quả trước khi thay đổi. Giữ invariant
-  tại nơi sở hữu nó, cập nhật các bên ghi/đọc chịu ảnh hưởng trong phạm vi.
-  Không thêm abstraction, migration, nền tảng hay hạ tầng kiểm tra vì tiện thể.
-- Danh sách đường dẫn của Plan là phạm vi của việc chính, không phải ranh giới
-  của tính nhất quán. Khi hành vi đã ổn định, quét toàn repo đích và tài liệu
-  ngữ cảnh liên quan, không chỉ thư mục của task, để tìm nơi còn mô tả hành vi
-  cũ hoặc chưa có hành vi mới: tài liệu hợp đồng, mục lục và bảng trạng thái,
-  danh mục API/lỗi/cấu hình/quyền, chuỗi giao diện, comment hoặc mã chỉ còn
-  phục vụ luồng bị thay. Đó là hệ quả trực tiếp của thay đổi nên sửa trong
-  cùng lượt dù nằm ngoài đường dẫn Plan. Test của chức năng đang phát triển và
-  chức năng bị ảnh hưởng còn khẳng định hành vi cũ được cập nhật theo logic
-  mới, test chỉ phục vụ luồng đã gỡ thì xóa, đều theo
-  [quy tắc FUT](../llm-docs/rules/test-verification.rule.md#quy-tắc-fut-test-chức-năng);
-  không đụng test của chức năng không liên quan, không dựng harness hay script
-  kiểm chứng mới, dù trong hay ngoài repo (ngoại lệ duy nhất là script mock và
-  chụp layout trong `.tmp/` theo
-  [router](layered-task-execution.instructions.md#kiểm-chứng-layout-bằng-mock)). Điểm cần quyết định sản phẩm thì ghi vào nơi dự
-  án lưu khoảng trống đã biết và vào rủi ro còn lại, không tự chọn. Lần quét
-  này không sửa hồ sơ lịch sử (Plan đã chốt, report Review, nội dung đặc tả
-  gốc); Plan chỉ đổi theo mục
-  [Thay đổi so với Plan do người dùng xác nhận](#thay-đổi-so-với-plan-do-người-dùng-xác-nhận).
-  Mục lục và bảng trạng thái triển khai của thư mục đặc tả là tài liệu sống nên
-  vẫn đồng bộ. Quét lại khi hành vi đổi sau lần quét.
-- Với lượt sửa, đọc mọi FIND/RISK/BLOCK, EVAL và disposition trong report. Xác nhận
-  trigger và nguyên nhân bằng lập luận trên source (chỉ tái hiện khi lượt này
-  được yêu cầu điều tra nguyên nhân gốc rễ theo router), tìm guard hay
-  giải thích cạnh tranh có thể bác bỏ kết luận. Nếu report sai, ghi
-  `contradicted` cùng nguồn; không sửa theo lỗi không tồn tại hoặc tự thay
-  bằng nguyên nhân khác. Tiếp tục mục độc lập đã rõ và trả lại đúng mâu thuẫn
-  cho Review trước khi nhận toàn bộ lượt sửa là hoàn tất.
-- Sửa FIND `repair` và thực hiện hành động gỡ BLOCK `retry`. RISK `deferred`
-  giữ chủ và điều kiện xem lại; BLOCK `escalate` giữ chủ có thể cung cấp đầu
-  vào. Retry phải có hành động/điều kiện mới có căn cứ, không chạy lại để chờ may.
-  Mục của task khác (RISK, FIND hay BLOCK trong report khác) chỉ vào lượt sửa
-  này khi report nguồn của lượt này liệt kê nó với task và layer của lượt này
-  là chủ; `repair_closure_evidence` ghi report gốc và ID mục. Mục không có chủ
-  như vậy giữ nguyên chủ và điều kiện xem lại; thấy chúng khi quét thì nêu
-  trong `residual_risk`, không sửa kèm.
-  Mục EVAL ghi đánh giá vai trò của lượt trước và cải tiến framework mà Review
-  đã áp dụng; đọc để biết quy tắc đã đổi, nhưng không biến nó thành FIND hoặc QG
-  sản phẩm mới.
-- Giữ bằng chứng trước/sau cho cơ chế cần sửa bằng lập luận trên source:
-  đường chạy cũ dẫn tới lỗi và điểm sửa chặn nó, kèm phản ví dụ phân biệt
-  lỗi với hành vi hợp lệ. Không build, typecheck, lint hay chạy ứng dụng; kết
-  quả test theo FUT, khi Plan giao, chỉ nêu cạnh lập luận, không là dòng bằng
-  chứng ([nguồn bằng chứng](layered-task-execution.instructions.md#kiểm-chứng-bằng-lập-luận)). Lượt sửa chạm giao
-  diện chụp lại layout theo mục kiểm chứng bên dưới vào thư mục lần chạy mới.
+- Trace the execution path from input to result before changing anything. Keep
+  each invariant where it is owned and update the affected writers/readers
+  within scope. Do not add abstractions, migrations, platforms or test
+  infrastructure just because it is convenient.
+- The Plan's path list is the scope of the main work, not the boundary of
+  consistency. Once the behavior is stable, sweep the whole target repository
+  and the related context documentation, not just the task's directory, for
+  places that still describe the old behavior or lack the new behavior:
+  contract documents, indexes and status tables, API/error/configuration/
+  permission catalogs, UI strings, comments or code that only served the
+  replaced flow. These are direct consequences of the change, so fix them in
+  the same run even when they are outside the Plan's paths. Tests of the
+  functionality under development and of affected functionality that still
+  assert the old behavior are updated to the new logic, and tests that only
+  served a removed flow are deleted, all under the
+  [FUT rule](../llm-docs/rules/test-verification.rule.md#fut-rule-functional-tests);
+  do not touch tests of unrelated functionality and do not build new harnesses
+  or verification scripts, inside or outside the repository (the only exception
+  is layout mock and capture scripts in `.tmp/` per the
+  [router](layered-task-execution.instructions.md#layout-verification-with-mocks)).
+  Points that need a product decision are recorded where the project keeps
+  known gaps and in the residual risk, not decided by you. This sweep does not
+  edit historical records (settled Plans, Review reports, original
+  specification content); the Plan changes only per the
+  [Changes to the Plan confirmed by the user](#changes-to-the-plan-confirmed-by-the-user)
+  section. The implementation indexes and status tables of the specification
+  directory are living documents and are still kept in sync. Sweep again when
+  the behavior changes after the sweep.
+- In a repair run, read every FIND/RISK/BLOCK, EVAL and disposition in the
+  report. Confirm the trigger and cause by reasoning on the source (reproduce
+  only when this run was asked to investigate a root cause per the router),
+  and look for guards or competing explanations that could refute the
+  conclusion. If the report is wrong, record `contradicted` with sources; do
+  not fix a defect that does not exist or substitute another cause yourself.
+  Continue the independent items that are clear and return exactly the
+  contradiction to Review before declaring the whole repair run complete.
+- Fix `repair` FINDs and carry out the unblocking actions of `retry` BLOCKs.
+  `deferred` RISKs keep their owner and revisit condition; `escalate` BLOCKs
+  keep the owner who can provide the input. A retry must have a new, grounded
+  action/condition; do not rerun hoping for luck.
+  Items of another task (a RISK, FIND or BLOCK in another report) enter this
+  repair run only when this run's source report lists them with this run's task
+  and layer as the owner; `repair_closure_evidence` records the original report
+  and the item ID. Items without such an owner keep their owner and revisit
+  condition; if the sweep finds them, state them in `residual_risk` without
+  fixing them along the way. EVAL items record the
+  evaluation of the previous run's roles and the framework improvements the
+  Review applied; read them to know which rules changed, but do not turn them
+  into new product FINDs or QGs.
+- Keep before/after evidence for the mechanism to fix by reasoning on the
+  source: the old execution path that led to the defect and the change point
+  that blocks it, with a counterexample that distinguishes the defect from
+  valid behavior. Do not build, typecheck, lint or run the application; test
+  results under FUT, when the Plan assigns them, are only stated next to the
+  reasoning and are not an evidence line
+  ([sources of evidence](layered-task-execution.instructions.md#verification-by-reasoning)).
+  A repair run that touches the UI captures the layout again per the
+  verification section below, into a new run directory.
 
-## Thay đổi so với Plan do người dùng xác nhận
+## Changes to the Plan confirmed by the user
 
-Plan là chuẩn mà vai trò kiểm chứng và Review đối chiếu, nên khi người dùng đã
-chốt một chỗ khác Plan thì Plan phải khớp ngay trong phiên, không để đến Review.
+The Plan is the standard that the verification roles and Review check against,
+so when the user has settled something that differs from the Plan, the Plan
+must match within the session, not be left for Review.
 
-- **Khi nào:** trong phiên Implement (lượt đầu hoặc lượt sửa), phần triển khai
-  lệch một giá trị, bảng, phạm vi, đường dẫn được phép sửa, REQ hoặc QG của
-  Plan, và người dùng xác nhận đúng chỗ lệch đó trong cùng phiên, kể cả khi họ
-  trả lời sau khi Implement nêu quyết định ngoài chữ Plan.
-- **Làm gì:** trước khi vai trò kiểm chứng kết luận QG, sửa tại chỗ các dòng
-  Plan bị ảnh hưởng và thêm ngay dưới mỗi dòng đã sửa một chú thích
-  `Thay đổi đã xác nhận (người dùng, <YYYY-MM-DD>): <cũ> -> <mới>; <lý do>`.
-  Tính lại mọi bảng giá trị hay số dẫn xuất phụ thuộc vào giá trị đã đổi (ví
-  dụ tỉ số tương phản của màu vừa đổi). Ghi từng chỗ sửa vào `plan_amendments`
-  của Implementation Record. Vai trò kiểm chứng kết luận QG theo Plan đã sửa.
-- **Không áp dụng:** chỗ lệch do agent tự chọn mà người dùng chưa xác nhận.
-  Không sửa Plan cho khớp code: hỏi người dùng trong phiên, và QG bị ảnh hưởng
-  ghi `BLOCKED` kèm quyết định cần chọn cho tới khi họ trả lời. Thay đổi làm
-  đổi vai trò, `depends_on` hoặc ranh giới task cũng không thuộc mục này mà
-  chuyển lại layer Plan. Người dùng xác nhận sau khi phiên Implement đã kết
-  thúc thì việc sửa Plan là lượt Plan: dùng cùng dạng chú thích kèm `record_id`
-  của lượt Plan đó, và record này là dấu vết thay cho `plan_amendments`.
+- **When:** during an Implement session (first run or repair run), the
+  implementation deviates from a value, table, scope, allowed path, REQ or QG of
+  the Plan, and the user confirms exactly that deviation in the same session,
+  including when they answer after Implement raised a decision outside the
+  Plan's text.
+- **What:** before the verification roles conclude the QGs, edit the affected
+  Plan lines in place and add right under each edited line an annotation
+  `Confirmed change (user, <YYYY-MM-DD>): <old> -> <new>; <reason>`.
+  Recalculate every table of values or derived numbers that depends on the
+  changed value (for example the contrast ratio of a color that just changed).
+  Record each edit in the Implementation Record's `plan_amendments`. The
+  verification roles conclude the QGs against the edited Plan.
+- **Does not apply:** deviations the agent chose itself that the user has not
+  confirmed. Do not edit the Plan to match the code: ask the user in the
+  session, and record the affected QGs as `BLOCKED` with the decision to be made
+  until they answer. Changes to roles, `depends_on` or task boundaries are not
+  covered by this section either and go back to the Plan layer. When the user
+  confirms after the Implement session has ended, editing the Plan is a Plan
+  run: use the same form of annotation with the `record_id` of that Plan run, and
+  that record is the trace in place of `plan_amendments`.
 
-## Kiểm chứng quality gate bằng lập luận
+## Verifying quality gates by reasoning
 
-Theo [router](layered-task-execution.instructions.md#kiểm-chứng-bằng-lập-luận),
-lượt Implement không build, typecheck, lint, không chạy ứng dụng để nghiệm thu,
-chỉ viết, cập nhật và chạy test theo FUT. Mỗi dòng bằng chứng QG lấy từ nguồn
-mà router cho phép; script, đầu dò, trình duyệt ép nhánh logic, công cụ tĩnh và
-kết quả test không là bằng chứng.
-Khi diff đổi giao diện, `frontend-developer` (hoặc người điều phối khi tự thực
-hiện vai trò này) thực hiện [kiểm chứng layout bằng mock](layered-task-execution.instructions.md#kiểm-chứng-layout-bằng-mock)
-sau khi triển khai và trước khi giao vai trò kiểm chứng; ảnh và số đo của các
-kiểm theo router là nguồn cho vai trò kiểm chứng, không thay lập luận của nó.
-Khi giao, người điều phối nêu tệp nào là số đo của các kiểm và tệp nào là chẩn
-đoán không là nguồn.
-Khi Plan giao test, vai trò triển khai chỉ chạy test của chức năng đang phát
-triển và chức năng bị ảnh hưởng. Test đỏ được giải thích bằng source trước khi
-sửa sản phẩm hoặc test; không sửa test để khớp code sai, không thêm test hay
-mở rộng lần chạy để tăng độ tin.
+Per the [router](layered-task-execution.instructions.md#verification-by-reasoning),
+an Implement run does not build, typecheck or lint, does not run the
+application for acceptance, and only writes, updates and runs tests under FUT.
+Each QG evidence line comes from a source the router allows; scripts, probes,
+browsers forcing logic branches, static tools and test results are not evidence.
+When the diff changes the UI, `frontend-developer` (or the coordinator when
+performing that role itself) carries out [layout verification with mocks](layered-task-execution.instructions.md#layout-verification-with-mocks)
+after implementing and before handing over to the verification roles; the
+screenshots and measurements of the checks per the router are a source for the
+verification roles and do not replace their reasoning. When delegating, the
+coordinator states which files are the measurements of the checks and which are
+diagnostics that are not a source.
+When the Plan assigns tests, the implementation role runs only the tests of the
+functionality under development and the affected functionality. A red test is
+explained from the source before fixing the product or the test; do not edit a
+test to match wrong code, and do not add tests or widen the run to increase confidence.
 
-Mỗi vai trò triển khai tự phản biện phần mình làm: đối chiếu REQ và `Logic bắt
-buộc` với source, chọn phản ví dụ hoặc nhánh biên có khả năng bác bỏ, sửa
-thiếu sót trong phạm vi ngay khi thấy. Tự phản biện không thay kết luận của
-vai trò kiểm chứng.
+Each implementation role self-challenges its own work: check the REQs and the
+`Required logic` against the source, pick a counterexample or edge branch that
+could refute it, and fix in-scope gaps as soon as they are found.
+Self-challenge does not replace the verification role's conclusion.
 
-Sau khi đội triển khai/sửa xong, từng vai trò kiểm chứng xử lý QG được giao:
+After the implementation/repair team is done, each verification role handles
+its assigned QGs:
 
-1. Đọc diff cùng source lân cận; lần từ entrypoint qua caller, guard, thao tác
-   ghi/đọc tới kết quả và trạng thái mà `Logic bắt buộc` nêu, gồm nhánh từ
-   chối/thất bại cần giữ. Với QG về giao diện, xem thêm ảnh và số đo của các
-   kiểm theo router trong lần chụp layout mới nhất; thiếu chúng khi diff đổi
-   giao diện thì trả FAIL cho `frontend-developer`.
-2. Chọn phản ví dụ có thể xuất hiện trong phạm vi QG, tìm guard hoặc giải
-   thích cạnh tranh, rồi xét source có bác bỏ tuyên bố hoàn tất không.
-3. Khi task có test, đọc test trong diff và đối chiếu FUT: truy về REQ, đúng
-   chức năng đang phát triển và chức năng bị ảnh hưởng, không trùng, không
-   khẳng định điều đặc tả không đòi. Vi phạm được trả như một FAIL.
-4. Ghi `PASS|FAIL|BLOCKED` cho từng QG cùng tuyên bố, đường đã lần, phản ví dụ
-   và nguồn. `FAIL` khi chỉ ra được trigger → cơ chế → hậu quả vi phạm QG, hoặc
-   khi một mệnh đề của `Logic bắt buộc` không đúng với nguồn dù tác động nhỏ (ví
-   dụ một phần tử hay giá trị trong câu tài liệu không khớp); điểm như vậy
-   không được ghi thành quan sát không chặn kèm `PASS`. Điều thấy ngoài `Logic
-   bắt buộc` ghi riêng là quan sát và không đổi kết luận. `BLOCKED` khi thiếu
-   nguồn hoặc quyết định cần để kết luận, không phải vì chưa chạy test.
+1. Read the diff together with the surrounding source; trace from the
+   entrypoint through callers, guards and write/read operations to the outcome
+   and state that the `Required logic` states, including the refusal/failure
+   branches that must hold. For UI QGs, also look at the screenshots and
+   measurements of the checks per the router in the latest layout capture; if
+   they are missing when the diff changes the UI, return a FAIL to
+   `frontend-developer`.
+2. Pick a counterexample that can occur within the QG's scope, look for guards
+   or competing explanations, then consider whether the source refutes the
+   claim of completion.
+3. When the task has tests, read the tests in the diff and check them against
+   FUT: traceable to a REQ, exactly the functionality under development and
+   the affected functionality, no duplicates, no assertions the specification
+   does not require. A violation is returned as a FAIL.
+4. Record `PASS|FAIL|BLOCKED` for each QG with the claim, the path traced, the
+   counterexample and sources. `FAIL` when a trigger → mechanism → consequence
+   that violates the QG can be shown, or when a clause of the `Required logic`
+   does not hold against the source even if the impact is small (for example
+   one element or value in a documentation sentence does not match); such a
+   point must not be recorded as a non-blocking observation with `PASS`.
+   Things seen outside the `Required logic` are recorded separately as
+   observations and do not change the conclusion. `BLOCKED` when sources or
+   decisions needed to conclude are missing, not because tests have not been run.
 
-FAIL được trả cho vai trò triển khai sở hữu phần đó kèm trigger, cơ chế và
-đích sửa; sau khi sửa, vai trò kiểm chứng lập luận lại phần chịu ảnh hưởng.
-Tối đa hai lần sửa cùng nguyên nhân trong lượt; còn FAIL thì ghi `failed`
-cùng bằng chứng. Không hạ QG để khớp code hay thêm QG giữa lượt.
+A FAIL is returned to the implementation role that owns that part, with the
+trigger, mechanism and fix target; after the fix, the verification role reasons
+again over the affected part. At most two repairs of the same cause per run;
+if it still FAILs, record `failed` with evidence. Do not weaken a QG to match
+the code or add QGs mid-run.
 
-Implement tự kiểm tra sản phẩm, không đổi kết luận Review. Sau khi ghi
-Implementation Record, `process-auditor` tự đánh giá lượt Implement, áp dụng cải
-tiến framework và ghi record theo
-[router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến). Lỗi
-đầu ra mà `process-auditor` tìm thấy được trả về vai trò triển khai sở hữu phần
-đó, trong cùng giới hạn hai lần sửa ở trên.
+Implement checks the product itself and does not change Review conclusions.
+After writing the Implementation Record, `process-auditor` self-evaluates the
+Implement run, applies framework improvements and writes the record per the
+[router](layered-task-execution.instructions.md#self-evaluation-and-improvement).
+Output defects that `process-auditor` finds are returned to the implementation
+role that owns that part, within the same two-repair limit above.
 
-## Ghi kết quả
+## Recording results
 
-Cập nhật trạng thái Plan và một mục `Implementation Record` bên dưới bốn mục
-nội dung Plan. Ghi việc thực tế, nguồn, thay đổi, bằng chứng QG, tự phản biện
-và giới hạn. Lượt sửa thay tham chiếu bằng record của chính lượt đó. Nội dung
-Plan chỉ đổi theo mục
-[Thay đổi so với Plan do người dùng xác nhận](#thay-đổi-so-với-plan-do-người-dùng-xác-nhận);
-không sửa Plan để hợp thức hóa hướng agent tự đổi.
+Update the Plan status and one `Implementation Record` section below the four
+Plan content sections. Record the actual work, sources, changes, QG evidence,
+self-challenge and limits. A repair run replaces the reference with the record
+of that run itself. The Plan content changes only per the
+[Changes to the Plan confirmed by the user](#changes-to-the-plan-confirmed-by-the-user)
+section; do not edit the Plan to legitimize a direction the agent changed on its
+own.
 
 ```markdown
 ## Implementation Record
 - status: awaiting_confirmation | implemented | blocked | failed
-- updated_at: "<ISO-8601 với +07:00>"
-- changed_paths: <đường dẫn tương đối hoặc []>
-- role_work: <vai-trò=trạng thái/bằng chứng, kèm lệnh và phạm vi test theo FUT nếu có; ...>
-- execution_mode: <agent riêng theo vai trò | tự thực hiện lần lượt, kèm lý do không giao được; kèm mức độc lập thực tế của từng vai trò theo nguyên tắc giao việc của AGENTS.md: nguồn đã đọc ngoài lời giao, người phản biện ngoài đội vai trò đã hỏi>
-- checkpoint_evidence: <checkpoint, bằng chứng và đầu vào tiếp tục; hoặc N/A>
-- quality_gate_results: <QG-01=PASS|FAIL|BLOCKED theo kết luận của vai trò kiểm chứng; ...>
-- quality_gate_evidence: <từng QG -> vai trò kiểm chứng, file/symbol, đường đã lần, phản ví dụ và kết luận>
-- layout_verification: <N/A khi diff không đổi giao diện; hoặc trạng thái đã chụp, ngôn ngữ, khổ màn hình, nền dùng để so (commit nền và thay đổi chưa commit đã tính), số ảnh, kiểm đạt/không đạt (mỗi kiểm không đạt kèm nguyên nhân theo router) và thư mục .tmp/layout-snapshots/...>
-- repair_closure_evidence: <từng mục report -> REQ/QG, nguyên nhân, giải pháp/disposition và bằng chứng trước/sau phù hợp; hoặc đúng N/A cho lượt đầu>
-- root_cause_revalidation: <ITEM-ID=confirmed|contradicted|blocked/bằng chứng trước sửa; hoặc đúng N/A cho lượt đầu>
-- review_item_disposition: <FIND-01=resolved|failed|blocked/bằng chứng; RISK-01=deferred/chủ xử lý và điều kiện xem lại; BLOCK-01=unblocked|blocked|escalated/bằng chứng; hoặc đúng N/A cho lượt đầu>
-- plan_amendments: <từng chỗ sửa Plan theo mục "Thay đổi so với Plan do người dùng xác nhận": dòng Plan, giá trị cũ -> mới, người dùng xác nhận gì và lúc nào; hoặc đúng N/A>
-- role_challenge_results: <vai-trò=PASS|FAIL|BLOCKED/tuyên bố, phản biện và bằng chứng; ...>
-- residual_risk: <rủi ro còn lại và tác động; hoặc none>
-- review_handoff: <file Plan, đối tượng triển khai, report nguồn nếu có>
-- role_selection_source: plan | <đường dẫn report nguồn tương đối>
-- effective_implementation_roles: <danh sách vai trò đúng thứ tự, phân cách bằng dấu phẩy>
-- Next allowed owner/layer: <chủ xử lý/layer>
-- Authorization condition: <đầu vào hoặc quyết định cho bước tiếp theo>
-1. <hành động cụ thể và đường dẫn liên quan>
+- updated_at: "<ISO-8601 with +07:00>"
+- changed_paths: <relative paths or []>
+- role_work: <role=status/evidence, with commands and test scope under FUT if any; ...>
+- execution_mode: <separate agent per role | self-performed in turn, with the reason delegation was not possible; with each role's actual level of independence per the assignment principles in AGENTS.md: sources read beyond the assignment, reviewers outside the role team consulted>
+- checkpoint_evidence: <checkpoint, evidence and input to continue; or N/A>
+- quality_gate_results: <QG-01=PASS|FAIL|BLOCKED per the verification role's conclusion; ...>
+- quality_gate_evidence: <each QG -> verification role, file/symbol, path traced, counterexample and conclusion>
+- layout_verification: <N/A when the diff does not change the UI; or states captured, languages, viewports, the base used for comparison (base commit and uncommitted changes counted), number of screenshots, checks passed/failed (each failed check with its cause per the router) and the .tmp/layout-snapshots/... directory>
+- repair_closure_evidence: <each report item -> REQ/QG, cause, solution/disposition and matching before/after evidence; or exactly N/A for the first run>
+- root_cause_revalidation: <ITEM-ID=confirmed|contradicted|blocked/evidence before the fix; or exactly N/A for the first run>
+- review_item_disposition: <FIND-01=resolved|failed|blocked/evidence; RISK-01=deferred/owner and revisit condition; BLOCK-01=unblocked|blocked|escalated/evidence; or exactly N/A for the first run>
+- plan_amendments: <each Plan edit per the "Changes to the Plan confirmed by the user" section: Plan line, old -> new value, what the user confirmed and when; or exactly N/A>
+- role_challenge_results: <role=PASS|FAIL|BLOCKED/claim, challenge and evidence; ...>
+- residual_risk: <remaining risk and impact; or none>
+- review_handoff: <Plan file, implementation target, source report if any>
+- role_selection_source: plan | <relative path of the source report>
+- effective_implementation_roles: <list of roles in order, comma-separated>
+- Next allowed owner/layer: <owner/layer>
+- Authorization condition: <input or decision for the next step>
+1. <concrete action and related paths>
 ```
 
-Validator đọc nguyên văn hai trường `status` và `updated_at`: ghi đúng mẫu,
-không bọc backtick, không thêm dấu chấm cuối; các trường còn lại là văn bản
-tự do. Sau khi ghi Implementation Record, chạy
-`python -B .agents/llm-docs/evals/validate_layer_artifact.py --kind plan --path <file Plan>`
-và sửa lỗi trước khi bàn giao.
+The validator reads the two fields `status` and `updated_at` verbatim: write
+them exactly as in the template, without backticks or a trailing period; the
+other fields are free text. After writing the Implementation Record, run
+`python -B .agents/llm-docs/evals/validate_layer_artifact.py --kind plan --path <Plan file>`
+and fix errors before handoff.
 
-`role_work` và `role_challenge_results` bao phủ mỗi vai trò triển khai/sửa rồi
-mỗi vai trò kiểm chứng đúng một lần, đúng thứ tự; `effective_implementation_roles`
-chỉ gồm đội triển khai/sửa. `changed_paths` nằm trong đường dẫn Plan cho phép;
-file Plan đang ghi kết quả là ngoại lệ ghi sổ. Cập nhật nhất quán theo mục
-quét ảnh hưởng là ngoại lệ thứ hai: liệt kê riêng trong `changed_paths` kèm
-lý do đồng bộ, và ghi rõ trong `role_work` đã quét những gì để người đọc biết
-phần nào được kiểm tra. `root_cause_revalidation` và `review_item_disposition`
-luôn có mặt: lượt đầu ghi `N/A`, lượt sửa bao phủ mọi mục report theo thứ tự.
-`plan_amendments` cũng luôn có mặt, ghi `N/A` khi không sửa Plan. Khi lượt sửa
-đính chính một ghi nhận của Implementation Record trước, `repair_closure_evidence`
-theo [mục Snapshot chung và hồ sơ cũ](layered-task-execution.instructions.md#snapshot-chung-và-hồ-sơ-cũ)
-của router: nêu nguồn gắn thời điểm cho thấy ghi nhận sai lúc được ghi; không có
-nguồn đó thì ghi chỗ lệch giữa record và source là thay đổi chưa có record,
-không tuyên bố ghi nhận cũ sai.
-Report nguồn phải cùng Plan/task và dùng `pirl-review/v1`.
+`role_work` and `role_challenge_results` cover each implementation/repair role,
+then each verification role, exactly once and in order; `effective_implementation_roles`
+contains only the implementation/repair team. `changed_paths` stays within the
+paths the Plan allows; the Plan file receiving the results is the bookkeeping
+exception. Consistency updates from the impact sweep are the second exception:
+list them separately in `changed_paths` with the sync reason, and state in
+`role_work` what was swept so readers know which parts were checked.
+`root_cause_revalidation` and `review_item_disposition` are always present: the
+first run writes `N/A`, a repair run covers every report item in order.
+`plan_amendments` is also always present, with `N/A` when the Plan was not
+edited. When a repair run corrects a statement of an earlier Implementation
+Record, `repair_closure_evidence` follows the
+[Shared snapshots and older records section](layered-task-execution.instructions.md#shared-snapshots-and-older-records)
+of the router: state the time-stamped source showing the statement was wrong
+when written; without such a source, record the mismatch between the record and
+the source as a change without a record, and do not claim the old statement was
+wrong.
+The source report must be for the same Plan/task and use `pirl-review/v1`.
 
-## Kết thúc và bàn giao
+## Finishing and handoff
 
-Người điều phối và mọi vai trò thực hiện
-[dọn tài nguyên tạm](layered-task-execution.instructions.md#dọn-tài-nguyên-tạm-trước-bàn-giao)
-sau lần kiểm chứng, ghi kết quả và tự đánh giá cuối, rồi kiểm lại trước bàn
-giao. Không nhận lượt Implement hoàn tất hoặc để Review dọn thay; áp dụng cả khi
-kết quả là failed/blocked, giữ source và bằng chứng chính thức theo hợp đồng
-chung.
+The coordinator and every role carry out the
+[temporary-resource cleanup](layered-task-execution.instructions.md#cleaning-up-temporary-resources-before-handoff)
+after the final verification, recording and self-evaluation, then check again
+before handoff. Do not declare the Implement run complete or leave the cleanup
+to Review; this applies even when the result is failed/blocked, keeping the
+source and the official evidence under the shared contract.
 
-Chỉ ghi `implemented` khi yêu cầu và trách nhiệm vai trò đạt, vai trò kiểm chứng
-kết luận mọi QG `PASS`, tự phản biện không còn nghi vấn mở và, khi diff đổi
-giao diện, `layout_verification` có lần chụp đạt mọi kiểm, trừ kiểm không đạt
-mà Plan đã loại trừ theo
-[router](layered-task-execution.instructions.md#kiểm-chứng-layout-bằng-mock).
-Lượt sửa còn phải giải quyết FIND, ghi disposition cho mọi mục và gỡ các
-blocker cần thiết. Không nhận đã sửa một finding mà nguyên nhân bị bác bỏ.
-`failed` phản ánh tiêu chí bị vi phạm hoặc phần phải làm chưa đạt;
-`blocked` phản ánh đầu vào/điều kiện bên ngoài còn thiếu.
-`awaiting_confirmation` chỉ dùng ở checkpoint thật sự có trong Plan.
-QG chưa đủ bằng chứng ghi `BLOCKED`, không tự nhận PASS.
+Record `implemented` only when the requirements and role responsibilities are
+met, the verification roles conclude every QG `PASS`, self-challenge has no
+open doubts and, when the diff changes the UI, `layout_verification` has a
+capture run that passes every check, except failed checks the Plan excluded per
+the [router](layered-task-execution.instructions.md#layout-verification-with-mocks).
+A repair run must also resolve the FINDs, record a disposition for every item
+and clear the necessary blockers. Do not claim a finding fixed when its cause
+was refuted.
+`failed` reflects a violated criterion or required work not achieved;
+`blocked` reflects missing external input/conditions.
+`awaiting_confirmation` is used only at a checkpoint that really exists in the Plan.
+A QG without enough evidence is recorded `BLOCKED`; do not claim PASS.
 
-Báo kết quả, bằng chứng có tính quyết định, phần chưa hoàn tất, liên kết
-Plan và kết quả tự cải tiến theo mục báo cáo của router. Bàn giao source đã
-triển khai, đúng Plan và report nguồn cho Review hoặc chủ gỡ chặn; chỉ rõ điều
-kiện tiếp tục. Kết thúc lượt được giao, không tự mở Review, chọn task kế tiếp
-hoặc xin lại quyền cho việc đã được giao.
+Report the result, the decisive evidence, what is incomplete, the Plan link and
+the self-improvement result per the router's reporting section. Hand off the
+implemented source, the exact Plan and the source report to Review or to the
+owner who can unblock; state the conditions to continue. Finish the assigned
+run; do not open Review, pick the next task or ask again for permission for
+work already assigned.

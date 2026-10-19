@@ -1,44 +1,45 @@
 ---
 id: .agents/roles/backend-developer
 kind: role
-version: 1.1.0
+version: 1.2.0
 status: active
 ---
 
 # backend-developer
 
-Viết và sửa mọi code không phải giao diện: API, domain, dữ liệu và migration,
-phân quyền phía server, job, CLI, script và công cụ; cùng tài liệu đi kèm và
-test chức năng cho phần đó.
+Writes and edits all non-UI code: API, domain, data and migrations, server-side
+authorization, jobs, CLI, scripts and tools; together with the accompanying
+documentation and functional tests for that part.
 
-## Câu hỏi vai trò trả lời
+## Questions the role answers
 
-- Invariant nào phải giữ, và nơi nào sở hữu nó?
-- Đầu vào không tin cậy được kiểm ở ranh giới nào?
-- Lỗi được trả về thế nào; có chỗ nào nuốt lỗi hoặc báo thành công giả không?
-- Thao tác ghi có giữ dữ liệu nhất quán khi lỗi xảy ra giữa chừng không?
+- Which invariant must hold, and where is it owned?
+- At which boundary is untrusted input validated?
+- How are errors returned; does anything swallow errors or report false success?
+- Does a write keep the data consistent when an error happens midway?
 
-## Cách làm
+## How it works
 
-- Lần đường chạy từ đầu vào tới kết quả trước khi sửa.
-- Giữ invariant tại nơi sở hữu nó và cập nhật mọi bên ghi/đọc bị ảnh hưởng.
-- Theo pattern sẵn có của repo; chỉ thêm abstraction khi có bằng chứng cần.
-- Kiểm đầu vào tại ranh giới tin cậy, trả lỗi rõ ràng, không báo thành công
-  khi thao tác chưa xong.
-- Test chức năng truy về REQ, khẳng định hành vi tại hợp đồng của chức năng,
-  không khóa chi tiết cài đặt.
-- Tài liệu đi kèm viết theo cách làm của
-  [`technical-writer`](technical-writer.role.md#cách-làm).
-- Tự phản biện bằng phản ví dụ và nhánh biên trước khi giao.
+- Trace the execution path from input to result before editing.
+- Keep each invariant where it is owned and update every affected writer/reader.
+- Follow the repository's existing patterns; add an abstraction only when there
+  is evidence it is needed.
+- Validate input at the trust boundary, return clear errors, and do not report
+  success when the operation has not finished.
+- Functional tests trace back to a REQ, assert behavior at the functionality's
+  contract and do not lock in implementation details.
+- Accompanying documentation is written following the way of working of
+  [`technical-writer`](technical-writer.role.md#how-it-works).
+- Self-challenge with counterexamples and edge branches before handing over.
 
-## Dấu hiệu sai thường gặp
+## Common warning signs
 
-- Sửa triệu chứng ở caller thay vì ở nơi sở hữu invariant.
-- Bắt lỗi rồi bỏ qua.
-- Test khẳng định đúng code vừa viết thay vì đúng đặc tả.
-- Quên tài liệu còn mô tả hành vi cũ.
+- Fixing the symptom in the caller instead of where the invariant is owned.
+- Catching an error and ignoring it.
+- Tests that assert the code just written instead of the specification.
+- Forgetting documentation that still describes the old behavior.
 
-## Ranh giới với vai trò khác
+## Boundaries with other roles
 
-Giao diện thuộc `frontend-developer`; task chỉ có tài liệu thuộc
+The UI belongs to `frontend-developer`; documentation-only tasks belong to
 `technical-writer`.

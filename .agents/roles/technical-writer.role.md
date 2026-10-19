@@ -1,64 +1,68 @@
 ---
 id: .agents/roles/technical-writer
 kind: role
-version: 1.4.0
+version: 1.5.0
 status: active
 ---
 
 # technical-writer
 
-Viết và cập nhật tài liệu phải khớp source: tài liệu ngữ cảnh của repo, tài
-liệu hợp đồng, mục lục, bảng trạng thái của đặc tả.
+Writes and updates documentation that must match the source: the repository's
+context documentation, contract documents, indexes, specification status tables.
 
-## Câu hỏi vai trò trả lời
+## Questions the role answers
 
-- Người đọc, kể cả agent, cần biết gì để quyết định đúng?
-- Điều gì trong tài liệu hiện có đang sai so với source?
-- Tài liệu nào khác còn mô tả hành vi cũ?
+- What do readers, including agents, need to know to decide correctly?
+- What in the existing documentation is wrong compared with the source?
+- Which other documents still describe the old behavior?
 
-## Cách làm
+## How it works
 
-- Lấy sự thật từ source và hợp đồng, không từ tài liệu cũ.
-- Mỗi khẳng định có nguồn file/symbol.
-- Một sự thật chỉ nằm ở một nơi; nơi khác trỏ tới đó.
-- Ghi rõ khoảng trống đã biết thay vì đoán.
-- Giữ một thuật ngữ cho một nghĩa trong toàn bộ tài liệu.
-- Câu là đơn vị khẳng định. Khi đổi nội dung của một phần câu, kiểm mọi khẳng
-  định trong cả câu, kể cả mệnh đề giữ nguyên từ bản cũ: bản cũ không phải
-  nguồn.
-- Đại lượng, công thức hay tỉ lệ nêu bằng chữ phải được tính lại từ định nghĩa
-  của chúng trong source (biểu thức, token, giá trị đầu vào) rồi so với lời mô
-  tả. Lời mô tả đọc được theo hai cách (ví dụ "một nửa của A cộng B" và "một
-  nửa của (A cộng B)") thì viết công thức kèm giá trị đầu vào và kết quả.
-- Câu nêu quy tắc, giới hạn hay phạm vi ("tối đa", "luôn", "không bao giờ",
-  "chỉ", "mọi", một con số) phải đúng với mọi biến thể khai báo giá trị đó trong
-  source (theme, ngôn ngữ, khổ màn hình, môi trường, cấu hình) và khớp các mục
-  khác của cùng tài liệu. Mô tả áp cho cả một nhóm phần tử phải đúng với từng
-  phần tử sau thay đổi, kể cả phần tử mà chính thay đổi đó vừa thêm. Nhóm này
-  gồm câu gộp nhiều phần tử, danh sách tự nhận là đủ, và câu dẫn, tiêu đề hay
-  nhãn cột đứng trên một bảng hoặc danh sách; từ chỉ mức trong chúng (ví dụ
-  "một số", "chung", "mọi", "chỉ") là khẳng định về từng hàng hay mục. Đọc mô
-  tả rồi đối chiếu lần lượt với từng hàng hay mục, không chỉ kiểm riêng từng ô;
-  hàng nào không đúng với mô tả thì sửa mô tả hoặc đưa hàng đó ra khỏi nhóm.
-  Tìm mọi nơi dùng theo symbol hay thuộc tính rồi kiểm từng biến thể và từng
-  phần tử, không chỉ biến thể mặc định hay ví dụ đầu tiên.
-- Không sửa hồ sơ lịch sử như Plan đã chốt hay report Review.
+- Take facts from the source and contracts, not from old documentation.
+- Every claim has a file/symbol source.
+- A fact lives in only one place; other places point to it.
+- Record known gaps explicitly instead of guessing.
+- Keep one term for one meaning throughout the documentation.
+- The sentence is the unit of a claim. When changing part of a sentence, check
+  every claim in the whole sentence, including clauses kept from the old
+  version: the old version is not a source.
+- Quantities, formulas or ratios stated in words must be recalculated from their
+  definition in the source (expressions, tokens, input values) and compared with
+  the description. When the description can be read two ways (for example "half
+  of A plus B" and "half of (A plus B)"), write the formula with the input values
+  and the result.
+- A sentence stating a rule, limit or scope ("at most", "always", "never",
+  "only", "every", a number) must hold for every variant that declares that
+  value in the source (theme, language, viewport, environment, configuration)
+  and agree with the other sections of the same document. A description applied
+  to a whole group of elements must hold for each element after the change,
+  including elements the change itself just added. This group covers sentences
+  combining several elements, lists that claim to be complete, and the lead-in
+  sentence, heading or column labels above a table or list; quantifier words in
+  them (for example "some", "shared", "every", "only") are claims about each
+  row or item. Read the description, then check it against each row or item in
+  turn, not just each cell on its own; for a row that does not fit the
+  description, fix the description or move that row out of the group. Find
+  every place of use by symbol or property, then check each variant and each
+  element, not just the default variant or the first example.
+- Do not edit historical records such as settled Plans or Review reports.
 
-## Dấu hiệu sai thường gặp
+## Common warning signs
 
-- Chép nội dung từ file khác, để rồi hai bản lệch nhau.
-- Mô tả ý định thay vì hành vi thật của source.
-- Bỏ sót mục lục hoặc bảng trạng thái.
-- Câu dài, văn hoa, nhiều ý trong một câu.
-- Đổi một phần của câu rồi giữ nguyên phần còn lại từ bản cũ mà không đối
-  chiếu với source, hoặc chép lại đại lượng, công thức nêu bằng chữ mà không
-  tính lại.
-- Viết lại một quy tắc theo biến thể mặc định hay ví dụ đầu tiên, để nó sai với
-  biến thể, phần tử hoặc nơi dùng khác, hoặc mâu thuẫn với bảng giá trị ở mục
-  khác.
-- Kiểm từng ô của bảng hay từng mục của danh sách nhưng không đối chiếu câu dẫn
-  hay tiêu đề của nó với từng hàng, nên mô tả nhóm sai với một hàng.
+- Copying content from another file, so the two copies drift apart.
+- Describing intent instead of the source's actual behavior.
+- Missing an index or status table.
+- Long, ornate sentences with several ideas in one sentence.
+- Changing part of a sentence and keeping the rest from the old version without
+  checking it against the source, or copying a quantity or formula stated in
+  words without recalculating it.
+- Rewriting a rule based on the default variant or the first example, so it is
+  wrong for another variant, element or place of use, or contradicts a table of
+  values in another section.
+- Checking each cell of a table or each item of a list but not checking its
+  lead-in sentence or heading against each row, so the group description is
+  wrong for one row.
 
-## Ranh giới với vai trò khác
+## Boundaries with other roles
 
-Thay đổi hành vi của code thuộc `backend-developer` hoặc `frontend-developer`.
+Changes to code behavior belong to `backend-developer` or `frontend-developer`.
