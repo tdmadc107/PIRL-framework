@@ -157,6 +157,35 @@ class LayerRecordTests(unittest.TestCase):
         self.assertEqual(found[0]["fixes"][0]["id"], "FIX-01")
         self.assertEqual(len(self.run_tool("query", "--layer", "review", "--task", "T01")[1]), 1)
 
+    def test_check_resolves_references_by_time_not_by_layer_folder(self):
+        _, first = self.append(IMPLEMENT)
+        review = {
+            **copy.deepcopy(IMPLEMENT),
+            "layer": "review",
+            "task": {"plan_set": "dang-nhap_20261014-090000", "task_ids": ["T01"],
+                     "report_file": self.report.relative_to(self.root).as_posix()},
+            "outcome": {"status": "completed", "verdict": "FAIL", "summary": "FIND-01 hết hạn OTP"},
+            "roles": [{"role": "code-reviewer", "mode": "agent", "assignment": "Phản biện diff", "result": "PASS"}],
+            "evaluates": first["record_id"],
+        }
+        review["issues"][0].update(role="code-reviewer", record=first["record_id"], cause="execution")
+        _, judged = self.append(review)
+        # The review folder sorts after the implement folder, yet this later implement record names the review's fix.
+        repeat = copy.deepcopy(IMPLEMENT)
+        repeat["issues"][0].update(cause="ineffective_fix", prior_fix=f"{judged['record_id']}#FIX-01")
+        code, second = self.append(repeat)
+        self.assertEqual(code, 0, second)
+        self.assertEqual(self.run_tool("check")[0], 0)
+        # A reference to a record written later than the referrer is still an error.
+        path = self.root / judged["path"]
+        text = path.read_text(encoding="utf-8")
+        later = text.replace('"recorded_at":"20', '"recorded_at":"29', 1)
+        self.assertNotEqual(later, text)
+        path.write_text(later, encoding="utf-8")
+        code, result = self.run_tool("check")
+        self.assertNotEqual(code, 0)
+        self.assertTrue(any("prior_fix" in error for error in result["errors"]), result)
+
     def test_check_reads_stored_v1_lines_and_reports_corruption(self):
         self.assertEqual(self.append(IMPLEMENT)[0], 0)
         self.assertEqual(self.run_tool("check")[0], 0)

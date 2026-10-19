@@ -36,7 +36,7 @@ MODES = ("agent", "self")
 RESULTS = ("PASS", "FAIL", "BLOCKED")
 CAUSES = ("instruction", "ineffective_fix", "input", "execution")
 PENDING_REASONS = ("mode_self", "safety")
-FRAMEWORK_PATHS = ("AGENTS.md", ".agents/instructions", ".agents/roles", ".agents/llm-docs", ".repos/manifest.yaml")
+FRAMEWORK_PATHS = ("AGENTS.md", "CONTEXT.md", ".agents/instructions", ".agents/roles", ".agents/llm-docs", ".repos/manifest.yaml")
 TZ = timezone(timedelta(hours=7))
 KEBAB = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 TASK = re.compile(r"T\d{2,}")
@@ -107,7 +107,7 @@ def _relative(value: Any, label: str, errors: list[str]) -> str:
 
 
 def validate_record(record: dict[str, Any], others: list[dict[str, Any]], root: Path, catalog: dict[str, set[str]]) -> list[str]:
-    """Check one record against the v1 contract; `others` are the records stored before it."""
+    """Check one record against the v1 contract; `others` are the records written at or before it."""
 
     errors: list[str] = []
     if record.get("schema") not in READABLE_SCHEMAS:
@@ -335,14 +335,16 @@ def append(root: Path, data: dict[str, Any]) -> dict[str, Any]:
 def check(root: Path) -> list[str]:
     stored, errors = read_records(root)
     catalog = load_roles(root)
-    seen: list[dict[str, Any]] = []
+    located = [(record.pop("_location"), record) for record in stored]
     ids: set[Any] = set()
-    for record in stored:
-        location = record.pop("_location")
+    for location, record in located:
         if record.get("record_id") in ids:
             errors.append(f"{location}: duplicate record_id {record.get('record_id')}")
-        errors.extend(f"{location}: {error}" for error in validate_record(record, seen, root, catalog))
-        seen.append(record)
+        # Layer folders sort by name, not by time, so "stored before" is judged by `recorded_at` (same instant allowed):
+        # a record may name any record written at or before its own time, whichever layer folder holds it.
+        stamp = str(record.get("recorded_at") or "")
+        earlier = [other for _, other in located if other is not record and str(other.get("recorded_at") or "") <= stamp]
+        errors.extend(f"{location}: {error}" for error in validate_record(record, earlier, root, catalog))
         ids.add(record.get("record_id"))
     return errors
 

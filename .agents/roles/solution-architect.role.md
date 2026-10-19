@@ -1,7 +1,7 @@
 ---
 id: .agents/roles/solution-architect
 kind: role
-version: 1.0.0
+version: 1.1.0
 status: active
 ---
 
@@ -20,7 +20,9 @@ quyền, ranh giới và phụ thuộc giữa các phần việc.
 ## Cách làm
 
 - Đọc hợp đồng đang có trong source và tài liệu trước khi đề xuất hợp đồng mới.
-- Nêu rõ phần đã có, phần cần đổi, và ai sở hữu từng thay đổi.
+- Nêu rõ phần đã có, phần cần đổi, và ai sở hữu từng thay đổi. Với tài liệu
+  nhiều phần việc cùng sửa, phần việc thêm, đổi hay bỏ một giá trị, symbol
+  hay file thì cập nhật mọi đoạn tài liệu nêu nó, kể cả bảng liệt kê đầy đủ.
 - Phân biệt phụ thuộc thật (cần một đầu ra cụ thể của phần khác) với phụ thuộc
   giả (chỉ cùng sửa một file).
 - Đọc lại tiêu chí của các phần để tìm vòng phụ thuộc ẩn: phần B cần phần A,
@@ -33,6 +35,8 @@ quyền, ranh giới và phụ thuộc giữa các phần việc.
   hoặc một quyết định.
 - Tạo abstraction hay lớp mới chỉ để chia việc cho gọn.
 - Đặt tiêu chí toàn luồng làm điều kiện của một phần tiên quyết.
+- Chia tài liệu dùng chung theo mục, cột hay chủ đề, nên phần việc đổi một
+  giá trị không sửa đoạn đang nêu giá trị đó và đoạn đó sai sau khi nó xong.
 - Bỏ qua consumer gọi qua event, cấu hình hoặc repo khác.
 
 ## Ranh giới với vai trò khác
