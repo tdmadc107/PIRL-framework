@@ -1,11 +1,11 @@
 ---
 name: "Layered Task Execution Instructions"
-description: "Định tuyến Plan, Implement, Review, quy định ranh giới giữa các layer và các hợp đồng chung: kiểm chứng bằng lập luận, kiểm chứng layout, tự đánh giá và cải tiến, dọn tài nguyên tạm."
+description: "Định tuyến Plan, Implement, Review, quy định ranh giới giữa các layer và các hợp đồng chung: kiểm chứng bằng lập luận, kiểm chứng layout, snapshot chung và hồ sơ cũ, tự đánh giá và cải tiến, dọn tài nguyên tạm."
 applyTo: ".repos/**/*,.agents/instructions/**/*,.agents/plan/**/*,.agents/review/**/*"
 metadata:
   id: ".agents/instructions/layered-task-execution"
   kind: "instruction"
-  version: "1.1.1"
+  version: "1.6.3"
   status: "active"
 ---
 
@@ -31,12 +31,26 @@ không là đầu vào bàn giao; không tự tạo migration hoặc reader cho 
 
 1. Suy mục tiêu từ lời người dùng và ngữ cảnh đã rõ, không từ từ khóa. Khi
    người dùng chỉ định vai trò, giữ danh sách và thứ tự; không hỏi lại phần đã có.
-2. Khảo sát nguồn để giải quyết thông tin có thể tìm được. Chỉ hỏi quyết định
-   còn thiếu làm khác kết quả, phạm vi hoặc quyền thực hiện; dừng phần phụ
-   thuộc quyết định đó, tiếp tục phần độc lập đã đủ căn cứ.
+2. Khảo sát nguồn để giải quyết thông tin có thể tìm được, kể cả điều người
+   dùng đã nói: quyết định họ đã đưa ra (xác nhận, giao quyền chọn, từ chối)
+   nằm trong Plan, Implementation Record, record và report; lịch sử phiên của
+   host chỉ là nguồn dự phòng khi host có lưu. Chỉ hỏi quyết định còn thiếu làm
+   khác kết quả, phạm vi hoặc quyền thực hiện, và không hỏi lại điều đã có câu
+   trả lời; dừng phần phụ thuộc quyết định đó, tiếp tục phần độc lập đã đủ căn
+   cứ. Lượt làm theo câu trả lời của người dùng trích câu đó trong đầu ra của
+   mình (`summary` của record, Implementation Record) để lượt sau tìm được mà
+   không cần lịch sử phiên.
 3. Nếu chỉ được hỏi giải thích hoặc khảo sát, trả kết luận đúng phạm vi; không
    tự biến câu hỏi thành gói bàn giao. Khi yêu cầu là delivery sản phẩm, chọn
    đúng layer dưới đây; không tự chuyển layer chỉ vì đã xong phần hiện tại.
+4. Layer chỉ mở khi lời của chính người dùng đòi việc mà layer đó làm ra (lập
+   Plan, triển khai một Plan, review). Câu đồng ý, chọn hoặc xác nhận trả lời
+   câu hỏi do Agent viết chỉ mở layer mà lời người dùng nêu, hoặc layer mà câu
+   hỏi hỏi riêng một mình (một điểm xác nhận hỏi một quyết định, và điểm mở
+   layer nêu một layer). Đề xuất nhiều layer được đồng ý là chốt hướng làm:
+   layer chỉ xuất hiện trong chữ của Agent không được mở, và nếu lời người dùng
+   không nêu layer nào thì hỏi lại một câu về layer đầu. Xong layer được yêu
+   cầu thì dừng và hỏi riêng về layer kế tiếp.
 
 Không cần slash command, activation token hoặc từ khóa chính xác.
 “Lập Plan cho yêu cầu này” là layer Plan; “Triển khai Plan T01” là layer
@@ -77,22 +91,34 @@ chứng không thay kết luận của Review.
 
 ## Bảo trì framework
 
-Yêu cầu sửa trực tiếp `AGENTS.md`, instruction, rule, `.repos/manifest.yaml` hoặc
-công cụ trong `.agents/llm-docs/evals/` và `.tools/` là bảo trì framework theo
-phạm vi người dùng giao. Không ép tạo Plan hay report sản phẩm trước khi sửa.
+Yêu cầu sửa trực tiếp `AGENTS.md`, `CONTEXT.md`, instruction, rule,
+`.repos/manifest.yaml` hoặc công cụ trong `.agents/llm-docs/evals/` và `.tools/`
+là bảo trì framework theo phạm vi người dùng giao. Không ép tạo Plan hay report sản phẩm trước khi sửa.
 Cải tiến do `process-auditor` áp dụng trong một lượt layer theo
 [mục Tự đánh giá và cải tiến](#tự-đánh-giá-và-cải-tiến) cũng là bảo trì framework,
 được chính mục đó cho phép mà không cần yêu cầu riêng.
 
 - Bắt đầu từ quyết định sai hoặc thiếu, rồi xác định file sở hữu: `AGENTS.md`
-  cho cấu trúc, vai trò và định tuyến; router cho ranh giới layer và hợp đồng
-  chung; layer cho trình tự và đầu ra; rule cho ràng buộc dùng lại. Đọc các
+  cho cấu trúc, vai trò và định tuyến; `CONTEXT.md` cho cách trình bày phản
+  hồi gửi người dùng; router cho ranh giới layer và hợp đồng chung; layer cho
+  trình tự và đầu ra; rule cho ràng buộc dùng lại. Đọc các
   file tham chiếu tới quy tắc trước khi thay, để file khác không khôi phục
   hành vi cũ.
+- Viết quy tắc ở dạng chung của framework, dùng lại được cho mọi repo, host và
+  tình huống cùng loại: điều kiện nêu theo loại tình huống, hành động nêu theo
+  vai trò và đầu ra, không theo một sự kiện đã xảy ra. Nội dung của `AGENTS.md`,
+  `CONTEXT.md`, instruction, file vai trò, rule và công cụ không chứa chi tiết riêng của một
+  lần chạy hay một dự án làm điều kiện hoặc căn cứ: tên repo hay sản phẩm,
+  đường dẫn trong repo sản phẩm, token hay giá trị cụ thể, ID task hay record,
+  ngày, lời trích người dùng, tên host hay công cụ cụ thể. Ví dụ minh họa, nếu
+  cần, ghi rõ là ví dụ và không thành điều kiện. Kiến thức riêng của một repo
+  nằm trong `context_docs` của repo đó; quyết định và bằng chứng của một lượt
+  nằm trong Plan, Implementation Record, report và record.
 - Sửa bằng điều kiện và hành động đủ cụ thể; thay đoạn sai thay vì chồng thêm
-  lời nhắc. Đọc lại bằng tình huống gây lỗi và một tình huống gần giống mà quy
-  tắc không được áp dụng. Không thêm test, validator hay schema để thay cho
-  cải thiện nội dung.
+  lời nhắc. Đọc lại bằng ba tình huống: tình huống gây lỗi, một tình huống gần
+  giống mà quy tắc không được áp dụng, và một tình huống cùng loại ở repo hoặc
+  host khác; quy tắc phải áp dụng được cho tình huống thứ ba mà không cần sửa.
+  Không thêm test, validator hay schema để thay cho cải thiện nội dung.
 - Sau khi sửa, chạy lệnh kiểm tra tương ứng ở mục
   [Kiểm tra framework](../../AGENTS.md#kiểm-tra-framework) của `AGENTS.md`.
   Kiểm tra chỉ xác nhận cấu trúc, không chứng minh chất lượng câu chữ.
@@ -102,7 +128,8 @@ Cải tiến do `process-auditor` áp dụng trong một lượt layer theo
 Framework không chọn hoặc yêu cầu provider, model, reasoning effort hay host.
 Không suy từ công cụ thiếu hoặc test bị skip ra yêu cầu cài runtime hay hỗ trợ
 hệ điều hành mới. Chỉ điều kiện cần cho kết quả đã được giao mới có thể chặn
-phần đó. Một vai trò không cần agent riêng để được thực hiện; xem
+phần đó. Host không có cơ chế tạo agent không chặn việc: người điều phối thực
+hiện vai trò kèm lý do, theo
 [nguyên tắc giao việc](../../AGENTS.md#vai-trò-ai-agent).
 
 ## Kiểm chứng bằng lập luận
@@ -130,12 +157,33 @@ repository, CI, report cũ hay từ lần chạy test theo FUT, không là basel
 bằng chứng PASS/FAIL của QG: test đỏ phải được giải thích bằng source, test
 xanh chỉ chứng minh case đã chạy.
 
+Nguồn bằng chứng của QG, áp dụng cho mọi vai trò ở cả ba layer:
+
+- Được dùng: nội dung file, diff, lịch sử git, kết quả tìm kiếm trên source và
+  tài liệu; với QG về giao diện, thêm ảnh và số đo của
+  [kiểm chứng layout bằng mock](#kiểm-chứng-layout-bằng-mock) (hộp bao, kiểu
+  tính toán, kích thước vùng cuộn của phần tử đã render ở từng trạng thái).
+- Không là bằng chứng, dù chạy trong hay ngoài repo: script, harness hay đầu dò
+  viết ra để kiểm chứng (so hàng loạt giá trị, đếm điểm ảnh khác nhau giữa hai
+  ảnh, tính toán thay người đọc); dùng
+  trình duyệt hay runtime để ép nhánh logic, giả lập tính năng, đo thời gian
+  hay kiểm việc gỡ listener; build, typecheck, lint và công cụ phân tích tĩnh
+  khác; kết quả test. Kết quả test theo FUT được nêu cạnh lập luận, không
+  thành dòng bằng chứng của QG.
+- Phép tính cần cho lập luận (tỉ số, đổi đơn vị, công thức) ghi kèm công thức
+  và giá trị đầu vào lấy từ source, để người đọc tự kiểm lại được.
+
+Theo từng layer:
+
 - Plan không tạo task, bước, REQ, QG hay đường dẫn được phép sửa cho việc của
   giai đoạn người dùng; test chỉ được giao theo FUT. Nếu đặc tả có mục tiêu
   thuộc giai đoạn đó, ghi một dòng rằng nó thuộc giai đoạn build/test/release
-  của người dùng.
-- Implement không build, không chạy ứng dụng để nghiệm thu; chỉ viết, cập nhật
-  và chạy test theo FUT, và khi diff đổi giao diện thì kiểm chứng layout bằng
+  của người dùng. Vai trò lập Plan khảo sát bằng đọc source, tài liệu, lịch sử
+  git và hồ sơ đã có; không dựng harness hay công cụ đo, không chạy ứng dụng
+  hay trình duyệt, trừ khi người dùng yêu cầu điều tra nguyên nhân gốc rễ (đoạn
+  dưới).
+- Implement không build, typecheck, lint, không chạy ứng dụng để nghiệm thu;
+  chỉ viết, cập nhật và chạy test theo FUT, và khi diff đổi giao diện thì kiểm chứng layout bằng
   mock theo mục dưới. Không ghi việc của giai đoạn người dùng là
   `BLOCKED` hay rủi ro còn lại của task; chỉ liệt kê ngắn những gì chuyển sang
   giai đoạn đó.
@@ -189,36 +237,107 @@ chỉ làm khi người dùng yêu cầu.
   và khổ điện thoại mà tài liệu ngữ cảnh của repo (`context_docs` trong
   `.repos/manifest.yaml`) quy định. Tài liệu chưa quy định thì lấy ngôn ngữ từ
   cấu hình i18n và khổ màn hình từ breakpoint CSS của repo, và ghi rõ bộ
-  khổ/ngôn ngữ đã dùng. Kiểm thêm điều ảnh không cho thấy: văn bản đúng ngôn
-  ngữ, thành phần nằm trong khung nhìn, không cuộn ngang, focus và phím Esc
-  khi hộp chồng lên nhau, trang cuộn được sau khi đóng. Cách này dành cho giao
-  diện web phục vụ qua dev server; giao diện khác (extension, ứng dụng native)
-  thì phần layout `BLOCKED` kèm chủ xử lý, không tự chế phương tiện. Công cụ
-  và đường dẫn runtime thuộc ghi chú của repo, không thuộc framework.
+  khổ/ngôn ngữ đã dùng. Khi diff đổi kích thước hoặc số phần tử trong một hàng
+  hay khung có bề rộng ràng buộc (thanh điều hướng, thanh công cụ, hàng thẻ),
+  thêm khổ ở hai phía của mọi ngưỡng breakpoint tác động tới hàng hay khung đó
+  (theo tài liệu ngữ cảnh hoặc CSS), và đo hộp bao của khung cùng từng phần tử
+  con trong trình duyệt: phần tử con nằm trong khung và không chồng nhau, so
+  với cùng số đo ở trạng thái chưa có diff; ảnh ở khổ chính không đủ để kết
+  luận điều đó. Kiểm thêm
+  điều ảnh không cho thấy: văn bản đúng ngôn ngữ, thành phần nằm trong khung
+  nhìn, không cuộn ngang, focus và phím Esc khi hộp chồng lên nhau, trang cuộn
+  được sau khi đóng. Cách này dành cho giao diện web phục vụ qua dev server;
+  giao diện khác (extension, ứng dụng native) thì phần layout `BLOCKED` kèm
+  chủ xử lý, không tự chế phương tiện. Công cụ, cách dựng server ổn định và
+  trở ngại môi trường đã biết thuộc mục ghi chú công cụ trong tài liệu ngữ
+  cảnh của repo ([AGENTS.md](../../AGENTS.md#định-tuyến-repo)), không thuộc
+  framework.
+- **Trạng thái chưa có diff:** là lần chụp sau diff của task đứng trước trong
+  cùng gói, khi lần đó đã chụp đúng màn hình và khổ cần so. Nếu không có, dựng
+  và chụp riêng nguồn ngay trước thay đổi của task: commit nền cộng mọi thay
+  đổi chưa commit không thuộc task (của lượt khác, đã ghi hồ sơ hay chưa). Cây
+  làm việc không có thay đổi chưa commit như vậy thì xuất commit nền vào thư
+  mục tạm của lượt (ví dụ `git archive <revision>` vào `.tmp/`); có thì xuất
+  commit không đủ, nên sao nguyên vẹn cây làm việc (trừ `.git`) vào thư mục tạm
+  trước khi task sửa, hoặc xuất commit nền rồi áp lại đúng các thay đổi đó.
+  Không dùng stash, checkout hay reset trên repo đang làm việc
+  ([quy tắc an toàn](../llm-docs/rules/core-agent.rule.md#safety)). Ghi trong
+  `layout_verification` commit nền và các thay đổi chưa commit đã tính vào nền;
+  Plan không mô tả cách dựng nền này.
 - **Lưu ở đâu:** script mock, ảnh và bảng kết quả trong
   `.tmp/layout-snapshots/<plan-set>/<task-id>/<YYYYMMDD-HHmmss>/` ở gốc Hub
   (bị Git ignore). Mỗi lần chạy một thư mục mới; không xóa hay ghi đè lần
   chạy trước. Thư mục này là đầu ra bàn giao được giữ lại; máy chủ phát
   triển, trình duyệt và profile tạm vẫn dừng hoặc xóa theo mục dọn tài nguyên.
-- **Vai trò bằng chứng:** ảnh và kết quả kiểm là bằng chứng bắt buộc cho phần
-  layout, đi cùng chứ không thay lập luận QG trên source. Phép chạy này không
-  mở rộng sang build, typecheck, test ngoài FUT, backend thật, thiết bị thật
-  hay phát hành; các việc đó vẫn thuộc giai đoạn người dùng. Vai trò kiểm
-  chứng xem ảnh như nguồn khi kết luận QG về giao diện, không tự chạy. Mỗi kiểm
+- **Vai trò bằng chứng:** ảnh và số đo của các kiểm ở mục Làm gì là bằng chứng
+  bắt buộc cho phần layout, đi cùng chứ không thay lập luận QG trên source.
+  Phép chạy này không mở rộng sang build, typecheck, test ngoài FUT, backend
+  thật, thiết bị thật hay phát hành; các việc đó vẫn thuộc giai đoạn người
+  dùng. Vai trò kiểm chứng xem ảnh như nguồn khi kết luận QG về giao diện,
+  không tự chạy. Mỗi kiểm
   không đạt được so với cùng kịch bản ở trạng thái chưa có diff (màn hình hay
   route không bị đổi); chỉ lỗi do diff gây ra mới là FAIL. Layout sai do diff
   (tràn, che, sai ngôn ngữ, thiếu trạng thái) là FAIL trả `frontend-developer`,
   cùng giới hạn hai lần sửa của Implement; lỗi có từ trước ghi vào nơi dự án
-  lưu khoảng trống đã biết và vào tóm tắt, không chặn task. Không có engine
+  lưu khoảng trống đã biết và vào tóm tắt, không chặn task. Kiểm không đạt do
+  diff mà Plan đã loại trừ khỏi phạm vi bằng một REQ nêu đúng hành vi đó và dải
+  khổ, kèm mục khoảng trống đã biết, không là FAIL của task nhưng vẫn là kiểm
+  không đạt: `layout_verification` liệt kê nó cùng REQ và nguyên nhân (do diff),
+  `residual_risk` nêu tác động; Plan không loại trừ thì là FAIL. Không có engine
   trình duyệt dùng được thì phần layout `BLOCKED` kèm chủ xử lý. Diff đổi giao
   diện chưa có kết quả này thì task chưa được ghi `implemented`.
+- **Khác biệt ngoài các kiểm:** khác biệt giữa nền và sau diff mà hộp bao, kiểu
+  tính toán và vùng cuộn đều không đổi (ví dụ vài điểm ảnh khác nhau, chiều cao
+  trang đổi theo lần tải) không phải layout sai do diff. Chụp lặp lại trạng thái
+  nền để biết độ biến thiên của chính nó, ghi mọi giá trị đã thấy vào tóm tắt
+  rồi dừng. Tìm nguyên nhân của khác biệt đó hoặc của lỗi có từ trước, và đo
+  thêm một hành vi mà các kiểm không đòi (ví dụ ẩn một phần tử rồi đo lại, ép
+  đổi khổ lúc trạng thái đang mở, dựng script dò riêng), là điều tra nguyên
+  nhân gốc rễ, chỉ chạy khi người dùng yêu cầu
+  ([Kiểm chứng bằng lập luận](#kiểm-chứng-bằng-lập-luận)); hành vi thiếu xử lý
+  thấy được từ source thì ghi bằng lập luận trên source. Số đếm điểm ảnh và
+  kết quả lặp nền, nếu có, ghi tách khỏi các kiểm và đánh dấu không là bằng
+  chứng QG.
 - **Ghi lại:** tóm tắt trong trường `layout_verification` của Implementation
-  Record: trạng thái đã chụp, ngôn ngữ, khổ màn hình, số ảnh, kiểm đạt/không
-  đạt và đường dẫn thư mục. `.tmp/` không đi theo commit nên tóm tắt là bằng
+  Record: trạng thái đã chụp, ngôn ngữ, khổ màn hình (kể cả khổ sát ngưỡng đã
+  đo), nền dùng để so (commit và thay đổi chưa commit đã tính), số ảnh, kiểm
+  đạt/không đạt (mỗi kiểm không đạt kèm nguyên nhân: có từ trước, hoặc do diff
+  và REQ của Plan loại trừ nó) và đường dẫn thư
+  mục. `.tmp/` không đi theo commit nên tóm tắt là bằng
   chứng, đường dẫn chỉ để tra cứu.
 - **Review:** đọc tóm tắt và ảnh của Implement, không tự chạy lại. Diff đổi
   giao diện mà Record thiếu kết quả này, hoặc ảnh cho thấy layout vi phạm QG,
   là FIND `repair` cho `frontend-developer`.
+
+## Snapshot chung và hồ sơ cũ
+
+Áp dụng cho mọi layer khi kết luận về source, tài liệu hay một hồ sơ cũ
+(Implementation Record, report, record). Tách ba điều: source hiện tại, điều hồ
+sơ ghi, và thay đổi nằm giữa hai mốc đó.
+
+- Source hiện tại khác điều một hồ sơ cũ ghi chỉ chứng minh source đã đổi sau
+  hồ sơ đó, không chứng minh hồ sơ sai lúc được ghi. Chỉ coi hồ sơ là sai khi
+  có nguồn gắn thời điểm (lần chụp, diff, commit, số đo) cho thấy điều ghi sai
+  ngay lúc ghi; nếu không, ghi chỗ lệch là thay đổi xảy ra sau hồ sơ đó.
+- Thay đổi trong snapshot mà không Implementation Record nào của gói ghi
+  (không nằm trong `changed_paths` của task nào) là thay đổi chưa có chủ. Nêu
+  nó trong đầu ra của lượt kèm đường dẫn và tác động lên kết luận; không gán
+  cho task hay vai trò nào, không dùng làm căn cứ lỗi của vai trò. Người dùng
+  giao một lượt Implement hoặc task độc lập để ghi nó.
+- Khi nhiều task của một gói nằm chung một snapshot (cùng commit hoặc cùng bộ
+  thay đổi chưa tách được theo task), quy một chỗ lệch (QG vỡ, câu tài liệu
+  sai, giá trị không khớp) cho task đã làm nó sai, theo thứ tự chạy: dựng
+  trạng thái sau từng task từ revision nền, REQ và `changed_paths` của task đó.
+  Điều còn đúng khi một task hoàn tất và chỉ sai sau thay đổi thuộc REQ của
+  task chạy sau là chỗ lệch của task sau, kể cả khi task trước đã viết hay
+  đồng bộ nó. Phạm vi viết lại cả một file không làm task đó sở hữu mọi câu
+  của file sau khi task khác đổi điều câu mô tả. Khi source, diff và hồ sơ
+  không đủ tách thứ tự, ghi kết luận là suy luận kèm căn cứ.
+
+Review áp dụng các quy tắc này để kết luận QG và quy lỗi cho vai trò Implement
+theo [mục Đầu vào và quyền](review.instructions.md#đầu-vào-và-quyền); Implement
+áp dụng quy tắc đầu khi đính chính hồ sơ cũ, theo
+[mục Ghi kết quả](implement.instructions.md#ghi-kết-quả).
 
 ## Tự đánh giá và cải tiến
 
@@ -238,8 +357,10 @@ bị chặn. Task độc lập và bảo trì framework không áp dụng mục 
   nhất kết quả). Ở Review, `process-auditor` còn đánh giá lại các vai trò của
   lượt Implement được review theo
   [mục Evaluations](review.instructions.md#evaluations-đánh-giá-vai-trò-implement).
-- Giao `process-auditor` cho agent riêng khi host cho phép và ghi `mode: agent`.
-  Không giao được thì người điều phối tự đánh giá và ghi `mode: self`.
+- Giao `process-auditor` cho agent riêng theo
+  [nguyên tắc giao việc](../../AGENTS.md#vai-trò-ai-agent) và ghi `mode: agent`.
+  Chỉ khi host không có công cụ tạo sub-agent hoặc lời gọi thất bại, người điều
+  phối mới tự đánh giá, ghi `mode: self` và nêu lý do đó trong `summary`.
 
 ### Lỗi và nguyên nhân
 
@@ -263,18 +384,20 @@ Lỗi đầu ra (source sản phẩm, Plan, report) còn được trả về vai
 sửa trong lượt, theo hợp đồng và giới hạn của layer (ví dụ giới hạn hai lần sửa
 của Implement). `process-auditor` chỉ sửa file framework.
 
-### Cải tiến triệt để khi `mode: agent`
+### Cải tiến triệt để
 
-Mỗi lỗi phải có cải tiến được áp dụng ngay trong lượt. Không có vùng cấm và
-không chờ đề xuất:
+Áp dụng ở `mode: agent`, và ở `mode: self` theo mục
+[Tự đánh giá khi `mode: self`](#tự-đánh-giá-khi-mode-self). Mỗi lỗi phải có cải
+tiến được áp dụng ngay trong lượt. Không có vùng cấm và không chờ đề xuất:
 
 1. Sửa mọi nơi sở hữu nguyên nhân: file layer, file vai trò, `AGENTS.md`,
    router, rule, công cụ framework cùng test của nó, `context_docs`, manifest.
 2. Quét toàn framework tìm chỗ còn mô tả hành vi cũ và sửa trong cùng lượt.
-3. Thay đoạn sai bằng điều kiện và hành động cụ thể, không chồng thêm lời nhắc.
+3. Thay đoạn sai bằng điều kiện và hành động cụ thể, không chồng thêm lời nhắc,
+   viết ở dạng chung theo [mục Bảo trì framework](#bảo-trì-framework).
 4. Tăng `version` của file có version.
-5. Đọc lại phần đã sửa với tình huống gây lỗi và một tình huống gần giống mà quy
-   tắc mới không được áp dụng.
+5. Đọc lại phần đã sửa với ba tình huống của
+   [mục Bảo trì framework](#bảo-trì-framework).
 6. Chạy các lệnh ở [Kiểm tra framework](../../AGENTS.md#kiểm-tra-framework)
    tương ứng với phần đã sửa.
 
@@ -285,11 +408,25 @@ với lý do `safety` và hỏi người dùng.
 
 ### Tự đánh giá khi `mode: self`
 
-Không sửa file framework. Mọi cải tiến ghi `pending_user` với lý do `mode_self`.
-Phản hồi cuối có mục "Tự đánh giá cần bạn quyết định": mỗi mục nêu lỗi, nguyên
-nhân, quy tắc, thay đổi cụ thể sẽ áp dụng và bằng chứng. Người dùng chọn áp
-dụng, bỏ qua, hoặc đánh giá lại bằng agent riêng. Lượt thực hiện lựa chọn đó ghi
-record mới có `supersedes` trỏ tới record cũ.
+Chính lượt tự đánh giá không sửa file framework: mọi cải tiến trong record của
+nó ghi `pending_user` với lý do `mode_self`, và công cụ từ chối `applied` ở
+`mode: self`. Cải tiến không đụng quy tắc an toàn không cần người dùng xác nhận
+([AGENTS.md](../../AGENTS.md#luồng-làm-việc)), nên trong cùng lượt
+người điều phối áp dụng từng cải tiến không đụng quy tắc an toàn như bảo trì
+framework do người dùng chỉ định, theo sáu bước của mục
+[Cải tiến triệt để](#cải-tiến-triệt-để). Sau đó ghi record mới có `supersedes`
+trỏ tới record tự đánh giá, `issues` và `fixes` rỗng, `summary` nêu từng
+`issue_key`, file và mục đã sửa, version cũ → mới, lệnh kiểm tra đã chạy và dẫn
+quyền ở `AGENTS.md`. Phản hồi cuối báo ở mục "Tự cải tiến", không hỏi.
+
+Cải tiến đụng quy tắc an toàn (làm lỏng, thu hẹp, bỏ hoặc lách) không áp dụng:
+record ghi `pending_user` với lý do `safety`; phản hồi cuối nêu lỗi, nguyên nhân,
+quy tắc, thay đổi cụ thể và bằng chứng của cải tiến đó trong mục "Tự cải tiến",
+và quyết định của người dùng (áp dụng, bỏ qua, hoặc đánh giá lại bằng agent
+riêng) là một điểm trong "Cần xác nhận"
+([CONTEXT.md](../../CONTEXT.md#5-khối-kết-thúc-cần-xác-nhận-và-đề-xuất)); không
+mở mục riêng nào khác cho quyết định đó. Lượt thực hiện lựa chọn đó ghi record
+mới có `supersedes` trỏ tới record cũ.
 
 ### Record
 
@@ -321,8 +458,10 @@ Mỗi lỗi phải nằm trong ít nhất một cải tiến.
 
 Phản hồi cuối của lượt có mục "Tự cải tiến": `record_id`, rồi với mỗi cải tiến
 đã áp dụng nêu lỗi, nguyên nhân, file và mục đã sửa, version cũ → mới, tóm tắt
-thay đổi; hoặc một câu "không phát hiện lỗi". Cải tiến chờ người dùng đi trong
-mục "Tự đánh giá cần bạn quyết định".
+thay đổi; hoặc một câu "không phát hiện lỗi". Ở `mode: self`, `record_id` là
+record bảo trì thay thế record tự đánh giá. Cải tiến chờ người dùng vì lý do
+`safety` được mô tả trong mục "Tự cải tiến", và quyết định về nó là một điểm
+của "Cần xác nhận" theo [mục Tự đánh giá khi `mode: self`](#tự-đánh-giá-khi-mode-self).
 
 ## Dọn tài nguyên tạm trước bàn giao
 

@@ -1,7 +1,7 @@
 ---
 id: .agents/llm-docs/rules/core-agent
 kind: rule
-version: 5.3.0
+version: 5.4.2
 status: active
 ---
 
@@ -21,7 +21,7 @@ status: active
 
 ### Safety rules and self-improvement
 
-Safety rules are: every rule in this Safety section; the "Git và submodule" section of `AGENTS.md`; and any rule anywhere in the framework that limits commit, push, deploy, secrets or destructive and externally consequential actions, or that requires the user's decision or authorization. The self-improvement guards of the router are safety rules too: the mode-self guard (a self-evaluation never edits framework files and hands its findings to the user) and the never-loosen rule below, including this definition.
+Safety rules are: every rule in this Safety section; the "Git và submodule" section of `AGENTS.md`; and any rule anywhere in the framework that limits commit, push, deploy, secrets or destructive and externally consequential actions, or that requires the user's decision or authorization. The self-improvement guards of the router are safety rules too: the mode-self guard (a self-evaluation record never applies fixes itself; improvements that touch no safety rule are applied in the same turn as user-directed maintenance under the standing authorization in `AGENTS.md`, section "Luồng làm việc", and everything else goes to the user) and the never-loosen rule below, including this definition. That authorization covers improvements that touch no safety rule and nothing else.
 
 Code and tests that enforce a safety rule are part of that rule: for example, the check in `.agents/llm-docs/evals/layer_record.py` that rejects applied fixes from a self-evaluation, together with its tests.
 
@@ -48,5 +48,7 @@ Support important claims with at least one of:
 When recording evidence:
 
 - Distinguish observed fact, inference, assumption, and proposal.
+- A claim that something is absent, always or never true, or differs from its source is observed fact only after everything that could contradict it has been read: every measured value, and for styles every rule that can reach the element (component, global, inherited, shared tokens). Otherwise it is an inference; say what was not read. Whoever carries a finding into a record, report or reply to the user first checks it against that evidence, or labels it unchecked and names what was not read.
+- Back every claim about what the user said, was asked, answered, confirmed or delegated with a source: their message, a Plan, a record or a report. When none is found, write that it was not asked or not found; never fill the gap from assumption or from the user's silence.
 - Record the exact command, working directory, status, and relevant output for verification claims.
 - Treat failed or unavailable evidence honestly; include the blocker and next falsification step.

@@ -1,7 +1,7 @@
 ---
 id: .agents/roles/frontend-developer
 kind: role
-version: 1.0.0
+version: 1.2.0
 status: active
 ---
 
@@ -25,8 +25,14 @@ năng, và mock để chụp layout.
   đường thành công.
 - Không viết cứng chuỗi giao diện; thêm đủ bản dịch cho mọi ngôn ngữ.
 - Giới hạn style trong phạm vi component, tránh selector toàn cục.
+- Khi kết luận một phần tử có hay không có một kiểu (gạch chân, nền, con trỏ),
+  đọc đủ mọi tầng tác động lên nó: luật của component, luật toàn cục theo thẻ
+  hoặc theo vắng thuộc tính, kế thừa, token dùng chung. Markup của phần tử
+  (có class hay không) quyết định luật nào khớp.
 - Khi chụp layout: trả mọi lời gọi API bằng mock trong trình duyệt, dẫn tới từng
   trạng thái, chụp mỗi trạng thái theo mọi ngôn ngữ và khổ màn hình.
+- Tài liệu đi kèm viết theo cách làm của
+  [`technical-writer`](technical-writer.role.md#cách-làm).
 - Tự phản biện bằng phản ví dụ và nhánh biên trước khi giao.
 
 ## Dấu hiệu sai thường gặp
@@ -35,6 +41,8 @@ năng, và mock để chụp layout.
 - Chuỗi chỉ có một ngôn ngữ.
 - Style rò ra ngoài phạm vi thay đổi.
 - Bộ ảnh layout thiếu trạng thái lỗi hoặc lỗi ô nhập.
+- Kết luận một phần tử không có kiểu nào đó, hay tài liệu lệch source, chỉ vì
+  đọc file style của component mà bỏ sót luật toàn cục hoặc kế thừa.
 
 ## Ranh giới với vai trò khác
 
