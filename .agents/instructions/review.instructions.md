@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/review.instructions.md"
 metadata:
   id: ".agents/instructions/review"
   kind: "instruction"
-  version: "1.3.0"
+  version: "1.3.1"
   status: "active"
 ---
 
@@ -42,7 +42,8 @@ vai trò tìm một lỗi.
   phiếu. Giao từng vai trò trong `review_roles` theo
   [nguyên tắc giao việc](../../AGENTS.md#vai-trò-ai-agent). Report ghi cách
   thực hiện của từng vai trò (agent riêng, hoặc tự thực hiện kèm lý do) và mức
-  độc lập thực tế khi một vai trò đã đọc bản nháp hay kết luận của lượt.
+  độc lập thực tế khi một vai trò đã đọc bản nháp hay kết luận của lượt hoặc đã
+  hỏi người phản biện ngoài đội vai trò.
 - Với từng record Implement, phân một chủ đánh giá và đối chiếu chéo khi có
   nghi vấn.
 

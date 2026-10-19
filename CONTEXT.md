@@ -121,11 +121,29 @@ thúc câu trả lời bằng hai mục có tên cố định, theo thứ tự:
 
 - **Cần xác nhận**: đánh số. Mỗi điểm là một câu hỏi người dùng trả lời ngắn
   được (có/không hoặc chọn một phương án), kèm lựa chọn khuyến nghị và hậu quả
-  nếu chưa trả lời (việc nào bị dừng).
+  nếu chưa trả lời (việc nào bị dừng). Một điểm hỏi một quyết định; điểm hỏi có
+  mở layer chỉ nêu một layer
+  ([điều kiện mở layer](.agents/instructions/layered-task-execution.instructions.md#chọn-layer)).
 - **Đề xuất**: đánh số. Mỗi điểm là một việc chưa làm, kèm lợi ích trong một
   câu. Không lặp lại điểm đã có trong "Cần xác nhận".
 
 Mục nào trống thì bỏ mục đó. Không có điểm nào thì không viết khối này.
+
+Tên và vị trí của khối:
+
+- Mỗi tên "Cần xác nhận" và "Đề xuất" đặt cho đúng một khối, một lần trong một
+  câu trả lời, ở khối kết thúc và đặt cuối cùng. Không dùng hai tên này làm
+  tiêu đề, nhãn hay chữ đầu của mục nào khác, kể cả để gọi lại điểm người dùng
+  đã trả lời. Câu trong nội dung vẫn được nhắc tên khối để trỏ tới điểm của nó
+  (mục 4.2).
+- Chỉ điểm còn chờ người dùng mới vào "Cần xác nhận". Điểm người dùng đã trả lời
+  trong phiên là việc đã quyết: báo kết quả thực hiện dưới một tên nêu nội dung
+  (ví dụ "Kết quả"), gọi điểm bằng nội dung của nó, không bằng số thứ tự trong
+  tin nhắn của người dùng.
+- Số thứ tự của khối đánh từ 1 và chỉ thuộc khối này. Quyết định mà quy tắc khác
+  yêu cầu hỏi người dùng cũng là một điểm của khối này: điểm chỉ nêu câu hỏi và
+  trỏ tới mục chứa chi tiết theo tên mục; chi tiết nằm ở mục do file sở hữu nội
+  dung đó quy định, không có mục riêng nào khác chứa quyết định chờ người dùng.
 
 ## 6. Định dạng
 
@@ -141,6 +159,12 @@ Mục nào trống thì bỏ mục đó. Không có điểm nào thì không vi�
 - Câu đầu tiên đã trả lời đúng câu hỏi chưa?
 - Có câu nào bỏ đi mà người dùng không mất thông tin không? Có thì bỏ.
 - Có đại từ, tên tự đặt hoặc thuật ngữ đổi nghĩa không?
+- Người đọc không theo dõi phiên có biết mỗi mục giờ ra sao (đã xong, còn mở,
+  chờ ai) mà không cần tra mã hay đường dẫn không?
 - Có kết luận nào nước đôi theo định nghĩa ở mục 3 không?
 - Điều đã kiểm chứng, suy luận, giả định và đề xuất đã tách rõ chưa?
 - Điểm cần người dùng quyết định đã nằm trong "Cần xác nhận" chưa?
+- Tên "Cần xác nhận" hoặc "Đề xuất" có đặt cho quá một khối, hoặc cho khối
+  không nằm cuối câu trả lời không?
+- Có điểm nào trong "Cần xác nhận" mà người dùng đã trả lời trong phiên không?
+  Có thì chuyển sang báo kết quả.

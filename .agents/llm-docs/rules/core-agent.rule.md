@@ -1,7 +1,7 @@
 ---
 id: .agents/llm-docs/rules/core-agent
 kind: rule
-version: 5.4.1
+version: 5.4.2
 status: active
 ---
 
@@ -48,6 +48,7 @@ Support important claims with at least one of:
 When recording evidence:
 
 - Distinguish observed fact, inference, assumption, and proposal.
+- A claim that something is absent, always or never true, or differs from its source is observed fact only after everything that could contradict it has been read: every measured value, and for styles every rule that can reach the element (component, global, inherited, shared tokens). Otherwise it is an inference; say what was not read. Whoever carries a finding into a record, report or reply to the user first checks it against that evidence, or labels it unchecked and names what was not read.
 - Back every claim about what the user said, was asked, answered, confirmed or delegated with a source: their message, a Plan, a record or a report. When none is found, write that it was not asked or not found; never fill the gap from assumption or from the user's silence.
 - Record the exact command, working directory, status, and relevant output for verification claims.
 - Treat failed or unavailable evidence honestly; include the blocker and next falsification step.

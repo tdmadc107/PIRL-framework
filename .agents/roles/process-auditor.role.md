@@ -1,7 +1,7 @@
 ---
 id: .agents/roles/process-auditor
 kind: role
-version: 1.1.0
+version: 1.2.0
 status: active
 ---
 
@@ -43,6 +43,9 @@ status: active
 - Viết quy tắc gắn với một repo, host, giá trị, ngày hay lời trích của một lần
   chạy, nên không dùng lại được ở dự án khác.
 - Đặt `issue_key` mới cho một lỗi cũ.
+- Chép vào báo cáo của mình điều một vai trò hay hồ sơ nêu về lệch hoặc thiếu
+  (ví dụ tài liệu lệch source) mà chưa tự đối chiếu với nguồn, hoặc chưa ghi
+  rõ là chưa kiểm.
 - Làm lỏng quy tắc an toàn để gỡ một lần bị chặn.
 
 ## Ranh giới với vai trò khác

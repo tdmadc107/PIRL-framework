@@ -5,7 +5,7 @@ applyTo: ".repos/**/*,.agents/instructions/**/*,.agents/plan/**/*,.agents/review
 metadata:
   id: ".agents/instructions/layered-task-execution"
   kind: "instruction"
-  version: "1.5.1"
+  version: "1.6.3"
   status: "active"
 ---
 
@@ -43,6 +43,14 @@ không là đầu vào bàn giao; không tự tạo migration hoặc reader cho 
 3. Nếu chỉ được hỏi giải thích hoặc khảo sát, trả kết luận đúng phạm vi; không
    tự biến câu hỏi thành gói bàn giao. Khi yêu cầu là delivery sản phẩm, chọn
    đúng layer dưới đây; không tự chuyển layer chỉ vì đã xong phần hiện tại.
+4. Layer chỉ mở khi lời của chính người dùng đòi việc mà layer đó làm ra (lập
+   Plan, triển khai một Plan, review). Câu đồng ý, chọn hoặc xác nhận trả lời
+   câu hỏi do Agent viết chỉ mở layer mà lời người dùng nêu, hoặc layer mà câu
+   hỏi hỏi riêng một mình (một điểm xác nhận hỏi một quyết định, và điểm mở
+   layer nêu một layer). Đề xuất nhiều layer được đồng ý là chốt hướng làm:
+   layer chỉ xuất hiện trong chữ của Agent không được mở, và nếu lời người dùng
+   không nêu layer nào thì hỏi lại một câu về layer đầu. Xong layer được yêu
+   cầu thì dừng và hỏi riêng về layer kế tiếp.
 
 Không cần slash command, activation token hoặc từ khóa chính xác.
 “Lập Plan cho yêu cầu này” là layer Plan; “Triển khai Plan T01” là layer
@@ -154,9 +162,10 @@ Nguồn bằng chứng của QG, áp dụng cho mọi vai trò ở cả ba layer
 - Được dùng: nội dung file, diff, lịch sử git, kết quả tìm kiếm trên source và
   tài liệu; với QG về giao diện, thêm ảnh và số đo của
   [kiểm chứng layout bằng mock](#kiểm-chứng-layout-bằng-mock) (hộp bao, kiểu
-  tính toán của phần tử đã render ở từng trạng thái).
+  tính toán, kích thước vùng cuộn của phần tử đã render ở từng trạng thái).
 - Không là bằng chứng, dù chạy trong hay ngoài repo: script, harness hay đầu dò
-  viết ra để kiểm chứng (so hàng loạt giá trị, tính toán thay người đọc); dùng
+  viết ra để kiểm chứng (so hàng loạt giá trị, đếm điểm ảnh khác nhau giữa hai
+  ảnh, tính toán thay người đọc); dùng
   trình duyệt hay runtime để ép nhánh logic, giả lập tính năng, đo thời gian
   hay kiểm việc gỡ listener; build, typecheck, lint và công cụ phân tích tĩnh
   khác; kết quả test. Kết quả test theo FUT được nêu cạnh lập luận, không
@@ -169,7 +178,10 @@ Theo từng layer:
 - Plan không tạo task, bước, REQ, QG hay đường dẫn được phép sửa cho việc của
   giai đoạn người dùng; test chỉ được giao theo FUT. Nếu đặc tả có mục tiêu
   thuộc giai đoạn đó, ghi một dòng rằng nó thuộc giai đoạn build/test/release
-  của người dùng.
+  của người dùng. Vai trò lập Plan khảo sát bằng đọc source, tài liệu, lịch sử
+  git và hồ sơ đã có; không dựng harness hay công cụ đo, không chạy ứng dụng
+  hay trình duyệt, trừ khi người dùng yêu cầu điều tra nguyên nhân gốc rễ (đoạn
+  dưới).
 - Implement không build, typecheck, lint, không chạy ứng dụng để nghiệm thu;
   chỉ viết, cập nhật và chạy test theo FUT, và khi diff đổi giao diện thì kiểm chứng layout bằng
   mock theo mục dưới. Không ghi việc của giai đoạn người dùng là
@@ -241,32 +253,56 @@ chỉ làm khi người dùng yêu cầu.
   cảnh của repo ([AGENTS.md](../../AGENTS.md#định-tuyến-repo)), không thuộc
   framework.
 - **Trạng thái chưa có diff:** là lần chụp sau diff của task đứng trước trong
-  cùng gói, khi lần đó đã chụp đúng màn hình và khổ cần so. Nếu không có, xuất
-  bản nguyên vẹn của revision nền vào thư mục tạm của lượt (ví dụ
-  `git archive <revision>` vào `.tmp/`), dựng và chụp riêng. Không dùng stash,
-  checkout hay reset trên repo đang làm việc
-  ([quy tắc an toàn](../llm-docs/rules/core-agent.rule.md#safety)). Ghi
-  revision nền trong `layout_verification`.
+  cùng gói, khi lần đó đã chụp đúng màn hình và khổ cần so. Nếu không có, dựng
+  và chụp riêng nguồn ngay trước thay đổi của task: commit nền cộng mọi thay
+  đổi chưa commit không thuộc task (của lượt khác, đã ghi hồ sơ hay chưa). Cây
+  làm việc không có thay đổi chưa commit như vậy thì xuất commit nền vào thư
+  mục tạm của lượt (ví dụ `git archive <revision>` vào `.tmp/`); có thì xuất
+  commit không đủ, nên sao nguyên vẹn cây làm việc (trừ `.git`) vào thư mục tạm
+  trước khi task sửa, hoặc xuất commit nền rồi áp lại đúng các thay đổi đó.
+  Không dùng stash, checkout hay reset trên repo đang làm việc
+  ([quy tắc an toàn](../llm-docs/rules/core-agent.rule.md#safety)). Ghi trong
+  `layout_verification` commit nền và các thay đổi chưa commit đã tính vào nền;
+  Plan không mô tả cách dựng nền này.
 - **Lưu ở đâu:** script mock, ảnh và bảng kết quả trong
   `.tmp/layout-snapshots/<plan-set>/<task-id>/<YYYYMMDD-HHmmss>/` ở gốc Hub
   (bị Git ignore). Mỗi lần chạy một thư mục mới; không xóa hay ghi đè lần
   chạy trước. Thư mục này là đầu ra bàn giao được giữ lại; máy chủ phát
   triển, trình duyệt và profile tạm vẫn dừng hoặc xóa theo mục dọn tài nguyên.
-- **Vai trò bằng chứng:** ảnh và kết quả kiểm là bằng chứng bắt buộc cho phần
-  layout, đi cùng chứ không thay lập luận QG trên source. Phép chạy này không
-  mở rộng sang build, typecheck, test ngoài FUT, backend thật, thiết bị thật
-  hay phát hành; các việc đó vẫn thuộc giai đoạn người dùng. Vai trò kiểm
-  chứng xem ảnh như nguồn khi kết luận QG về giao diện, không tự chạy. Mỗi kiểm
+- **Vai trò bằng chứng:** ảnh và số đo của các kiểm ở mục Làm gì là bằng chứng
+  bắt buộc cho phần layout, đi cùng chứ không thay lập luận QG trên source.
+  Phép chạy này không mở rộng sang build, typecheck, test ngoài FUT, backend
+  thật, thiết bị thật hay phát hành; các việc đó vẫn thuộc giai đoạn người
+  dùng. Vai trò kiểm chứng xem ảnh như nguồn khi kết luận QG về giao diện,
+  không tự chạy. Mỗi kiểm
   không đạt được so với cùng kịch bản ở trạng thái chưa có diff (màn hình hay
   route không bị đổi); chỉ lỗi do diff gây ra mới là FAIL. Layout sai do diff
   (tràn, che, sai ngôn ngữ, thiếu trạng thái) là FAIL trả `frontend-developer`,
   cùng giới hạn hai lần sửa của Implement; lỗi có từ trước ghi vào nơi dự án
-  lưu khoảng trống đã biết và vào tóm tắt, không chặn task. Không có engine
+  lưu khoảng trống đã biết và vào tóm tắt, không chặn task. Kiểm không đạt do
+  diff mà Plan đã loại trừ khỏi phạm vi bằng một REQ nêu đúng hành vi đó và dải
+  khổ, kèm mục khoảng trống đã biết, không là FAIL của task nhưng vẫn là kiểm
+  không đạt: `layout_verification` liệt kê nó cùng REQ và nguyên nhân (do diff),
+  `residual_risk` nêu tác động; Plan không loại trừ thì là FAIL. Không có engine
   trình duyệt dùng được thì phần layout `BLOCKED` kèm chủ xử lý. Diff đổi giao
   diện chưa có kết quả này thì task chưa được ghi `implemented`.
+- **Khác biệt ngoài các kiểm:** khác biệt giữa nền và sau diff mà hộp bao, kiểu
+  tính toán và vùng cuộn đều không đổi (ví dụ vài điểm ảnh khác nhau, chiều cao
+  trang đổi theo lần tải) không phải layout sai do diff. Chụp lặp lại trạng thái
+  nền để biết độ biến thiên của chính nó, ghi mọi giá trị đã thấy vào tóm tắt
+  rồi dừng. Tìm nguyên nhân của khác biệt đó hoặc của lỗi có từ trước, và đo
+  thêm một hành vi mà các kiểm không đòi (ví dụ ẩn một phần tử rồi đo lại, ép
+  đổi khổ lúc trạng thái đang mở, dựng script dò riêng), là điều tra nguyên
+  nhân gốc rễ, chỉ chạy khi người dùng yêu cầu
+  ([Kiểm chứng bằng lập luận](#kiểm-chứng-bằng-lập-luận)); hành vi thiếu xử lý
+  thấy được từ source thì ghi bằng lập luận trên source. Số đếm điểm ảnh và
+  kết quả lặp nền, nếu có, ghi tách khỏi các kiểm và đánh dấu không là bằng
+  chứng QG.
 - **Ghi lại:** tóm tắt trong trường `layout_verification` của Implementation
   Record: trạng thái đã chụp, ngôn ngữ, khổ màn hình (kể cả khổ sát ngưỡng đã
-  đo), revision nền dùng để so, số ảnh, kiểm đạt/không đạt và đường dẫn thư
+  đo), nền dùng để so (commit và thay đổi chưa commit đã tính), số ảnh, kiểm
+  đạt/không đạt (mỗi kiểm không đạt kèm nguyên nhân: có từ trước, hoặc do diff
+  và REQ của Plan loại trừ nó) và đường dẫn thư
   mục. `.tmp/` không đi theo commit nên tóm tắt là bằng
   chứng, đường dẫn chỉ để tra cứu.
 - **Review:** đọc tóm tắt và ảnh của Implement, không tự chạy lại. Diff đổi
@@ -384,10 +420,13 @@ trỏ tới record tự đánh giá, `issues` và `fixes` rỗng, `summary` nêu
 quyền ở `AGENTS.md`. Phản hồi cuối báo ở mục "Tự cải tiến", không hỏi.
 
 Cải tiến đụng quy tắc an toàn (làm lỏng, thu hẹp, bỏ hoặc lách) không áp dụng:
-record ghi `pending_user` với lý do `safety`, và phản hồi cuối có mục "Tự đánh
-giá cần bạn quyết định" nêu lỗi, nguyên nhân, quy tắc, thay đổi cụ thể và bằng
-chứng. Người dùng chọn áp dụng, bỏ qua, hoặc đánh giá lại bằng agent riêng; lượt
-thực hiện lựa chọn đó ghi record mới có `supersedes` trỏ tới record cũ.
+record ghi `pending_user` với lý do `safety`; phản hồi cuối nêu lỗi, nguyên nhân,
+quy tắc, thay đổi cụ thể và bằng chứng của cải tiến đó trong mục "Tự cải tiến",
+và quyết định của người dùng (áp dụng, bỏ qua, hoặc đánh giá lại bằng agent
+riêng) là một điểm trong "Cần xác nhận"
+([CONTEXT.md](../../CONTEXT.md#5-khối-kết-thúc-cần-xác-nhận-và-đề-xuất)); không
+mở mục riêng nào khác cho quyết định đó. Lượt thực hiện lựa chọn đó ghi record
+mới có `supersedes` trỏ tới record cũ.
 
 ### Record
 
@@ -421,7 +460,8 @@ Phản hồi cuối của lượt có mục "Tự cải tiến": `record_id`, r�
 đã áp dụng nêu lỗi, nguyên nhân, file và mục đã sửa, version cũ → mới, tóm tắt
 thay đổi; hoặc một câu "không phát hiện lỗi". Ở `mode: self`, `record_id` là
 record bảo trì thay thế record tự đánh giá. Cải tiến chờ người dùng vì lý do
-`safety` đi trong mục "Tự đánh giá cần bạn quyết định".
+`safety` được mô tả trong mục "Tự cải tiến", và quyết định về nó là một điểm
+của "Cần xác nhận" theo [mục Tự đánh giá khi `mode: self`](#tự-đánh-giá-khi-mode-self).
 
 ## Dọn tài nguyên tạm trước bàn giao
 

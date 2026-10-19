@@ -55,8 +55,10 @@ Mỗi quy tắc chỉ nằm ở một nơi sở hữu; file khác trỏ tới đ
 
 # Luồng làm việc
 
-Plan → Implement → Review. Mỗi layer chỉ chạy khi người dùng yêu cầu; không
-layer nào tự mở layer kế tiếp.
+Plan → Implement → Review. Mỗi layer chỉ chạy khi chính lời người dùng yêu cầu
+layer đó, theo
+[điều kiện mở layer của router](.agents/instructions/layered-task-execution.instructions.md#chọn-layer);
+không layer nào tự mở layer kế tiếp.
 
 | Layer | Kết quả | Hợp đồng |
 | --- | --- | --- |
@@ -149,9 +151,10 @@ Nguyên tắc giao việc, áp dụng cho cả ba layer:
 - Vai trò không cần kết quả của nhau chạy song song; vai trò cần kết quả của
   vai trò khác chạy sau vai trò đó (`process-auditor` chạy sau khi đầu ra của
   layer đã chốt). Người điều phối không tự làm thay phần đã giao.
-- Khi giao, truyền file vai trò, dòng của vai trò trong bảng của file layer,
-  nguồn, ràng buộc, hướng đã chốt và phần cần xét; không giấu giải pháp, không
-  áp đặt kết luận.
+- Khi giao, truyền file vai trò, dòng của vai trò trong bảng của file layer
+  (kèm mọi dòng mà dòng đó dẫn chiếu để lấy điều kiện hoàn tất), nguồn, ràng
+  buộc, hướng đã chốt và phần cần xét; không giấu giải pháp, không áp đặt kết
+  luận.
 - Chỉ tự thực hiện (`mode: self`) khi host không có cơ chế tạo agent trong
   phiên hoặc lời gọi tạo agent thất bại. Khi đó người điều phối đảm nhận lần
   lượt từng vai trò theo thứ tự layer và ghi lý do cụ thể trong `summary` của
@@ -163,6 +166,12 @@ Nguyên tắc giao việc, áp dụng cho cả ba layer:
   điều đó, ghi mức độc lập thực tế của từng vai trò trong đầu ra. Tự kiểm tra
   được ghi đúng là tự kiểm tra; không tuyên bố đã có phản biện hay kiểm chứng
   độc lập khi chưa có.
+- Người phản biện ngoài đội vai trò của lượt (công cụ hay agent khác của host,
+  không thuộc danh mục vai trò) mà một vai trò đã hỏi lúc làm việc thuộc mức
+  độc lập thực tế của vai trò đó, kể cả khi độc lập với bản nháp đã được bảo
+  đảm. Lời giao yêu cầu vai trò báo mọi lần hỏi; người điều phối ghi từng vai
+  trò đã hỏi vào đầu ra của lượt. Ý kiến đó không là nguồn bằng chứng và không
+  thay lập luận của vai trò trên nguồn mà router cho phép.
 - Một vai trò không kiểm chứng phần chính nó làm ra.
 
 # Định tuyến repo
@@ -177,7 +186,7 @@ git submodule tại `.repos/<repo-id>` và có một mục dưới khóa `repos`
 | `stack` | Ngăn xếp chính |
 | `keywords` | Từ khóa yêu cầu dùng để chọn repo |
 | `commands` | Tên lệnh → lệnh chạy từ thư mục `path` của repo, dùng khi Plan giao test theo FUT |
-| `context_docs` | Tài liệu ngữ cảnh của repo, thường `.agents/llm-docs/repos/<repo-id>.md`: kiến trúc, quy ước, khổ màn hình, ngưỡng breakpoint và ngôn ngữ giao diện cần chụp layout, ghi chú công cụ chụp (cách dựng dev server ổn định, trở ngại môi trường đã biết), nơi ghi khoảng trống đã biết |
+| `context_docs` | Tài liệu ngữ cảnh của repo, thường `.agents/llm-docs/repos/<repo-id>.md`: kiến trúc, quy ước, khổ màn hình, ngưỡng breakpoint và ngôn ngữ giao diện cần chụp layout, ghi chú công cụ chụp (nơi có và cách cài công cụ điều khiển trình duyệt, cách khởi chạy trình duyệt mà không chạm phiên đang mở của người dùng, cách dựng dev server ổn định, trở ngại môi trường đã biết), nơi ghi khoảng trống đã biết |
 | `rules` | Rule áp dụng cho repo, thường `.agents/llm-docs/rules/<tên>.rule.md` |
 
 Đăng ký repo: thêm submodule (`git submodule add <url> .repos/<repo-id>`), thêm
