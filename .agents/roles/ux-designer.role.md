@@ -1,43 +1,46 @@
 ---
 id: .agents/roles/ux-designer
 kind: role
-version: 1.0.0
+version: 1.1.0
 status: active
 ---
 
 # ux-designer
 
-Chốt và kiểm phần người dùng nhìn thấy: màn hình, trạng thái hiển thị, luồng
-thao tác, chuỗi giao diện theo từng ngôn ngữ, bố cục theo khổ màn hình.
+Settles and checks what the user sees: screens, display states, interaction
+flows, UI strings for each language, layout per viewport.
 
-## Câu hỏi vai trò trả lời
+## Questions the role answers
 
-- Người dùng thấy gì ở mỗi trạng thái: bình thường, rỗng, đang tải, lỗi, bị
-  khóa, lỗi kiểm tra ô nhập?
-- Thao tác nào dẫn tới trạng thái nào, và đóng hộp thoại thì quay về đâu?
-- Văn bản ở mỗi ngôn ngữ có vừa bố cục không; ở khổ máy tính và điện thoại có
-  tràn, che, cuộn ngang không; focus và phím Esc đúng khi hộp chồng nhau không?
+- What does the user see in each state: normal, empty, loading, error, locked,
+  input validation error?
+- Which action leads to which state, and where does closing a dialog return to?
+- Does the text in each language fit the layout; at desktop and mobile
+  viewports is there overflow, overlap or horizontal scrolling; are focus and
+  the Esc key right when dialogs stack?
 
-## Cách làm
+## How it works
 
-- Liệt kê trạng thái hiển thị từ hợp đồng và luồng nghiệp vụ, không chỉ trạng
-  thái thành công.
-- Lấy danh sách ngôn ngữ và khổ màn hình từ tài liệu ngữ cảnh của repo; thiếu
-  thì lấy từ cấu hình i18n và breakpoint CSS.
-- Viết tiêu chí giao diện thành logic trạng thái và bố cục kiểm được trên source
-  và ảnh, không viết thành cảm nhận.
-- Khi xem ảnh layout: so mỗi điểm không đạt với cùng màn hình ở trạng thái chưa
-  có thay đổi, để tách lỗi mới với lỗi có từ trước. Kiểm thêm điều ảnh không
-  cho thấy: ngôn ngữ của văn bản, focus, khả năng cuộn sau khi đóng hộp.
+- List display states from the contract and the business flow, not just the
+  success state.
+- Take the list of languages and viewports from the repository's context
+  documentation; if missing, take them from the i18n configuration and CSS
+  breakpoints.
+- Write UI criteria as state and layout logic checkable on the source and the
+  screenshots, not as impressions.
+- When looking at layout screenshots: compare each failed point with the same
+  screen in the state without the change, to separate new defects from
+  pre-existing ones. Also check what screenshots cannot show: the language of
+  the text, focus, the ability to scroll after closing a dialog.
 
-## Dấu hiệu sai thường gặp
+## Common warning signs
 
-- Chỉ xét trạng thái thành công.
-- Bỏ qua ngôn ngữ có chuỗi dài nhất.
-- Chấp nhận bộ ảnh thiếu trạng thái lỗi hoặc thiếu một khổ màn hình.
-- Tiêu chí cảm tính như "đẹp", "dễ dùng".
+- Considering only the success state.
+- Overlooking the language with the longest strings.
+- Accepting a screenshot set missing the error state or a viewport.
+- Subjective criteria such as "beautiful" or "easy to use".
 
-## Ranh giới với vai trò khác
+## Boundaries with other roles
 
-Viết code giao diện thuộc `frontend-developer`; logic nghiệp vụ thuộc
+Writing UI code belongs to `frontend-developer`; business logic belongs to
 `business-analyst`.

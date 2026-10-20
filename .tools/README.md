@@ -1,140 +1,155 @@
-# Công cụ cục bộ của Hub PIRL
+# PIRL Hub local tools
 
 ## dashboard
 
-Dashboard terminal kiểu "mission control" để theo dõi đồng thời:
+A "mission control" terminal dashboard that monitors, all at once:
 
-- `01 // QUOTA`: hạn mức Claude 5 giờ/7 ngày, đếm ngược đến lúc reset;
-- `02 // AGENTS`: từng phiên Claude Code gần đây với model, effort, % context,
-  chi phí và trạng thái `EXEC <tool>`, `THINK`, `STANDBY` hoặc `FAULT`; dòng
-  thứ hai của mỗi phiên in UUID đầy đủ để dùng cho `claude-resume` khi không
-  thoát được phiên đang chạy;
-- `03 // PLAN · REVIEW`: mỗi task trong `.agents/plan/` một dòng, gồm trạng thái
-  Plan (`PLANNED`, `AWAIT`, `IMPLEMENTED`, `BLOCKED`, `FAILED`) và vòng Review
-  mới nhất kèm verdict (`R1 PASS`); task đã `implemented` mà chưa có Review được
-  đếm vào `CHỜ REVIEW`;
-- `04 // REPOSITORIES`: file thay đổi theo git trong Hub và mọi repo sản phẩm,
-  kèm số dòng +/-; file sửa trong 60 giây gần nhất có dấu `◆`. Danh sách repo là
-  hợp của submodule trong `.gitmodules` và mục trong `.repos/manifest.yaml`. Repo
-  đăng ký dở (định nghĩa ở mục "Định tuyến repo" của `AGENTS.md`) có dòng `⚠`
-  đầu panel nêu phần còn thiếu: submodule chưa có mục manifest, mục manifest trỏ
-  tới đường dẫn chưa là submodule, mục manifest thiếu `path`, hoặc submodule
-  chưa clone. Thư mục chưa có `.git` không bị quét git;
-- `05 // EVENT LOG`: nhật ký trực tiếp các file mới/sửa/xoá, stage (`STAGE`) và
-  bỏ stage (`UNSTAGE`), commit, đổi nhánh, đăng ký/gỡ đăng ký repo và submodule
-  thêm/gỡ (`REPO`), cảnh báo đăng ký dở (`WARN`), chuyển trạng thái Plan
-  (`PLAN`), kết luận Review (`REVIEW`) và chuyển trạng thái của phiên AI; thanh
-  `ACTIVITY` ở chân trang đếm sự kiện trong 60 giây gần nhất, kèm tổng sự kiện
-  từ lúc khởi động.
+- `01 // QUOTA`: the Claude 5-hour/7-day quota, with a countdown to the reset;
+- `02 // AGENTS`: each recent Claude Code session with its model, effort,
+  context %, cost and state `EXEC <tool>`, `THINK`, `STANDBY` or `FAULT`; the
+  second line of each session prints the full UUID to use with `claude-resume`
+  when the running session cannot be exited;
+- `03 // PLAN · REVIEW`: one line per task in `.agents/plan/`, with the Plan
+  status (`PLANNED`, `AWAIT`, `IMPLEMENTED`, `BLOCKED`, `FAILED`) and the latest
+  Review round with its verdict (`R1 PASS`); tasks that are `implemented` but have
+  no Review yet are counted in `PENDING REVIEW`;
+- `04 // REPOSITORIES`: files changed according to git in the Hub and every
+  product repository, with +/- line counts; files modified in the last 60
+  seconds are marked `◆`. The repository list is the union of the submodules in
+  `.gitmodules` and the entries in `.repos/manifest.yaml`. A partially registered
+  repository (defined in the "Repository routing" section of `AGENTS.md`) gets a
+  `⚠` line at the top of the panel naming the missing part: a submodule without a
+  manifest entry, a manifest entry pointing to a path that is not a submodule, a
+  manifest entry without `path`, or a submodule that is not cloned. Directories
+  without `.git` are not scanned by git;
+- `05 // EVENT LOG`: a live log of new/modified/deleted files, staging
+  (`STAGE`) and unstaging (`UNSTAGE`), commits, branch switches, repository
+  registration/unregistration and submodules added/removed (`REPO`), partial
+  registration warnings (`WARN`), Plan status transitions (`PLAN`), Review
+  conclusions (`REVIEW`) and AI session state transitions; the `ACTIVITY` bar in
+  the footer counts events in the last 60 seconds, along with the total number
+  of events since startup.
 
-Terminal rộng từ 118 cột trở lên dùng bố cục hai cột; hẹp hơn thì xếp chồng.
-Panel Plan tự ẩn khi terminal quá thấp để dành chỗ cho `REPOSITORIES`.
-Cần terminal hỗ trợ màu 24-bit (terminal của VS Code, Windows Terminal).
+Terminals 118 columns wide or more use a two-column layout; narrower ones stack
+the panels. The Plan panel hides itself when the terminal is too short, to leave
+room for `REPOSITORIES`. Requires a terminal with 24-bit color (the VS Code
+terminal, Windows Terminal).
 
-Phạm vi theo dõi thay đổi:
+Change-tracking scope:
 
-- File: một watcher `fs.watch` đệ quy trên gốc Hub (gồm `.repos/*`) báo mọi file
-  mới (`NEW`), sửa (`MOD`) và xoá (`DEL`) gần như tức thì, kể cả đường dẫn bị Git
-  ignore (`.tmp/`, `node_modules/`, thư mục build) và file tạo rồi xoá trước khi
-  `git status` kịp quét (hiện `(tạo rồi xóa)`). Chỉ bỏ qua nội dung `.git/`.
-- Git: stage, bỏ stage, commit, reset hay đổi nhánh chỉ ghi vào thư mục git,
-  nên dashboard so `stat` của `index`, `HEAD` và `logs/HEAD` trong thư mục git
-  của Hub và từng submodule mỗi 0,5 giây (không gọi git). Khi một trong ba file
-  này đổi, dashboard quét `git status` sau khoảng 0,2 giây và ghi `STAGE`,
-  `UNSTAGE`, `COMMIT`, `BRANCH` tương ứng. Ngoài ra cứ mỗi `--interval` giây
-  (mặc định 10) dashboard quét định kỳ cho panel `REPOSITORIES`, đọc lại
-  `.gitmodules` và `.repos/manifest.yaml` để ghi `REPO` và `WARN`.
-- Plan và Review: đọc lại ở mỗi lần quét git; khi `fs.watch` chạy thì còn đọc
-  lại ngay lúc file trong `.agents/plan/` hoặc `.agents/review/` đổi.
-- Nhịp quét: quét do sự kiện cách lần quét trước ít nhất 0,5 giây sau thay đổi
-  git và 3 giây sau thay đổi file; sự kiện đến lúc đang quét được bù bằng đúng
-  một lần quét sau đó, nên không bỏ sót và không chạy chồng lệnh git. Khi
-  không có thay đổi, dashboard chỉ gọi git theo `--interval`.
-- Gộp để không tràn nhật ký: sự kiện file được gom 0,7 giây rồi nhóm theo repo,
-  thư mục cấp một và loại; nhóm quá 3 file thành một dòng có đếm, ví dụ
-  `NEW hub/node_modules/ ×1200 · node_modules/a/index.js`. `STAGE` và `UNSTAGE`
-  được gộp cùng cách, ví dụ sau `git add .`. Nhật ký giữ 400 sự kiện gần nhất.
-- Giới hạn: `NEW` hay `MOD` được suy từ thời điểm tạo file, nên file thay bằng
-  cách ghi đè nguyên tử có thể hiện là `NEW`. Nếu `fs.watch` đệ quy không dùng
-  được (hệ điều hành hoặc Node cũ) hay bị lỗi, dashboard ghi một dòng `SYS` và
-  quay về phát hiện file bằng `git status` (stage, commit, nhánh vẫn được báo
-  ngay như trên), khi đó không thấy đường dẫn bị Git ignore và file tạo rồi xoá
-  giữa hai lần quét, còn Plan và Review chỉ được đọc lại ở lần quét git kế tiếp.
+- Files: one recursive `fs.watch` watcher on the Hub root (including `.repos/*`)
+  reports every new (`NEW`), modified (`MOD`) and deleted (`DEL`) file almost
+  instantly, including paths ignored by Git (`.tmp/`, `node_modules/`, build
+  directories) and files created and deleted before `git status` can scan them
+  (shown as `(created and deleted)`). Only the contents of `.git/` are skipped.
+- Git: staging, unstaging, commit, reset or branch switches only write to the
+  git directory, so the dashboard compares the `stat` of `index`, `HEAD` and
+  `logs/HEAD` in the git directory of the Hub and of each submodule every 0.5
+  seconds (without calling git). When one of these three files changes, the
+  dashboard runs `git status` after about 0.2 seconds and logs `STAGE`,
+  `UNSTAGE`, `COMMIT`, `BRANCH` accordingly. In addition, every `--interval`
+  seconds (default 10) the dashboard runs a periodic scan for the
+  `REPOSITORIES` panel and rereads `.gitmodules` and `.repos/manifest.yaml` to
+  log `REPO` and `WARN`.
+- Plans and Reviews: reread on every git scan; while `fs.watch` is running they
+  are also reread as soon as a file in `.agents/plan/` or `.agents/review/`
+  changes.
+- Scan pacing: an event-driven scan runs at least 0.5 seconds after the previous
+  scan for git changes and 3 seconds for file changes; events arriving during a
+  scan are covered by exactly one follow-up scan, so nothing is missed and git
+  commands never overlap. When nothing changes, the dashboard only calls git at
+  the `--interval`.
+- Grouping to keep the log from overflowing: file events are batched for 0.7
+  seconds, then grouped by repository, top-level directory and kind; a group of
+  more than 3 files becomes one line with a count, for example
+  `NEW hub/node_modules/ ×1200 · node_modules/a/index.js`. `STAGE` and `UNSTAGE`
+  are grouped the same way, for example after `git add .`. The log keeps the 400
+  most recent events.
+- Limits: `NEW` versus `MOD` is inferred from the file's creation time, so a
+  file replaced by an atomic overwrite may show as `NEW`. If recursive `fs.watch`
+  is unavailable (older operating system or Node) or fails, the dashboard logs a
+  `SYS` line and falls back to detecting files with `git status` (staging,
+  commits and branches are still reported immediately as above); in that mode
+  it does not see paths ignored by Git or files created and deleted between two
+  scans, and Plans and Reviews are only reread on the next git scan.
 
-Cách nhanh nhất là double-click `.tools/dashboard/dashboard.bat` (hoặc tạo
-shortcut ra Desktop). File này cũng nhận các tham số dưới đây, ví dụ
-`.tools\dashboard\dashboard.bat --no-intro`, và giữ cửa sổ lại nếu dashboard
-lỗi.
+The quickest way is to double-click `.tools/dashboard/dashboard.bat` (or create
+a Desktop shortcut to it). This file also accepts the options below, for example
+`.tools\dashboard\dashboard.bat --no-intro`, and keeps the window open if the
+dashboard fails.
 
-Hoặc chạy trong một tab hoặc pane riêng của terminal:
+Or run it in a separate terminal tab or pane:
 
 ```powershell
-node .tools/dashboard/dashboard.js                 # mặc định quét git mỗi 10 giây
+node .tools/dashboard/dashboard.js                 # scans git every 10 seconds by default
 node .tools/dashboard/dashboard.js --interval 5 --files 15 --max-age 6
-node .tools/dashboard/dashboard.js --plans 10      # hiện tối đa 10 task Plan (mặc định 6)
-node .tools/dashboard/dashboard.js --no-intro      # bỏ màn khởi động
-node .tools/dashboard/dashboard.js --once          # in một khung hình rồi thoát
-node .tools/dashboard/dashboard.js --once --rows 30  # khung hình cho terminal cao 30 dòng
+node .tools/dashboard/dashboard.js --plans 10      # show up to 10 Plan tasks (default 6)
+node .tools/dashboard/dashboard.js --no-intro      # skip the boot screen
+node .tools/dashboard/dashboard.js --once          # print one frame and exit
+node .tools/dashboard/dashboard.js --once --rows 30  # a frame for a 30-row terminal
 ```
 
-Phím `q` hoặc `Ctrl+C` để thoát, `r` để quét lại ngay; phím khác bỏ qua màn
-khởi động.
+Press `q` or `Ctrl+C` to quit, `r` to rescan immediately; any other key skips
+the boot screen.
 
-Dữ liệu AI lấy từ status line: `~/.claude/statusline-command.sh` ghi JSON nhận
-từ Claude Code vào `~/.claude/dashboard/sessions/<session_id>.json` mỗi lần
-status line cập nhật. Vì vậy số liệu chỉ mới đến lần cập nhật gần nhất, và chỉ
-có phiên Claude Code (không có Codex). Trạng thái "đang làm gì" đọc từ cuối
-transcript của phiên.
+AI data comes from the status line: `~/.claude/statusline-command.sh` writes the
+JSON it receives from Claude Code to `~/.claude/dashboard/sessions/<session_id>.json`
+each time the status line updates. The figures are therefore only as fresh as the
+latest update, and only Claude Code sessions are shown (not Codex). The "what it
+is doing" state is read from the end of the session's transcript.
 
 ## claude-resume
 
-`claude-resume/resume.ps1` chạy lại phiên Claude Code sau khi hạn mức 5 giờ
-reset; log ghi vào `.tmp/claude-resume/logs/`. Hẹn giờ một lần bằng Task
-Scheduler (ngày phải ở dạng `yyyy/MM/dd`, máy phải đang đăng nhập và thức):
+`claude-resume/resume.ps1` resumes a Claude Code session after the 5-hour quota
+resets; logs go to `.tmp/claude-resume/logs/`. Schedule it once with Task
+Scheduler (the date must be in `yyyy/MM/dd` form, and the machine must be logged
+in and awake):
 
 ```powershell
 schtasks /Create /TN "ClaudeResume" /SC ONCE /SD yyyy/MM/dd /ST HH:mm /TR "pwsh -NoProfile -ExecutionPolicy Bypass -File D:\Project\.repository\PIRL-framework\.tools\claude-resume\resume.ps1 -SessionId <id>" /F
 ```
 
-`<id>` phải là UUID đầy đủ (lấy ở panel `02 // AGENTS` của dashboard) hoặc
-tên phiên khớp chính xác; chế độ `-p` không nhận ID rút gọn như 8 ký tự cuối.
-Bỏ `-SessionId <id>` để nối tiếp phiên gần nhất của repo.
+`<id>` must be the full UUID (from the `02 // AGENTS` panel of the dashboard) or
+an exactly matching session name; `-p` mode does not accept a shortened ID such
+as the last 8 characters. Omit `-SessionId <id>` to continue the repository's
+most recent session.
 
-Trước khi làm việc dài sau khi reset, kiểm tra xem có hai phiên cùng chạy hay
-không, vì phiên tương tác cũng có thể tự chạy tiếp:
+Before doing long work after a reset, check whether two sessions are running at
+the same time, because an interactive session may also continue on its own:
 `Get-CimInstance Win32_Process -Filter "Name='claude.exe'"`.
 
 ## claude-schedule
 
-`claude-schedule/schedule.ps1` hẹn trước một task Claude Code chạy một lần,
-dùng khi biết trước mình sẽ không tiện gửi request vào giờ đó. Task được tạo
-trong thư mục `\Claude\` của Task Scheduler và gọi `claude-schedule/run.ps1`;
-prompt lưu ở `.tmp/claude-schedule/tasks/<tên>.txt`, log ở
-`.tmp/claude-schedule/logs/`.
+`claude-schedule/schedule.ps1` schedules a Claude Code task to run once, for
+when you know in advance you will not be able to send a request at that time.
+The task is created in the `\Claude\` folder of Task Scheduler and calls
+`claude-schedule/run.ps1`; the prompt is stored in
+`.tmp/claude-schedule/tasks/<name>.txt`, logs in `.tmp/claude-schedule/logs/`.
 
 ```powershell
-# Phiên mới, giờ đầy đủ; prompt ngắn viết thẳng
-.tools\claude-schedule\schedule.ps1 -Name review-t01 -At "2026-10-10 08:00" -Prompt "Review phần triển khai của Plan T01 trong .agents/plan/<gói>"
-# Prompt dài để trong file; chỉ ghi HH:mm thì lấy lần tới của giờ đó
+# New session, full date and time; a short prompt written inline
+.tools\claude-schedule\schedule.ps1 -Name review-t01 -At "2026-10-10 08:00" -Prompt "Review the implementation of Plan T01 in .agents/plan/<package>"
+# A long prompt kept in a file; giving only HH:mm uses the next occurrence of that time
 .tools\claude-schedule\schedule.ps1 -Name implement-t02 -At 23:30 -PromptFile D:\prompts\t02.md
-# Nối tiếp một phiên có sẵn thay vì mở phiên mới
+# Continue an existing session instead of opening a new one
 .tools\claude-schedule\schedule.ps1 -Name fix-t03 -At 06:00 -Prompt "..." -SessionId <uuid>
 
-.tools\claude-schedule\schedule.ps1 -List               # trạng thái, lần chạy tới, kết quả lần trước
+.tools\claude-schedule\schedule.ps1 -List               # state, next run, result of the last run
 .tools\claude-schedule\schedule.ps1 -Remove -Name review-t01
 ```
 
-- `-At` nhận `yyyy-MM-dd HH:mm` hoặc `HH:mm`, không phụ thuộc định dạng ngày
-  của máy. Trùng tên task thì báo lỗi, thêm `-Force` để ghi đè.
-- Prompt được truyền nguyên văn, chỉ thêm một câu yêu cầu kết thúc bằng tóm
-  tắt; muốn commit hay push thì ghi rõ trong prompt. `-PermissionMode` mặc
-  định `auto`.
-- `-SessionId` theo cùng quy tắc với `claude-resume`: UUID đầy đủ hoặc tên
-  phiên khớp chính xác.
-- Task chỉ chạy khi đang đăng nhập Windows. Nếu máy tắt hoặc ngủ đúng giờ
-  hẹn, task chạy ngay khi máy thức lại; đánh thức máy từ chế độ ngủ chỉ hoạt
-  động khi Power Options bật "Allow wake timers". Task vẫn chạy khi dùng pin.
-- Task đã chạy không tự xoá; dọn bằng `-Remove`.
-- Task có thể chạy cùng lúc với phiên đang mở trên cùng cây làm việc (nhất là
-  khi dùng `-SessionId` hoặc khi chạy trễ lúc máy vừa thức), nên kiểm tra
-  như với `claude-resume` trước khi làm việc tiếp.
+- `-At` accepts `yyyy-MM-dd HH:mm` or `HH:mm`, independent of the machine's date
+  format. A task with the same name is an error; add `-Force` to overwrite.
+- The prompt is passed verbatim, with only one sentence added asking it to end
+  with a summary; to commit or push, say so explicitly in the prompt.
+  `-PermissionMode` defaults to `auto`.
+- `-SessionId` follows the same rule as `claude-resume`: the full UUID or an
+  exactly matching session name.
+- The task runs only while you are logged in to Windows. If the machine is off
+  or asleep at the scheduled time, the task runs as soon as the machine wakes
+  up; waking the machine from sleep works only when Power Options enables
+  "Allow wake timers". The task still runs on battery.
+- Tasks that have run are not deleted automatically; clean them up with `-Remove`.
+- A task may run at the same time as a session already open on the same working
+  tree (especially with `-SessionId` or when it runs late right after the
+  machine wakes), so check as with `claude-resume` before continuing work.

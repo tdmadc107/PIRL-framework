@@ -1,514 +1,573 @@
 ---
 name: "Layered Task Execution Instructions"
-description: "Định tuyến Plan, Implement, Review, quy định ranh giới giữa các layer và các hợp đồng chung: kiểm chứng bằng lập luận, kiểm chứng layout, snapshot chung và hồ sơ cũ, tự đánh giá và cải tiến, dọn tài nguyên tạm."
+description: "Routes Plan, Implement and Review, defines the boundaries between layers and the shared contracts: verification by reasoning, layout verification, shared snapshots and older records, self-evaluation and improvement, temporary-resource cleanup."
 applyTo: ".repos/**/*,.agents/instructions/**/*,.agents/plan/**/*,.agents/review/**/*"
 metadata:
   id: ".agents/instructions/layered-task-execution"
   kind: "instruction"
-  version: "1.6.3"
+  version: "1.7.0"
   status: "active"
 ---
 
 # Layered Task Execution Instructions
 
-## Phạm vi và nguồn quyết định
+## Scope and sources of decisions
 
-Hợp đồng này định tuyến công việc qua ba layer Plan, Implement, Review và giữ
-các quy tắc dùng chung của chúng. Yêu cầu hiện tại và quyền người dùng đã cấp
-quyết định phạm vi; vai trò AI Agent cung cấp chuyên môn, không tự bổ sung mục
-tiêu sản phẩm hay một vòng phê duyệt mới.
+This contract routes work through the three layers Plan, Implement and Review
+and holds their shared rules. The current request and the permissions the
+user has granted decide the scope; AI Agent roles supply expertise and do not
+add product goals or a new approval round on their own.
 
-[AGENTS.md](../../AGENTS.md) sở hữu cấu trúc, danh mục vai trò và định tuyến
-repo; file vai trò sở hữu chuyên môn của vai trò; router sở hữu cách chọn layer
-và hợp đồng chung; hợp đồng layer sở hữu trình tự, trách nhiệm vai trò tại layer
-và đầu ra.
-Sửa ở nơi sở hữu quyết định, không sao chép quy trình vào nhiều file.
+[AGENTS.md](../../AGENTS.md) owns the structure, the role catalog and
+repository routing; role files own each role's expertise; the router owns
+layer selection and the shared contracts; layer contracts own the sequence,
+the roles' responsibilities at the layer and the output.
+Fix things where the decision is owned; do not copy a process into several files.
 
-Schema bàn giao hiện hành là `pirl-plan/v1` và `pirl-review/v1`. Schema khác
-không là đầu vào bàn giao; không tự tạo migration hoặc reader cho schema cũ.
+The current handoff schemas are `pirl-plan/v1` and `pirl-review/v1`. Other
+schemas are not handoff inputs; do not create migrations or readers for old
+schemas.
 
-## Chọn layer
+## Choosing a layer
 
-1. Suy mục tiêu từ lời người dùng và ngữ cảnh đã rõ, không từ từ khóa. Khi
-   người dùng chỉ định vai trò, giữ danh sách và thứ tự; không hỏi lại phần đã có.
-2. Khảo sát nguồn để giải quyết thông tin có thể tìm được, kể cả điều người
-   dùng đã nói: quyết định họ đã đưa ra (xác nhận, giao quyền chọn, từ chối)
-   nằm trong Plan, Implementation Record, record và report; lịch sử phiên của
-   host chỉ là nguồn dự phòng khi host có lưu. Chỉ hỏi quyết định còn thiếu làm
-   khác kết quả, phạm vi hoặc quyền thực hiện, và không hỏi lại điều đã có câu
-   trả lời; dừng phần phụ thuộc quyết định đó, tiếp tục phần độc lập đã đủ căn
-   cứ. Lượt làm theo câu trả lời của người dùng trích câu đó trong đầu ra của
-   mình (`summary` của record, Implementation Record) để lượt sau tìm được mà
-   không cần lịch sử phiên.
-3. Nếu chỉ được hỏi giải thích hoặc khảo sát, trả kết luận đúng phạm vi; không
-   tự biến câu hỏi thành gói bàn giao. Khi yêu cầu là delivery sản phẩm, chọn
-   đúng layer dưới đây; không tự chuyển layer chỉ vì đã xong phần hiện tại.
-4. Layer chỉ mở khi lời của chính người dùng đòi việc mà layer đó làm ra (lập
-   Plan, triển khai một Plan, review). Câu đồng ý, chọn hoặc xác nhận trả lời
-   câu hỏi do Agent viết chỉ mở layer mà lời người dùng nêu, hoặc layer mà câu
-   hỏi hỏi riêng một mình (một điểm xác nhận hỏi một quyết định, và điểm mở
-   layer nêu một layer). Đề xuất nhiều layer được đồng ý là chốt hướng làm:
-   layer chỉ xuất hiện trong chữ của Agent không được mở, và nếu lời người dùng
-   không nêu layer nào thì hỏi lại một câu về layer đầu. Xong layer được yêu
-   cầu thì dừng và hỏi riêng về layer kế tiếp.
+1. Infer the goal from the user's words and the context already established,
+   not from keywords. When the user names roles, keep the list and its order;
+   do not ask again about what is already given.
+2. Investigate the sources to resolve information that can be found,
+   including what the user has already said: the decisions they made
+   (confirmations, delegated choices, refusals) live in Plans, Implementation
+   Records, records and reports; the host's session history is only a fallback
+   source when the host keeps it. Ask only about missing decisions that change
+   the result, the scope or the permission to act, and do not ask again about
+   something already answered; stop the part that depends on that decision and
+   continue the independent parts that have enough basis. A run that acts on the
+   user's answer quotes that answer in its own output (the record's `summary`,
+   the Implementation Record) so later runs can find it without the session
+   history.
+3. If the user only asks for an explanation or an investigation, return a
+   conclusion within that scope; do not turn the question into a handoff
+   package. When the request is product delivery, choose the right layer
+   below; do not switch layers just because the current part is done.
+4. A layer opens only when the user's own words ask for the work that layer
+   produces (creating a Plan, implementing a Plan, a review). Agreeing to,
+   choosing or confirming an answer to a question the Agent wrote opens only the
+   layer named in the user's words, or the layer the question asked about on its
+   own (one confirmation point asks one decision, and a point about opening a
+   layer names one layer). An approved proposal covering several layers settles
+   the direction: a layer that appears only in the Agent's text is not opened,
+   and if the user's words name no layer, ask one question about the first
+   layer. When the requested layer is done, stop and ask separately about the
+   next layer.
 
-Không cần slash command, activation token hoặc từ khóa chính xác.
-“Lập Plan cho yêu cầu này” là layer Plan; “Triển khai Plan T01” là layer
-Implement; “Review phần triển khai của Plan T01” là layer Review.
+No slash command, activation token or exact keyword is needed.
+"Create a Plan for this request" is the Plan layer; "Implement Plan T01" is the
+Implement layer; "Review the implementation of Plan T01" is the Review layer.
 
-| Layer | Kết quả và hợp đồng sở hữu |
+| Layer | Result and owning contract |
 | --- | --- |
-| Plan | Soạn/chỉnh Plan từ yêu cầu và source; [hợp đồng Plan](plan.instructions.md). |
-| Implement | Thực hiện một Plan được chọn, hoặc sửa theo report cùng task; [hợp đồng Implement](implement.instructions.md). |
-| Review | Đối chiếu lượt triển khai với Plan; [hợp đồng Review](review.instructions.md). |
-| Task độc lập | Việc giao thẳng, ngoài chuỗi của một Plan; [mục Task độc lập](#task-độc-lập). |
-| Bảo trì framework | Sửa chính `AGENTS.md`, instruction, rule hoặc công cụ của framework; [mục Bảo trì framework](#bảo-trì-framework). |
+| Plan | Write/adjust a Plan from the request and the source; [Plan contract](plan.instructions.md). |
+| Implement | Carry out one selected Plan, or repair it per a report for the same task; [Implement contract](implement.instructions.md). |
+| Review | Check an implementation run against the Plan; [Review contract](review.instructions.md). |
+| Standalone task | Work assigned directly, outside a Plan's chain; [Standalone tasks section](#standalone-tasks). |
+| Framework maintenance | Edit `AGENTS.md`, instructions, rules or framework tools themselves; [Framework maintenance section](#framework-maintenance). |
 
-Chỉ nạp tài liệu liên quan tới quyết định hiện tại: hợp đồng của layer được
-chọn, ngữ cảnh và rule của repo đích. Không nạp mọi file trong `.agents/`.
+Load only the documents relevant to the current decision: the contract of the
+selected layer, and the context and rules of the target repository. Do not
+load every file in `.agents/`.
 
-## Task độc lập
+## Standalone tasks
 
-Task độc lập là việc người dùng giao thẳng và khép trong chính lượt đó, không
-nằm trong chuỗi Plan → Implement → Review: soạn hoặc cập nhật tài liệu theo
-yêu cầu, khảo sát có đầu ra bền vững, sửa nhỏ do người dùng chỉ định. Thực hiện
-một task của Plan vẫn là Implement dù chỉ có một vai trò. Câu hỏi chỉ cần giải
-thích, không tạo đầu ra bền vững, được trả lời trực tiếp (bước 3 mục Chọn layer).
+A standalone task is work the user assigns directly that closes within that
+same run, outside the Plan → Implement → Review chain: writing or updating
+documentation on request, an investigation with durable output, a small fix
+the user specifies. Carrying out a Plan task is still Implement, even with a
+single role. A question that only needs an explanation and creates no durable
+output is answered directly (step 3 of Choosing a layer).
 
-Không có Review nào được lên lịch, nên người thực hiện tự khép vòng ngay trong phiên:
+No Review is scheduled, so the person doing the work closes the loop within the session:
 
-1. Hoàn tất delivery trong đúng phạm vi người dùng giao, theo quy tắc lõi.
-2. Tự kiểm chứng: đối chiếu đầu ra với yêu cầu và nguồn có thẩm quyền, chọn
-   phản ví dụ có khả năng bác bỏ khẳng định quan trọng nhất; sửa đầu ra sai
-   trước khi báo cáo. Ghi đó là tự kiểm chứng, không phải review độc lập.
-3. Báo riêng kết quả delivery, cách đã kiểm chứng và phần chưa biết. Không tạo
-   Plan hoặc report khi người dùng không yêu cầu. Task độc lập không ghi record
-   tự đánh giá; chỉ ba layer ghi theo [mục Tự đánh giá và cải tiến](#tự-đánh-giá-và-cải-tiến).
-4. Dọn tài nguyên tạm theo [mục dọn tài nguyên](#dọn-tài-nguyên-tạm-trước-bàn-giao).
+1. Complete the delivery within exactly the scope the user assigned, under the
+   core rules.
+2. Self-verify: check the output against the request and the authoritative
+   sources, and pick a counterexample that could refute the most important
+   claim; fix wrong output before reporting. Record it as self-verification,
+   not an independent review.
+3. Report separately the delivery result, how it was verified and what remains
+   unknown. Do not create a Plan or report unless the user asks. Standalone
+   tasks write no self-evaluation record; only the three layers write one, per
+   the [Self-evaluation and improvement section](#self-evaluation-and-improvement).
+4. Clean up temporary resources per the [cleanup section](#cleaning-up-temporary-resources-before-handoff).
 
-Nếu người dùng sau đó yêu cầu Review, Review đánh giá như thường; tự kiểm
-chứng không thay kết luận của Review.
+If the user later asks for a Review, the Review evaluates as usual;
+self-verification does not replace the Review's conclusions.
 
-## Bảo trì framework
+## Framework maintenance
 
-Yêu cầu sửa trực tiếp `AGENTS.md`, `CONTEXT.md`, instruction, rule,
-`.repos/manifest.yaml` hoặc công cụ trong `.agents/llm-docs/evals/` và `.tools/`
-là bảo trì framework theo phạm vi người dùng giao. Không ép tạo Plan hay report sản phẩm trước khi sửa.
-Cải tiến do `process-auditor` áp dụng trong một lượt layer theo
-[mục Tự đánh giá và cải tiến](#tự-đánh-giá-và-cải-tiến) cũng là bảo trì framework,
-được chính mục đó cho phép mà không cần yêu cầu riêng.
+A request to edit `AGENTS.md`, `CONTEXT.md`, instructions, rules,
+`.repos/manifest.yaml` or the tools in `.agents/llm-docs/evals/` and `.tools/`
+directly is framework maintenance within the scope the user assigns. Do not force a product Plan or
+report before editing. Improvements that `process-auditor` applies during a
+layer run under the
+[Self-evaluation and improvement section](#self-evaluation-and-improvement) are
+also framework maintenance, allowed by that section without a separate request.
 
-- Bắt đầu từ quyết định sai hoặc thiếu, rồi xác định file sở hữu: `AGENTS.md`
-  cho cấu trúc, vai trò và định tuyến; `CONTEXT.md` cho cách trình bày phản
-  hồi gửi người dùng; router cho ranh giới layer và hợp đồng chung; layer cho
-  trình tự và đầu ra; rule cho ràng buộc dùng lại. Đọc các
-  file tham chiếu tới quy tắc trước khi thay, để file khác không khôi phục
-  hành vi cũ.
-- Viết quy tắc ở dạng chung của framework, dùng lại được cho mọi repo, host và
-  tình huống cùng loại: điều kiện nêu theo loại tình huống, hành động nêu theo
-  vai trò và đầu ra, không theo một sự kiện đã xảy ra. Nội dung của `AGENTS.md`,
-  `CONTEXT.md`, instruction, file vai trò, rule và công cụ không chứa chi tiết riêng của một
-  lần chạy hay một dự án làm điều kiện hoặc căn cứ: tên repo hay sản phẩm,
-  đường dẫn trong repo sản phẩm, token hay giá trị cụ thể, ID task hay record,
-  ngày, lời trích người dùng, tên host hay công cụ cụ thể. Ví dụ minh họa, nếu
-  cần, ghi rõ là ví dụ và không thành điều kiện. Kiến thức riêng của một repo
-  nằm trong `context_docs` của repo đó; quyết định và bằng chứng của một lượt
-  nằm trong Plan, Implementation Record, report và record.
-- Sửa bằng điều kiện và hành động đủ cụ thể; thay đoạn sai thay vì chồng thêm
-  lời nhắc. Đọc lại bằng ba tình huống: tình huống gây lỗi, một tình huống gần
-  giống mà quy tắc không được áp dụng, và một tình huống cùng loại ở repo hoặc
-  host khác; quy tắc phải áp dụng được cho tình huống thứ ba mà không cần sửa.
-  Không thêm test, validator hay schema để thay cho cải thiện nội dung.
-- Sau khi sửa, chạy lệnh kiểm tra tương ứng ở mục
-  [Kiểm tra framework](../../AGENTS.md#kiểm-tra-framework) của `AGENTS.md`.
-  Kiểm tra chỉ xác nhận cấu trúc, không chứng minh chất lượng câu chữ.
+- Start from the wrong or missing decision, then identify the owning file:
+  `AGENTS.md` for structure, roles and routing; `CONTEXT.md` for how responses
+  to the user are presented; the router for layer boundaries and shared
+  contracts; the layer for sequence and output; a rule for a reusable
+  constraint. Read the files that reference the rule before changing it, so
+  that other files do not restore the old behavior.
+- Write rules in the framework's general form, reusable for every repository,
+  host and situation of the same kind: conditions are stated by kind of
+  situation, actions by role and output, not by one event that happened. The
+  content of `AGENTS.md`, `CONTEXT.md`, instructions, role files, rules and tools
+  contains no details specific to one run or one project as a condition or
+  basis: repository or product names, paths inside a product repository,
+  specific tokens or values, task or record IDs, dates, quotes from the user,
+  names of a specific host or tool. Illustrative examples, when needed, are
+  marked as examples and do not become conditions. Knowledge specific to one
+  repository lives in that repository's `context_docs`; the decisions and
+  evidence of a run live in Plans, Implementation Records, reports and records.
+- Fix with conditions and actions that are concrete enough; replace the wrong
+  passage instead of piling on reminders. Re-read against three scenarios: the
+  scenario that caused the problem, a similar scenario where the rule must not
+  apply, and a scenario of the same kind in another repository or host; the
+  rule must apply to the third scenario without changes. Do not add tests,
+  validators or schemas in place of improving the content.
+- After editing, run the matching commands in the
+  [Framework checks](../../AGENTS.md#framework-checks) section of `AGENTS.md`.
+  The checks only confirm structure; they do not prove the quality of the wording.
 
 ## Runtime Neutrality
 
-Framework không chọn hoặc yêu cầu provider, model, reasoning effort hay host.
-Không suy từ công cụ thiếu hoặc test bị skip ra yêu cầu cài runtime hay hỗ trợ
-hệ điều hành mới. Chỉ điều kiện cần cho kết quả đã được giao mới có thể chặn
-phần đó. Host không có cơ chế tạo agent không chặn việc: người điều phối thực
-hiện vai trò kèm lý do, theo
-[nguyên tắc giao việc](../../AGENTS.md#vai-trò-ai-agent).
+The framework does not choose or require a provider, model, reasoning effort or
+host. Do not infer from a missing tool or a skipped test that a runtime must be
+installed or a new operating system supported. Only conditions needed for the
+assigned result can block that part. A host without a mechanism to create
+agents does not block the work: the coordinator performs the roles and states
+the reason, per the
+[assignment principles](../../AGENTS.md#ai-agent-roles).
 
-## Kiểm chứng bằng lập luận
+## Verification by reasoning
 
-Quy tắc này áp dụng cho chuỗi Plan → Implement → Review của việc phát triển.
-Công việc trong chuỗi gồm triển khai source code sản phẩm (cùng tài liệu đi
-kèm trong repo đích), tạo mới/cập nhật tài liệu ngữ cảnh của repo, và viết,
-cập nhật, chạy test chức năng theo
-[quy tắc FUT](../llm-docs/rules/test-verification.rule.md#quy-tắc-fut-test-chức-năng)
-khi REQ/đặc tả cần. Build, chạy ứng dụng/database/trình duyệt để nghiệm thu,
-đo hiệu năng hoặc tải, chạy test ngoài phạm vi FUT, dựng harness hay script
-kiểm chứng mới, deploy và release thuộc giai đoạn build/test/release của người
-dùng, nằm ngoài vòng đời task: giai đoạn đó không tạo evidence cho framework
-và không bàn giao kết quả lại cho task. Lỗi người dùng thấy ở đó được gửi
-thành yêu cầu sửa độc lập, là task mới. Ngoại lệ duy nhất là
-[kiểm chứng layout bằng mock](#kiểm-chứng-layout-bằng-mock) trong lượt Implement.
+This rule applies to the Plan → Implement → Review chain of development work.
+Work in the chain covers implementing product source code (with accompanying
+documentation in the target repository), creating/updating the repository's
+context documentation, and writing, updating and running functional tests under
+the [FUT rule](../llm-docs/rules/test-verification.rule.md#fut-rule-functional-tests)
+when a REQ/specification needs them. Building, running the application/
+database/browser for acceptance, measuring performance or load, running tests
+outside FUT, building new harnesses or verification scripts, deploying and
+releasing belong to the user's build/test/release stage, outside the task
+lifecycle: that stage produces no evidence for the framework and hands no
+results back to the task. Defects the user sees there are sent as an
+independent fix request, which is a new task. The only exception is
+[layout verification with mocks](#layout-verification-with-mocks) during an
+Implement run.
 
-Kiểm chứng kết quả triển khai là lập luận của agent: đọc diff và source, lần
-đường chạy từ entrypoint qua caller, guard, thao tác ghi/đọc tới trạng thái
-cuối, đối chiếu từng `Logic bắt buộc` của QG, chọn phản ví dụ hoặc nhánh lỗi có
-thể bác bỏ, phản biện giải thích cạnh tranh rồi kết luận `PASS|FAIL|BLOCKED` có
-nguồn. Đọc file, diff, lịch sử git hay tìm kiếm là thu nguồn cho lập luận,
-không phải phép chạy kiểm chứng. Kết quả test/build/chạy, dù có sẵn trong
-repository, CI, report cũ hay từ lần chạy test theo FUT, không là baseline hay
-bằng chứng PASS/FAIL của QG: test đỏ phải được giải thích bằng source, test
-xanh chỉ chứng minh case đã chạy.
+Verifying an implementation result is the agent's reasoning: read the diff
+and the source, trace the execution path from the entrypoint through callers,
+guards and write/read operations to the final state, check each `Required logic`
+of the QG, pick a counterexample or failure branch that could refute it,
+challenge competing explanations, then conclude `PASS|FAIL|BLOCKED` with
+sources. Reading files, diffs, git history or searching gathers sources for
+the reasoning; it is not a verification run. Test/build/run results, whether
+already in the repository, CI, an old report or from the test run under FUT,
+are not a baseline or PASS/FAIL evidence for a QG: a red test must be explained
+from the source, and a green test only proves the cases it ran.
 
-Nguồn bằng chứng của QG, áp dụng cho mọi vai trò ở cả ba layer:
+Sources of evidence for a QG, for every role in all three layers:
 
-- Được dùng: nội dung file, diff, lịch sử git, kết quả tìm kiếm trên source và
-  tài liệu; với QG về giao diện, thêm ảnh và số đo của
-  [kiểm chứng layout bằng mock](#kiểm-chứng-layout-bằng-mock) (hộp bao, kiểu
-  tính toán, kích thước vùng cuộn của phần tử đã render ở từng trạng thái).
-- Không là bằng chứng, dù chạy trong hay ngoài repo: script, harness hay đầu dò
-  viết ra để kiểm chứng (so hàng loạt giá trị, đếm điểm ảnh khác nhau giữa hai
-  ảnh, tính toán thay người đọc); dùng
-  trình duyệt hay runtime để ép nhánh logic, giả lập tính năng, đo thời gian
-  hay kiểm việc gỡ listener; build, typecheck, lint và công cụ phân tích tĩnh
-  khác; kết quả test. Kết quả test theo FUT được nêu cạnh lập luận, không
-  thành dòng bằng chứng của QG.
-- Phép tính cần cho lập luận (tỉ số, đổi đơn vị, công thức) ghi kèm công thức
-  và giá trị đầu vào lấy từ source, để người đọc tự kiểm lại được.
+- Allowed: file contents, diffs, git history, search results over the source
+  and documentation; for UI QGs, also the screenshots and measurements of
+  [layout verification with mocks](#layout-verification-with-mocks) (bounding
+  boxes, computed styles, scroll-area sizes of rendered elements in each state).
+- Not evidence, whether run inside or outside the repository: scripts,
+  harnesses or probes written to verify (bulk value comparisons, counting
+  differing pixels between two images, computing on the reader's behalf); using
+  a browser or runtime to force logic branches, emulate features, measure
+  timing or check listener removal; builds, typechecks, lint and other static
+  analysis tools; test results. Test results under FUT are stated next to the
+  reasoning and do not become an evidence line of a QG.
+- Calculations needed for the reasoning (ratios, unit conversions, formulas)
+  are written with the formula and the input values taken from the source, so
+  readers can check them themselves.
 
-Theo từng layer:
+Per layer:
 
-- Plan không tạo task, bước, REQ, QG hay đường dẫn được phép sửa cho việc của
-  giai đoạn người dùng; test chỉ được giao theo FUT. Nếu đặc tả có mục tiêu
-  thuộc giai đoạn đó, ghi một dòng rằng nó thuộc giai đoạn build/test/release
-  của người dùng. Vai trò lập Plan khảo sát bằng đọc source, tài liệu, lịch sử
-  git và hồ sơ đã có; không dựng harness hay công cụ đo, không chạy ứng dụng
-  hay trình duyệt, trừ khi người dùng yêu cầu điều tra nguyên nhân gốc rễ (đoạn
-  dưới).
-- Implement không build, typecheck, lint, không chạy ứng dụng để nghiệm thu;
-  chỉ viết, cập nhật và chạy test theo FUT, và khi diff đổi giao diện thì kiểm chứng layout bằng
-  mock theo mục dưới. Không ghi việc của giai đoạn người dùng là
-  `BLOCKED` hay rủi ro còn lại của task; chỉ liệt kê ngắn những gì chuyển sang
-  giai đoạn đó.
-- Review không build, không tạo hay chạy test hay mock; không mở FIND/RISK/BLOCK
-  vì thiếu test, chưa build/chạy hay vì test đỏ/xanh. Mỗi kết luận được chứng
-  minh hoặc bác bỏ bằng lập luận trên source; test trong diff vi phạm FUT là
-  lỗi phải sửa theo hợp đồng Review. Riêng diff đổi giao diện, Review đọc ảnh
-  và tóm tắt kiểm chứng layout của Implement theo mục dưới.
-- Không layer nào yêu cầu người dùng cung cấp kết quả build/test/release, số
-  đo, ảnh chụp hay dữ kiện vận hành để task được `implemented`, PASS hoặc đóng.
-  Không đặt chúng vào `Authorization condition`, `Next allowed owner/layer`,
-  checkpoint chờ xác nhận, `awaiting_confirmation` hay danh sách việc còn mở
-  của task; không giữ task hoặc report ở trạng thái chờ chúng. Task kết thúc
-  khi QG của chính nó đã được kết luận bằng lập luận. Ảnh layout do chính lượt
-  Implement tạo theo mục dưới không phải dữ kiện người dùng cung cấp.
+- Plan creates no task, step, REQ, QG or allowed path for work of the user's
+  stage; tests are assigned only under FUT. If the specification has a goal in
+  that stage, write one line saying it belongs to the user's build/test/release
+  stage. Planning roles investigate by reading the source, documentation, git
+  history and existing records; they do not build harnesses or measuring tools
+  and do not run the application or a browser, unless the user asks for a
+  root-cause investigation (paragraph below).
+- Implement does not build, typecheck or lint and does not run the application
+  for acceptance; it only writes, updates and runs tests under FUT, and when the
+  diff changes the UI it verifies layout with mocks per the section below. Do not record
+  work of the user's stage as `BLOCKED` or as remaining risk of the task; only
+  list briefly what moves to that stage.
+- Review does not build and does not create or run tests or mocks; it does not
+  open a FIND/RISK/BLOCK because of missing tests, not having built/run, or
+  red/green tests. Each conclusion is proven or refuted by reasoning on the
+  source; tests in the diff that violate FUT are a defect to fix under the
+  Review contract. For a diff that changes the UI, Review reads Implement's
+  screenshots and layout verification summary per the section below.
+- No layer asks the user for build/test/release results, measurements,
+  screenshots or operational data for a task to be `implemented`, PASS or
+  closed. Do not put them in `Authorization condition`, `Next allowed owner/layer`,
+  a confirmation checkpoint, `awaiting_confirmation` or the task's open-items
+  list; do not hold a task or report waiting for them. A task ends when its own
+  QGs have been concluded by reasoning. Layout screenshots produced by the
+  Implement run itself per the section below are not data supplied by the user.
 
-Lệnh do người dùng yêu cầu được chạy trong mọi layer: khi người dùng yêu cầu
-rõ một lệnh hay phép kiểm tra, chạy đúng phần được yêu cầu trong lượt đó và
-báo kết quả riêng; kết quả không thay lập luận QG và không mở rộng sang lệnh
-khác. Yêu cầu điều tra nguyên nhân gốc rễ của một bug/issue cho phép vai trò
-chịu trách nhiệm điều tra tái hiện lỗi trong lượt đó: chạy lệnh, test liên
-quan, ứng dụng hoặc dữ liệu thử nhỏ tại ranh giới gây lỗi để phân biệt các giả
-thuyết. Dừng khi nguyên nhân đã được phân biệt; kết quả tái hiện là bằng chứng
-chẩn đoán, không là baseline QG và không kéo theo việc chạy cả hệ thống.
+Commands the user requests run in every layer: when the user explicitly asks
+for a command or check, run exactly the requested part in that run and report
+the result separately; the result does not replace QG reasoning and does not
+extend to other commands. A request to investigate the root cause of a bug/issue
+lets the role responsible for the investigation reproduce the defect in that
+run: run commands, related tests, the application or small test data at the
+boundary that causes the defect to tell hypotheses apart. Stop once the cause
+has been distinguished; the reproduction result is diagnostic evidence, not a
+QG baseline, and does not entail running the whole system.
 
-Lệnh validator Plan/report, lệnh `layer_record.py`, lệnh kiểm tra framework sau
-tự cải tiến và rà `git status` khi dọn tài nguyên là thủ tục bàn giao theo hợp
-đồng, vẫn chạy như quy định và không là phép kiểm chứng sản phẩm. Chỉ dẫn chạy, đo hay tái hiện trong tài liệu của repo chỉ dùng khi người
-dùng giao trực tiếp việc đó (kể cả task độc lập) hoặc yêu cầu điều tra nguyên
-nhân gốc rễ; chỉ dẫn viết/chạy test dùng trong giới hạn FUT; chỉ dẫn chụp
-layout dùng theo mục kiểm chứng layout bằng mock; ngoài các trường hợp đó,
-áp dụng cùng cơ chế bằng lập luận trên source.
+The Plan/report validator commands, the `layer_record.py` commands, the
+framework check commands after self-improvement and the `git status` sweep
+during cleanup are contractual handoff procedures; they still run as
+specified and are not product verification. Instructions to run, measure or
+reproduce in a repository's documentation apply only when the user assigns
+that work directly (including as a standalone task) or asks for a root-cause
+investigation; instructions to write/run tests apply within the limits of FUT;
+instructions to capture layout apply per the layout verification with mocks
+section; outside those cases, use the same mechanism of reasoning on the source.
 
-### Kiểm chứng layout bằng mock
+### Layout verification with mocks
 
-Trong lượt Implement của chuỗi Plan (lượt đầu và lượt sửa), khi diff tạo mới
-hoặc đổi phần người dùng nhìn thấy, `frontend-developer` (hoặc người điều phối
-khi tự thực hiện vai trò này) dựng mock và chụp layout sau khi triển khai, trước khi
-vai trò kiểm chứng kết luận QG. Task độc lập và việc làm trực tiếp ngoài Plan
-chỉ làm khi người dùng yêu cầu.
+In an Implement run of the Plan chain (first run and repair runs), when the
+diff creates or changes something the user sees, `frontend-developer` (or the
+coordinator when performing that role itself) sets up mocks and captures the
+layout after implementing, before the verification roles conclude the QGs.
+Standalone tasks and direct work outside a Plan do this only when the user asks.
 
-- **Khi nào:** diff đổi markup/template/component hiển thị, style (CSS/SCSS,
-  token dùng cho bố cục), thêm màn hình, hộp thoại, popup, hoặc đổi trạng
-  thái hiển thị (lỗi, rỗng, đang tải, bị khóa) hay chuỗi giao diện có thể làm
-  đổi bố cục. Không áp dụng khi diff chỉ ở backend, domain thuần không đổi
-  hiển thị, test hoặc tài liệu.
-- **Làm gì:** chạy frontend ở chế độ phát triển và trả mọi lời gọi API bằng
-  mock ngay trong trình duyệt; không backend, database, build hay typecheck.
-  Dẫn tới từng trạng thái mà diff tạo hoặc đổi, gồm nhánh lỗi và lỗi kiểm tra
-  ô nhập, rồi chụp mỗi trạng thái theo mọi ngôn ngữ giao diện, ở khổ máy tính
-  và khổ điện thoại mà tài liệu ngữ cảnh của repo (`context_docs` trong
-  `.repos/manifest.yaml`) quy định. Tài liệu chưa quy định thì lấy ngôn ngữ từ
-  cấu hình i18n và khổ màn hình từ breakpoint CSS của repo, và ghi rõ bộ
-  khổ/ngôn ngữ đã dùng. Khi diff đổi kích thước hoặc số phần tử trong một hàng
-  hay khung có bề rộng ràng buộc (thanh điều hướng, thanh công cụ, hàng thẻ),
-  thêm khổ ở hai phía của mọi ngưỡng breakpoint tác động tới hàng hay khung đó
-  (theo tài liệu ngữ cảnh hoặc CSS), và đo hộp bao của khung cùng từng phần tử
-  con trong trình duyệt: phần tử con nằm trong khung và không chồng nhau, so
-  với cùng số đo ở trạng thái chưa có diff; ảnh ở khổ chính không đủ để kết
-  luận điều đó. Kiểm thêm
-  điều ảnh không cho thấy: văn bản đúng ngôn ngữ, thành phần nằm trong khung
-  nhìn, không cuộn ngang, focus và phím Esc khi hộp chồng lên nhau, trang cuộn
-  được sau khi đóng. Cách này dành cho giao diện web phục vụ qua dev server;
-  giao diện khác (extension, ứng dụng native) thì phần layout `BLOCKED` kèm
-  chủ xử lý, không tự chế phương tiện. Công cụ, cách dựng server ổn định và
-  trở ngại môi trường đã biết thuộc mục ghi chú công cụ trong tài liệu ngữ
-  cảnh của repo ([AGENTS.md](../../AGENTS.md#định-tuyến-repo)), không thuộc
+- **When:** the diff changes displayed markup/templates/components, styles
+  (CSS/SCSS, tokens used for layout), adds screens, dialogs or popups, or
+  changes display states (error, empty, loading, locked) or UI strings that can
+  change the layout. Does not apply when the diff is only in the backend, pure
+  domain code with no display change, tests or documentation.
+- **What:** run the frontend in development mode and answer every API call with
+  mocks right in the browser; no backend, database, build or typecheck. Drive
+  to each state the diff creates or changes, including error branches and
+  input validation errors, then capture each state in every UI language, at
+  the desktop and mobile viewports that the repository's context documentation
+  (`context_docs` in `.repos/manifest.yaml`) specifies. If the documentation
+  does not specify them, take the languages from the i18n configuration and the
+  viewports from the repository's CSS breakpoints, and record the set of
+  viewports/languages used. When the diff changes the size or number of
+  elements in a row or frame of constrained width (navigation bar, toolbar, row
+  of cards), add viewports on both sides of every breakpoint threshold that
+  affects that row or frame (per the context documentation or the CSS), and
+  measure in the browser the bounding boxes of the frame and of each child
+  element: children stay inside the frame and do not overlap, compared with the
+  same measurements in the state without the diff; screenshots at the main
+  viewports are not enough to conclude that. Also check what screenshots cannot
+  show: text in the right language, elements inside the viewport, no horizontal
+  scrolling, focus and the Esc key when dialogs stack, the page scrolls after
+  closing. This approach is for web UIs served by a dev server; for other UIs
+  (extensions, native apps) the layout part is `BLOCKED` with an owner, without
+  improvising a means. Tools, how to run a stable server and known environment
+  obstacles belong in the tooling notes of the repository's context
+  documentation ([AGENTS.md](../../AGENTS.md#repository-routing)), not in the
   framework.
-- **Trạng thái chưa có diff:** là lần chụp sau diff của task đứng trước trong
-  cùng gói, khi lần đó đã chụp đúng màn hình và khổ cần so. Nếu không có, dựng
-  và chụp riêng nguồn ngay trước thay đổi của task: commit nền cộng mọi thay
-  đổi chưa commit không thuộc task (của lượt khác, đã ghi hồ sơ hay chưa). Cây
-  làm việc không có thay đổi chưa commit như vậy thì xuất commit nền vào thư
-  mục tạm của lượt (ví dụ `git archive <revision>` vào `.tmp/`); có thì xuất
-  commit không đủ, nên sao nguyên vẹn cây làm việc (trừ `.git`) vào thư mục tạm
-  trước khi task sửa, hoặc xuất commit nền rồi áp lại đúng các thay đổi đó.
-  Không dùng stash, checkout hay reset trên repo đang làm việc
-  ([quy tắc an toàn](../llm-docs/rules/core-agent.rule.md#safety)). Ghi trong
-  `layout_verification` commit nền và các thay đổi chưa commit đã tính vào nền;
-  Plan không mô tả cách dựng nền này.
-- **Lưu ở đâu:** script mock, ảnh và bảng kết quả trong
-  `.tmp/layout-snapshots/<plan-set>/<task-id>/<YYYYMMDD-HHmmss>/` ở gốc Hub
-  (bị Git ignore). Mỗi lần chạy một thư mục mới; không xóa hay ghi đè lần
-  chạy trước. Thư mục này là đầu ra bàn giao được giữ lại; máy chủ phát
-  triển, trình duyệt và profile tạm vẫn dừng hoặc xóa theo mục dọn tài nguyên.
-- **Vai trò bằng chứng:** ảnh và số đo của các kiểm ở mục Làm gì là bằng chứng
-  bắt buộc cho phần layout, đi cùng chứ không thay lập luận QG trên source.
-  Phép chạy này không mở rộng sang build, typecheck, test ngoài FUT, backend
-  thật, thiết bị thật hay phát hành; các việc đó vẫn thuộc giai đoạn người
-  dùng. Vai trò kiểm chứng xem ảnh như nguồn khi kết luận QG về giao diện,
-  không tự chạy. Mỗi kiểm
-  không đạt được so với cùng kịch bản ở trạng thái chưa có diff (màn hình hay
-  route không bị đổi); chỉ lỗi do diff gây ra mới là FAIL. Layout sai do diff
-  (tràn, che, sai ngôn ngữ, thiếu trạng thái) là FAIL trả `frontend-developer`,
-  cùng giới hạn hai lần sửa của Implement; lỗi có từ trước ghi vào nơi dự án
-  lưu khoảng trống đã biết và vào tóm tắt, không chặn task. Kiểm không đạt do
-  diff mà Plan đã loại trừ khỏi phạm vi bằng một REQ nêu đúng hành vi đó và dải
-  khổ, kèm mục khoảng trống đã biết, không là FAIL của task nhưng vẫn là kiểm
-  không đạt: `layout_verification` liệt kê nó cùng REQ và nguyên nhân (do diff),
-  `residual_risk` nêu tác động; Plan không loại trừ thì là FAIL. Không có engine
-  trình duyệt dùng được thì phần layout `BLOCKED` kèm chủ xử lý. Diff đổi giao
-  diện chưa có kết quả này thì task chưa được ghi `implemented`.
-- **Khác biệt ngoài các kiểm:** khác biệt giữa nền và sau diff mà hộp bao, kiểu
-  tính toán và vùng cuộn đều không đổi (ví dụ vài điểm ảnh khác nhau, chiều cao
-  trang đổi theo lần tải) không phải layout sai do diff. Chụp lặp lại trạng thái
-  nền để biết độ biến thiên của chính nó, ghi mọi giá trị đã thấy vào tóm tắt
-  rồi dừng. Tìm nguyên nhân của khác biệt đó hoặc của lỗi có từ trước, và đo
-  thêm một hành vi mà các kiểm không đòi (ví dụ ẩn một phần tử rồi đo lại, ép
-  đổi khổ lúc trạng thái đang mở, dựng script dò riêng), là điều tra nguyên
-  nhân gốc rễ, chỉ chạy khi người dùng yêu cầu
-  ([Kiểm chứng bằng lập luận](#kiểm-chứng-bằng-lập-luận)); hành vi thiếu xử lý
-  thấy được từ source thì ghi bằng lập luận trên source. Số đếm điểm ảnh và
-  kết quả lặp nền, nếu có, ghi tách khỏi các kiểm và đánh dấu không là bằng
-  chứng QG.
-- **Ghi lại:** tóm tắt trong trường `layout_verification` của Implementation
-  Record: trạng thái đã chụp, ngôn ngữ, khổ màn hình (kể cả khổ sát ngưỡng đã
-  đo), nền dùng để so (commit và thay đổi chưa commit đã tính), số ảnh, kiểm
-  đạt/không đạt (mỗi kiểm không đạt kèm nguyên nhân: có từ trước, hoặc do diff
-  và REQ của Plan loại trừ nó) và đường dẫn thư
-  mục. `.tmp/` không đi theo commit nên tóm tắt là bằng
-  chứng, đường dẫn chỉ để tra cứu.
-- **Review:** đọc tóm tắt và ảnh của Implement, không tự chạy lại. Diff đổi
-  giao diện mà Record thiếu kết quả này, hoặc ảnh cho thấy layout vi phạm QG,
-  là FIND `repair` cho `frontend-developer`.
+- **State without the diff:** the post-diff capture of the preceding task in
+  the same package, when that capture covered exactly the screens and
+  viewports to compare. Otherwise, build and capture separately the source
+  right before the task's changes: the base commit plus every uncommitted
+  change that does not belong to the task (from other runs, recorded or not).
+  If the working tree has no such uncommitted changes, export the base commit
+  into the run's temporary directory (for example `git archive <revision>` into
+  `.tmp/`); if it has them, exporting the commit is not enough, so copy the
+  working tree intact (except `.git`) into a temporary directory before the task
+  edits it, or export the base commit and reapply exactly those changes. Do not
+  use stash, checkout or reset on the working repository
+  ([safety rules](../llm-docs/rules/core-agent.rule.md#safety)). Record in
+  `layout_verification` the base commit and the uncommitted changes counted in
+  the base; the Plan does not describe how to build this base.
+- **Where:** mock scripts, screenshots and the results table go in
+  `.tmp/layout-snapshots/<plan-set>/<task-id>/<YYYYMMDD-HHmmss>/` at the Hub root
+  (ignored by Git). Each run gets a new directory; do not delete or overwrite
+  earlier runs. This directory is handoff output and is kept; dev servers,
+  browsers and temporary profiles are still stopped or deleted per the cleanup
+  section.
+- **Role as evidence:** the screenshots and measurements of the checks in the
+  What section are mandatory evidence for the layout part; they accompany, and
+  do not replace, QG reasoning on the source. This run does not extend to
+  builds, typechecks, tests outside FUT, a real backend, real devices or
+  releases; those still belong to the user's stage. The verification role treats the screenshots as a source when
+  concluding UI QGs and does not run anything itself. Each failed check is
+  compared with the same scenario in the state without the diff (an unchanged
+  screen or route); only defects caused by the diff are FAIL. A wrong layout
+  caused by the diff (overflow, overlap, wrong language, missing state) is a
+  FAIL returned to `frontend-developer`, under the same two-repair limit of
+  Implement; pre-existing defects are recorded where the project keeps known
+  gaps and in the summary, and do not block the task. A failed check caused by
+  the diff that the Plan excluded from scope with a REQ naming exactly that
+  behavior and the viewport range, together with a known-gaps entry, is not a
+  FAIL of the task but is still a failed check: `layout_verification` lists it
+  with the REQ and its cause (the diff), and `residual_risk` states the impact;
+  if the Plan did not exclude it, it is a FAIL. When no usable browser engine is
+  available, the layout part is `BLOCKED` with an owner. A diff that changes the
+  UI without this result cannot be recorded as `implemented`.
+- **Differences outside the checks:** a difference between the base and the
+  post-diff state where bounding boxes, computed styles and scroll areas are all
+  unchanged (for example a few differing pixels, a page height that varies
+  between loads) is not a wrong layout caused by the diff. Capture the base
+  state repeatedly to learn its own variation, record every value seen in the
+  summary, then stop. Looking for the cause of such a difference or of a
+  pre-existing defect, and measuring a behavior the checks do not require (for
+  example hiding an element and measuring again, forcing a viewport change while
+  a state is open, building a separate probe script), is a root-cause
+  investigation that runs only when the user asks for it
+  ([Verification by reasoning](#verification-by-reasoning)); missing handling
+  visible from the source is recorded by reasoning on the source. Pixel counts
+  and repeated base captures, if any, are recorded apart from the checks and
+  marked as not QG evidence.
+- **Record:** summarize in the `layout_verification` field of the
+  Implementation Record: states captured, languages, viewports (including the
+  threshold-adjacent viewports measured), the base used for comparison (commit
+  and uncommitted changes counted), number of screenshots, checks passed/failed
+  (each failed check with its cause: pre-existing, or caused by the diff and
+  excluded by a Plan REQ) and the directory path. `.tmp/` does not go with
+  commits, so the summary is the evidence and the path is for lookup only.
+- **Review:** reads Implement's summary and screenshots and does not rerun
+  them. A diff that changes the UI while the Record lacks this result, or
+  screenshots showing a layout that violates a QG, is a `repair` FIND for
+  `frontend-developer`.
 
-## Snapshot chung và hồ sơ cũ
+## Shared snapshots and older records
 
-Áp dụng cho mọi layer khi kết luận về source, tài liệu hay một hồ sơ cũ
-(Implementation Record, report, record). Tách ba điều: source hiện tại, điều hồ
-sơ ghi, và thay đổi nằm giữa hai mốc đó.
+Applies to every layer when drawing conclusions about the source, the
+documentation or an older record (Implementation Record, report, record).
+Separate three things: the current source, what the record states, and the
+changes between those two points in time.
 
-- Source hiện tại khác điều một hồ sơ cũ ghi chỉ chứng minh source đã đổi sau
-  hồ sơ đó, không chứng minh hồ sơ sai lúc được ghi. Chỉ coi hồ sơ là sai khi
-  có nguồn gắn thời điểm (lần chụp, diff, commit, số đo) cho thấy điều ghi sai
-  ngay lúc ghi; nếu không, ghi chỗ lệch là thay đổi xảy ra sau hồ sơ đó.
-- Thay đổi trong snapshot mà không Implementation Record nào của gói ghi
-  (không nằm trong `changed_paths` của task nào) là thay đổi chưa có chủ. Nêu
-  nó trong đầu ra của lượt kèm đường dẫn và tác động lên kết luận; không gán
-  cho task hay vai trò nào, không dùng làm căn cứ lỗi của vai trò. Người dùng
-  giao một lượt Implement hoặc task độc lập để ghi nó.
-- Khi nhiều task của một gói nằm chung một snapshot (cùng commit hoặc cùng bộ
-  thay đổi chưa tách được theo task), quy một chỗ lệch (QG vỡ, câu tài liệu
-  sai, giá trị không khớp) cho task đã làm nó sai, theo thứ tự chạy: dựng
-  trạng thái sau từng task từ revision nền, REQ và `changed_paths` của task đó.
-  Điều còn đúng khi một task hoàn tất và chỉ sai sau thay đổi thuộc REQ của
-  task chạy sau là chỗ lệch của task sau, kể cả khi task trước đã viết hay
-  đồng bộ nó. Phạm vi viết lại cả một file không làm task đó sở hữu mọi câu
-  của file sau khi task khác đổi điều câu mô tả. Khi source, diff và hồ sơ
-  không đủ tách thứ tự, ghi kết luận là suy luận kèm căn cứ.
+- When the current source differs from what an older record states, that only
+  proves the source changed after the record; it does not prove the record was
+  wrong when written. Treat the record as wrong only when a time-stamped source
+  (a capture, a diff, a commit, a measurement) shows the statement was wrong at
+  the time it was written; otherwise record the mismatch as a change that
+  happened after that record.
+- A change in the snapshot that no Implementation Record of the package
+  records (not in any task's `changed_paths`) is an unowned change. State it in
+  the run's output with its path and its effect on the conclusions; do not
+  attribute it to any task or role, and do not use it as grounds for a role's
+  issue. The user assigns an Implement run or a standalone task to record it.
+- When several tasks of a package share one snapshot (the same commit, or the
+  same set of changes that cannot be separated by task), attribute a mismatch
+  (a broken QG, a wrong documentation sentence, a value that does not match) to
+  the task that made it wrong, in run order: rebuild the state after each task
+  from the base revision, that task's REQs and its `changed_paths`. Something
+  that was still right when a task completed and only became wrong after a
+  change belonging to a later task's REQ is a mismatch of the later task, even
+  when the earlier task wrote or synced it. Rewriting a whole file does not make
+  a task own every sentence of the file after another task changes what the
+  sentence describes. When the source, diffs and records are not enough to
+  separate the order, record the conclusion as an inference with its basis.
 
-Review áp dụng các quy tắc này để kết luận QG và quy lỗi cho vai trò Implement
-theo [mục Đầu vào và quyền](review.instructions.md#đầu-vào-và-quyền); Implement
-áp dụng quy tắc đầu khi đính chính hồ sơ cũ, theo
-[mục Ghi kết quả](implement.instructions.md#ghi-kết-quả).
+Review applies these rules to conclude QGs and attribute issues to Implement
+roles per the [Inputs and permissions section](review.instructions.md#inputs-and-permissions);
+Implement applies the first rule when correcting an older record, per the
+[Recording results section](implement.instructions.md#recording-results).
 
-## Tự đánh giá và cải tiến
+## Self-evaluation and improvement
 
-Mỗi lượt Plan, Implement hoặc Review (kể cả lượt sửa và mỗi vòng Review) tự
-đánh giá và cải tiến framework trước khi bàn giao, dù kết quả là PASS, FAIL hay
-bị chặn. Task độc lập và bảo trì framework không áp dụng mục này.
+Each Plan, Implement or Review run (including repair runs and every Review
+round) self-evaluates and improves the framework before handoff, whether the
+result is PASS, FAIL or blocked. Standalone tasks and framework maintenance do
+not apply this section.
 
-### Thời điểm và người đánh giá
+### Timing and evaluator
 
-- Đầu lượt, người điều phối chạy
-  `python -B .agents/llm-docs/evals/layer_record.py start` và giữ `framework_ref`
-  trả về: commit của Hub và mã băm của các file framework đang khác commit đó.
-  Đây là phiên bản quy tắc lượt này áp dụng.
-- Sau khi đầu ra của layer đã chốt và trước khi dọn tài nguyên,
-  [`process-auditor`](../roles/process-auditor.role.md) đánh giá lượt chạy:
-  mọi vai trò đã tham gia và chính người điều phối (chọn đội, giao việc, hợp
-  nhất kết quả). Ở Review, `process-auditor` còn đánh giá lại các vai trò của
-  lượt Implement được review theo
-  [mục Evaluations](review.instructions.md#evaluations-đánh-giá-vai-trò-implement).
-- Giao `process-auditor` cho agent riêng theo
-  [nguyên tắc giao việc](../../AGENTS.md#vai-trò-ai-agent) và ghi `mode: agent`.
-  Chỉ khi host không có công cụ tạo sub-agent hoặc lời gọi thất bại, người điều
-  phối mới tự đánh giá, ghi `mode: self` và nêu lý do đó trong `summary`.
+- At the start of the run, the coordinator runs
+  `python -B .agents/llm-docs/evals/layer_record.py start` and keeps the returned
+  `framework_ref`: the Hub commit and the hashes of framework files that differ
+  from that commit. This is the version of the rules the run applies.
+- After the layer's output is settled and before cleanup,
+  [`process-auditor`](../roles/process-auditor.role.md) evaluates the run:
+  every role that took part and the coordinator itself (choosing the team,
+  assigning work, merging results). At Review, `process-auditor` also
+  re-evaluates the roles of the reviewed Implement run per the
+  [Evaluations section](review.instructions.md#evaluations-assessing-implement-roles).
+- Delegate `process-auditor` to a separate agent per the
+  [assignment principles](../../AGENTS.md#ai-agent-roles) and record
+  `mode: agent`. Only when the host has no tool to create sub-agents or the call
+  fails does the coordinator self-evaluate, record `mode: self` and state that
+  reason in `summary`.
 
-### Lỗi và nguyên nhân
+### Issues and causes
 
-Lỗi là một quyết định hoặc đầu ra sai so với yêu cầu, source, hợp đồng hoặc quy
-tắc, có bằng chứng. Mỗi lỗi ghi vai trò (hoặc `coordinator`), quyết định sai,
-quy tắc liên quan dạng `file#mục`, bằng chứng và `issue_key`: khóa kebab-case
-mô tả lỗi; lỗi đã có trong record cũ giữ nguyên khóa cũ.
+An issue is a decision or output that is wrong against the request, the
+source, a contract or a rule, with evidence. Each issue records the role (or
+`coordinator`), the wrong decision, the related rule as `file#section`, the
+evidence and an `issue_key`: a kebab-case key describing the issue; an issue
+already present in an earlier record keeps its existing key.
 
-Trước khi phân loại, tra record cũ bằng `layer_record.py query --issue-key <khóa>`
-và `layer_record.py query --rule <file#mục>`. Phân loại theo bằng chứng, không
-theo số lần lặp:
+Before classifying, look up earlier records with `layer_record.py query --issue-key <key>`
+and `layer_record.py query --rule <file#section>`. Classify by evidence, not
+by how many times it repeated:
 
-| Nguyên nhân | Khi nào | Cải tiến bắt buộc |
+| Cause | When | Required improvement |
 | --- | --- | --- |
-| `instruction` | Đọc quy tắc ở đúng `framework_ref`: không quy tắc nào bao trường hợp này, quy tắc dẫn tới quyết định sai, hai quy tắc mâu thuẫn, hoặc quy tắc mơ hồ | Sửa quy tắc |
-| `ineffective_fix` | Record cũ đã sửa lỗi cùng khóa hoặc cùng quy tắc, mà lỗi vẫn xảy ra | Xác định vì sao lần sửa đó thất bại (sai nguyên nhân, không bao trường hợp này, vai trò không nạp tới quy tắc), rồi thay hoặc hoàn tác chính lần sửa đó, không chồng thêm. Ghi `prior_fix` |
-| `input` | Quy tắc đúng nhưng đầu vào thiếu hoặc sai: Plan thiếu quyết định, tài liệu ngữ cảnh thiếu, manifest sai | Sửa nơi tạo ra đầu vào: quy tắc của layer tạo đầu vào đó, `context_docs`, manifest |
-| `execution` | Quy tắc rõ, đã được nạp và dẫn tới quyết định đúng, nhưng vai trò không làm theo | Tăng cưỡng chế: đưa điểm đó vào cột "Hoàn tất khi" của vai trò trong bảng của file layer, hoặc giao vai trò kiểm chứng kiểm đúng điểm đó |
+| `instruction` | Reading the rules at exactly `framework_ref`: no rule covers this case, a rule leads to the wrong decision, two rules conflict, or a rule is ambiguous | Fix the rule |
+| `ineffective_fix` | An earlier record fixed an issue with the same key or the same rule, and the issue still happens | Determine why that fix failed (wrong cause, does not cover this case, the role does not load the rule), then replace or revert that fix itself, without stacking another. Record `prior_fix` |
+| `input` | The rule is right but the input is missing or wrong: the Plan lacks a decision, the context documentation is incomplete, the manifest is wrong | Fix where the input is produced: the rule of the layer that produces it, `context_docs`, the manifest |
+| `execution` | The rule is clear, was loaded and leads to the right decision, but the role did not follow it | Increase enforcement: put that point in the role's "Done when" column in the layer file's table, or assign a verification role to check exactly that point |
 
-Lỗi đầu ra (source sản phẩm, Plan, report) còn được trả về vai trò sở hữu để
-sửa trong lượt, theo hợp đồng và giới hạn của layer (ví dụ giới hạn hai lần sửa
-của Implement). `process-auditor` chỉ sửa file framework.
+Output issues (product source, Plan, report) are also returned to the owning
+role to fix within the run, under the layer's contract and limits (for example
+Implement's two-repair limit). `process-auditor` only edits framework files.
 
-### Cải tiến triệt để
+### Thorough improvement
 
-Áp dụng ở `mode: agent`, và ở `mode: self` theo mục
-[Tự đánh giá khi `mode: self`](#tự-đánh-giá-khi-mode-self). Mỗi lỗi phải có cải
-tiến được áp dụng ngay trong lượt. Không có vùng cấm và không chờ đề xuất:
+Applies in `mode: agent`, and in `mode: self` per the
+[Self-evaluation when `mode: self`](#self-evaluation-when-mode-self) section.
+Every issue must have an improvement applied within the run. There are no
+off-limits areas and no waiting for proposals:
 
-1. Sửa mọi nơi sở hữu nguyên nhân: file layer, file vai trò, `AGENTS.md`,
-   router, rule, công cụ framework cùng test của nó, `context_docs`, manifest.
-2. Quét toàn framework tìm chỗ còn mô tả hành vi cũ và sửa trong cùng lượt.
-3. Thay đoạn sai bằng điều kiện và hành động cụ thể, không chồng thêm lời nhắc,
-   viết ở dạng chung theo [mục Bảo trì framework](#bảo-trì-framework).
-4. Tăng `version` của file có version.
-5. Đọc lại phần đã sửa với ba tình huống của
-   [mục Bảo trì framework](#bảo-trì-framework).
-6. Chạy các lệnh ở [Kiểm tra framework](../../AGENTS.md#kiểm-tra-framework)
-   tương ứng với phần đã sửa.
+1. Fix every place that owns the cause: layer files, role files, `AGENTS.md`,
+   the router, rules, framework tools with their tests, `context_docs`, the manifest.
+2. Sweep the whole framework for places still describing the old behavior and
+   fix them in the same run.
+3. Replace the wrong passage with concrete conditions and actions; do not pile
+   on reminders, and write it in the general form described in the
+   [Framework maintenance section](#framework-maintenance).
+4. Bump the `version` of files that have one.
+5. Re-read the edited part against the three scenarios of the
+   [Framework maintenance section](#framework-maintenance).
+6. Run the commands in [Framework checks](../../AGENTS.md#framework-checks)
+   that match what was edited.
 
-Ngoại lệ bắt buộc: không làm lỏng
-[quy tắc an toàn](../llm-docs/rules/core-agent.rule.md#safety-rules-and-self-improvement).
-Cải tiến cần làm lỏng quy tắc an toàn không được áp dụng: ghi `pending_user`
-với lý do `safety` và hỏi người dùng.
+Mandatory exception: never loosen the
+[safety rules](../llm-docs/rules/core-agent.rule.md#safety-rules-and-self-improvement).
+An improvement that would loosen a safety rule is not applied: record
+`pending_user` with reason `safety` and ask the user.
 
-### Tự đánh giá khi `mode: self`
+### Self-evaluation when `mode: self`
 
-Chính lượt tự đánh giá không sửa file framework: mọi cải tiến trong record của
-nó ghi `pending_user` với lý do `mode_self`, và công cụ từ chối `applied` ở
-`mode: self`. Cải tiến không đụng quy tắc an toàn không cần người dùng xác nhận
-([AGENTS.md](../../AGENTS.md#luồng-làm-việc)), nên trong cùng lượt
-người điều phối áp dụng từng cải tiến không đụng quy tắc an toàn như bảo trì
-framework do người dùng chỉ định, theo sáu bước của mục
-[Cải tiến triệt để](#cải-tiến-triệt-để). Sau đó ghi record mới có `supersedes`
-trỏ tới record tự đánh giá, `issues` và `fixes` rỗng, `summary` nêu từng
-`issue_key`, file và mục đã sửa, version cũ → mới, lệnh kiểm tra đã chạy và dẫn
-quyền ở `AGENTS.md`. Phản hồi cuối báo ở mục "Tự cải tiến", không hỏi.
+The self-evaluation itself does not edit framework files: every improvement in
+its record is recorded as `pending_user` with reason `mode_self`, and the tool
+rejects `applied` in `mode: self`. Improvements that touch no safety rule do not
+need the user's confirmation ([AGENTS.md](../../AGENTS.md#workflow)), so within
+the same run the coordinator applies each improvement that touches no safety
+rule as user-directed framework maintenance, following the six steps of the
+[Thorough improvement](#thorough-improvement) section. It then writes a new
+record whose `supersedes` points to the self-evaluation record, with empty
+`issues` and `fixes`, and a `summary` stating each `issue_key`, the file and
+section edited, old → new version, the check commands run and a reference to
+the authorization in `AGENTS.md`. The final response reports this in the
+"Self-improvement" section, without asking.
 
-Cải tiến đụng quy tắc an toàn (làm lỏng, thu hẹp, bỏ hoặc lách) không áp dụng:
-record ghi `pending_user` với lý do `safety`; phản hồi cuối nêu lỗi, nguyên nhân,
-quy tắc, thay đổi cụ thể và bằng chứng của cải tiến đó trong mục "Tự cải tiến",
-và quyết định của người dùng (áp dụng, bỏ qua, hoặc đánh giá lại bằng agent
-riêng) là một điểm trong "Cần xác nhận"
-([CONTEXT.md](../../CONTEXT.md#5-khối-kết-thúc-cần-xác-nhận-và-đề-xuất)); không
-mở mục riêng nào khác cho quyết định đó. Lượt thực hiện lựa chọn đó ghi record
-mới có `supersedes` trỏ tới record cũ.
+An improvement that touches a safety rule (loosening, narrowing, removing or
+working around it) is not applied: the record states `pending_user` with reason
+`safety`; the final response states the issue, cause, rule, the concrete change
+and the evidence of that improvement in the "Self-improvement" section, and the
+user's decision (apply, skip, or re-evaluate with a separate agent) is one point
+in "Needs confirmation"
+([CONTEXT.md](../../CONTEXT.md#5-closing-block-needs-confirmation-and-proposals));
+no other separate section is opened for that decision. The run that carries out
+that choice writes a new record whose `supersedes` points to the old record.
 
 ### Record
 
-Mỗi lượt ghi đúng một record bằng
-`python -B .agents/llm-docs/evals/layer_record.py append --input <file JSON>`
-(hoặc truyền JSON qua stdin). Trên Windows, dùng `--input` với file UTF-8 để
-không hỏng tiếng Việt. Công cụ thêm `schema`, `record_id`, `recorded_at` và từ
-chối record sai cấu trúc; record bị từ chối thì lượt chưa hoàn tất. Không sửa
-tay file JSONL; đính chính bằng record mới có `supersedes`. Record là đầu ra bàn
-giao, nằm ở `.agents/records/<layer>/<YYYY-MM-DD>.jsonl`.
+Each run writes exactly one record with
+`python -B .agents/llm-docs/evals/layer_record.py append --input <JSON file>`
+(or by passing JSON on stdin). On Windows, use `--input` with a UTF-8 file so
+non-ASCII text is not corrupted. The tool adds `schema`, `record_id`,
+`recorded_at` and rejects malformed records; if the record is rejected, the run
+is not complete. Do not edit the JSONL files by hand; correct a record with a
+new record that has `supersedes`. Records are handoff output, stored at
+`.agents/records/<layer>/<YYYY-MM-DD>.jsonl`.
 
-| Trường | Nội dung |
+| Field | Content |
 | --- | --- |
-| `layer` | `plan`, `implement` hoặc `review` |
-| `framework_ref` | Giá trị `start` trả về lúc đầu lượt |
-| `task` | `plan_set`, `task_ids`; Review thêm `report_file` |
-| `target_repo` | Như trong Plan |
-| `outcome` | `status` (Plan: `ready`, `draft`, `blocked`; Implement: trạng thái của Implementation Record; Review: `completed`, `blocked`) và `summary`; Review thêm `verdict` |
-| `roles` | Mỗi vai trò tham gia: `role`, `mode`, `assignment`, `result` (`PASS`, `FAIL`, `BLOCKED`) |
-| `audit` | `role: process-auditor`, `mode`, `result` (`clean` hoặc `issues`) |
-| `issues` | Mỗi lỗi: `id` (`ISSUE-NN`), `issue_key`, `role`, `record` (null; hoặc record trong `evaluates` khi lỗi thuộc lượt được đánh giá lại), `cause`, `decision`, `rule`, `evidence`, `prior_fix` (`<record_id>#FIX-NN`, chỉ với `ineffective_fix`) |
-| `fixes` | Mỗi cải tiến: `id` (`FIX-NN`), `issues` mà nó xử lý, `status` (`applied` hoặc `pending_user`), `reason` khi chờ (`mode_self` hoặc `safety`), `files` (`path`, `section`), `summary`, `checks` (lệnh kiểm tra đã chạy, bắt buộc khi `applied`) |
-| `evaluates` | Review: record của lượt Implement được review; layer khác ghi null |
-| `supersedes` | Record được đính chính, hoặc null |
+| `layer` | `plan`, `implement` or `review` |
+| `framework_ref` | The value `start` returned at the start of the run |
+| `task` | `plan_set`, `task_ids`; Review adds `report_file` |
+| `target_repo` | As in the Plan |
+| `outcome` | `status` (Plan: `ready`, `draft`, `blocked`; Implement: the Implementation Record status; Review: `completed`, `blocked`) and `summary`; Review adds `verdict` |
+| `roles` | Each participating role: `role`, `mode`, `assignment`, `result` (`PASS`, `FAIL`, `BLOCKED`) |
+| `audit` | `role: process-auditor`, `mode`, `result` (`clean` or `issues`) |
+| `issues` | Each issue: `id` (`ISSUE-NN`), `issue_key`, `role`, `record` (null; or the record in `evaluates` when the issue belongs to the re-evaluated run), `cause`, `decision`, `rule`, `evidence`, `prior_fix` (`<record_id>#FIX-NN`, only for `ineffective_fix`) |
+| `fixes` | Each improvement: `id` (`FIX-NN`), the `issues` it addresses, `status` (`applied` or `pending_user`), `reason` when pending (`mode_self` or `safety`), `files` (`path`, `section`), `summary`, `checks` (check commands that were run, required when `applied`) |
+| `evaluates` | Review: the record of the reviewed Implement run; other layers write null |
+| `supersedes` | The record being corrected, or null |
 
-Mỗi lỗi phải nằm trong ít nhất một cải tiến.
+Every issue must belong to at least one improvement.
 
-### Báo cáo
+### Reporting
 
-Phản hồi cuối của lượt có mục "Tự cải tiến": `record_id`, rồi với mỗi cải tiến
-đã áp dụng nêu lỗi, nguyên nhân, file và mục đã sửa, version cũ → mới, tóm tắt
-thay đổi; hoặc một câu "không phát hiện lỗi". Ở `mode: self`, `record_id` là
-record bảo trì thay thế record tự đánh giá. Cải tiến chờ người dùng vì lý do
-`safety` được mô tả trong mục "Tự cải tiến", và quyết định về nó là một điểm
-của "Cần xác nhận" theo [mục Tự đánh giá khi `mode: self`](#tự-đánh-giá-khi-mode-self).
+The run's final response has a "Self-improvement" section: the `record_id`,
+then for each applied improvement the issue, cause, file and section edited,
+old → new version, and a summary of the change; or a single sentence "no issues
+found". In `mode: self`, the `record_id` is the maintenance record that
+supersedes the self-evaluation record. An improvement pending the user for
+reason `safety` is described in the "Self-improvement" section, and the decision
+about it is one point of "Needs confirmation" per the
+[Self-evaluation when `mode: self`](#self-evaluation-when-mode-self) section.
 
-## Dọn tài nguyên tạm trước bàn giao
+## Cleaning up temporary resources before handoff
 
-Quy tắc này áp dụng cho mọi layer Plan, Implement, Review, task độc lập và
-bảo trì framework. Nó không đổi cách định tuyến nhiệm vụ. Vai trò/agent tạo
-tài nguyên tạm phải tự dọn; người điều phối chịu trách nhiệm kiểm tra toàn
-lượt, kể cả phần giao agent phụ. Không đẩy việc dọn sang layer sau hoặc chờ
-người dùng nhắc. PASS, FAIL, bị chặn hay bị hủy đều phải dọn phần không còn
-cần trước khi bàn giao kết quả tương ứng.
+This rule applies to every Plan, Implement and Review layer, standalone tasks
+and framework maintenance. It does not change how work is routed. The
+role/agent that creates temporary resources must clean them up itself; the
+coordinator is responsible for checking the whole run, including work
+delegated to sub-agents. Do not push cleanup to a later layer or wait for the
+user to remind you. PASS, FAIL, blocked or cancelled, everything no longer
+needed must be cleaned up before handing off the corresponding result.
 
-- Phạm vi bắt buộc dọn là vùng Git có thể commit của Hub và các submodule
-  trong `.repos/`: file đã được theo dõi và file untracked không bị
-  `.gitignore` loại trừ. Đường dẫn bị Git ignore (ví dụ `.tmp/` ở gốc Hub,
-  `node_modules/`, thư mục build) và vị trí ngoài repo không được commit nên
-  không thuộc nghĩa vụ dọn; có thể giữ lại cho lượt sau. Thư mục
-  `.tmp/layout-snapshots/` của [kiểm chứng layout bằng mock](#kiểm-chứng-layout-bằng-mock)
-  là đầu ra bàn giao, luôn giữ lại.
-- Khi tạo file, thư mục hoặc phiên tạm trong vùng có thể commit, giữ đường
-  dẫn/owner trong ngữ cảnh làm việc; không tạo thêm manifest hay log dọn rác
-  chỉ để theo dõi. Chạy công cụ Python bằng `python -B` để tránh `__pycache__`.
-- Trong vùng đó, xóa ngay khi hết mục đích sử dụng: script probe, bản nháp
-  đầu vào, ảnh, trace, log, cache và thư mục tạm riêng của lượt. Ở mọi
-  nơi, đóng browser/tiến trình tạm do lượt khởi tạo khi không còn cần; không
-  dừng phiên dùng chung có sẵn hoặc dịch vụ đang là đầu ra người dùng cần
-  tiếp tục sử dụng.
-- Trước khi xóa raw evidence, lưu trigger, cách tái hiện, runtime, số đo và
-  kết luận cần thiết vào đầu ra chính thức theo hợp đồng đang áp dụng. Giữ
-  source, đầu vào của người dùng, Plan, report và record trong
-  `.agents/records/`. Chỉ giữ raw file khi người dùng yêu cầu hoặc nó là đầu ra
-  bàn giao đã xác định; không viện cớ có thể dùng lại để giữ rác. Không để tham
-  chiếu cần thiết trỏ vào file tạm sắp xóa, đường dẫn bị Git ignore hoặc vị trí
-  ngoài repo, vì chúng không đi theo commit.
-- Xác minh quyền sở hữu và đường dẫn tuyệt đối trước khi xóa, dùng đích cụ
-  thể. Không xóa cả TEMP, dùng `git clean` rộng, hay coi mọi file untracked
-  là rác. Với tài nguyên chưa rõ owner, xác minh trước; không xóa nhầm để
-  đạt trạng thái sạch. Agent phụ dọn phần mình và báo chính xác phần còn lại
-  nếu gặp lỗi thật; người điều phối tiếp nhận và xử lý trong cùng lượt.
-- Sau lệnh kiểm chứng cuối có thể sinh lại file, rà `git status --short` của
-  Hub và từng submodule đã dùng: mọi thay đổi hoặc file untracked còn lại phải
-  là đầu ra bàn giao hoặc thay đổi sẵn có của người dùng. Chỉ nhận hoàn tất
-  sau khi đã dọn và kiểm lại. Nếu file bị khóa hoặc thiếu quyền thật, dọn
-  phần còn làm được, báo đường dẫn, nguyên nhân, chủ xử lý và bước gỡ; giữ
-  nghĩa vụ dọn mở và báo riêng kết quả sản phẩm, không bịa đã sạch hay đổi QG.
+- The mandatory cleanup scope is the Git-committable area of the Hub and the
+  submodules in `.repos/`: tracked files and untracked files not excluded by
+  `.gitignore`. Paths ignored by Git (for example `.tmp/` at the Hub root,
+  `node_modules/`, build directories) and locations outside the repository are
+  not committed and are not part of the cleanup duty; they may be kept for a
+  later run. The `.tmp/layout-snapshots/` directory of
+  [layout verification with mocks](#layout-verification-with-mocks) is handoff
+  output and is always kept.
+- When creating temporary files, directories or sessions in the committable
+  area, keep their paths/owners in the working context; do not create extra
+  manifests or cleanup logs just to track them. Run Python tools with
+  `python -B` to avoid `__pycache__`.
+- In that area, delete as soon as their purpose is served: probe scripts, input
+  drafts, images, traces, logs, caches and the run's own temporary directories.
+  Everywhere, close the browser/temporary processes the run started once they
+  are no longer needed; do not stop pre-existing shared sessions or services
+  that are output the user needs to keep using.
+- Before deleting raw evidence, save the trigger, reproduction steps, runtime,
+  measurements and conclusions needed into the official output under the
+  applicable contract. Keep source, user inputs, Plans, reports and records in
+  `.agents/records/`. Keep raw files only when the user asks or when they are a
+  defined handoff output; do not use possible reuse as an excuse to keep
+  clutter. Do not leave required references pointing to temporary files about
+  to be deleted, to paths ignored by Git or to locations outside the
+  repository, because they do not go with commits.
+- Verify ownership and the absolute path before deleting, using specific
+  targets. Do not delete the whole TEMP, run a broad `git clean`, or treat every
+  untracked file as clutter. For resources with an unclear owner, verify first;
+  do not delete by mistake to reach a clean state. Sub-agents clean up their
+  own part and report exactly what remains if they hit a real error; the
+  coordinator takes it over and handles it in the same run.
+- After the last verification command that can regenerate files, sweep
+  `git status --short` of the Hub and each submodule used: every remaining change
+  or untracked file must be handoff output or a pre-existing user change.
+  Claim completion only after cleaning up and checking again. If a file is
+  locked or permissions are genuinely missing, clean up what can be cleaned,
+  report the path, cause, owner and the steps to resolve it; keep the cleanup
+  duty open and report the product result separately, without pretending it is
+  clean or changing the QGs.
 
-## Kết thúc và xác nhận
+## Finishing and confirmation
 
-Kết thúc sau delivery và dọn tài nguyên tạm theo hợp đồng chung ở trên; báo
-riêng kết quả, bằng chứng và phần còn thiếu của mỗi phần. Giữ quyền đã có,
-không hỏi lại xác nhận thường lệ. Việc tiếp theo thuộc task/layer khác cần chỉ
-thị tương ứng; không tự bắt đầu chỉ vì report có đề xuất.
+Finish after delivery and cleanup of temporary resources under the shared
+contract above; report separately the result, evidence and what is still
+missing for each part. Keep the permissions already granted and do not ask for
+routine confirmation again. Next work that belongs to another task/layer needs
+a corresponding instruction; do not start it just because a report proposes it.

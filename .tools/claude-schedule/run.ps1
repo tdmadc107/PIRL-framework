@@ -1,8 +1,8 @@
-# Chạy một task Claude Code đã hẹn giờ (được Task Scheduler gọi, task tạo bằng schedule.ps1).
-# -Name: tên task; prompt đọc từ .tmp\claude-schedule\tasks\<Name>.txt của Hub.
-# -SessionId: nối tiếp đúng phiên đó (UUID đầy đủ hoặc tên phiên khớp chính xác, vì -p không
-# nhận ID rút gọn). Bỏ trống thì mở phiên mới.
-# Log ghi vào .tmp\claude-schedule\logs của Hub (.tmp/ không vào git).
+# Runs a scheduled Claude Code task (called by Task Scheduler; the task is created with schedule.ps1).
+# -Name: task name; the prompt is read from the Hub's .tmp\claude-schedule\tasks\<Name>.txt.
+# -SessionId: continue exactly that session (the full UUID or an exactly matching session name, because
+# -p does not accept a shortened ID). Leave it empty to open a new session.
+# Logs go to the Hub's .tmp\claude-schedule\logs (.tmp/ is not in git).
 param(
     [Parameter(Mandatory)][ValidatePattern('^[A-Za-z0-9_-]+$')][string]$Name,
     [string]$SessionId = "",
@@ -20,12 +20,12 @@ if (-not (Test-Path -LiteralPath $promptFile)) {
     exit 1
 }
 $prompt = (Get-Content -LiteralPath $promptFile -Raw -Encoding utf8).Trim()
-$prompt += "`n`nĐây là task đã hẹn giờ, không có người dùng theo dõi trực tiếp. Kết thúc bằng tóm tắt việc đã làm và việc còn lại."
+$prompt += "`n`nThis is a scheduled task with no user watching live. End with a summary of what was done and what remains."
 $session = if ($SessionId) { @("--resume", $SessionId) } else { @() }
 
 Set-Location $repo
-# Task Scheduler mở console mới với code page OEM (437); không ép UTF-8 thì PowerShell giải mã
-# output UTF-8 của claude theo 437 và log tiếng Việt bị lỗi font.
+# Task Scheduler opens a new console with the OEM code page (437); without forcing UTF-8, PowerShell
+# decodes claude's UTF-8 output as 437 and non-ASCII text in the log is garbled.
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 "[$(Get-Date -Format s)] start $Name $($session -join ' ')" | Out-File $log -Encoding utf8
 & claude @session -p $prompt --permission-mode $PermissionMode *>> $log

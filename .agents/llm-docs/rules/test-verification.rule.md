@@ -1,85 +1,92 @@
 ---
 id: .agents/llm-docs/rules/test-verification
 kind: rule
-version: 6.0.0
+version: 6.1.0
 status: active
 ---
 
 # Test And Verification Rules
 
-Quy trình trong ba layer chỉ thuộc
+The processes of the three layers belong only to
 [Plan](../../instructions/plan.instructions.md),
-[Implement](../../instructions/implement.instructions.md) và
+[Implement](../../instructions/implement.instructions.md) and
 [Review](../../instructions/review.instructions.md).
-Mục Quy tắc FUT áp dụng cho mọi việc viết, cập nhật và chạy test, trong và
-ngoài ba layer. Các mục còn lại chỉ dùng cho công việc ngoài ba layer.
+The FUT rule section applies to all writing, updating and running of tests,
+inside and outside the three layers. The remaining sections apply only to work
+outside the three layers.
 
-## Quy tắc FUT (test chức năng)
+## FUT rule (functional tests)
 
-Test được tạo mới hoặc cập nhật phải là test chức năng dựa trên REQ/đặc tả.
-Người dùng yêu cầu rõ khác thì làm theo yêu cầu đó.
+Tests that are created or updated must be functional tests based on the
+REQ/specification. If the user explicitly asks for something else, follow that
+request.
 
-- Nguồn: mỗi test truy về một REQ hoặc mục đặc tả của chức năng đang phát
-  triển, hoặc của chức năng bị nó ảnh hưởng. "Bị ảnh hưởng" phải có căn cứ
-  trong source: call path, hợp đồng hay dữ liệu dùng chung mà thay đổi chạm
-  tới; không suy từ tên module, sự tồn tại của test hay ý muốn "cho chắc".
-- Nội dung: khẳng định hành vi chức năng quan sát được tại hợp đồng của chức
-  năng (đầu vào → kết quả/trạng thái, nhánh từ chối/lỗi mà đặc tả nêu).
-  Không khóa chi tiết cài đặt, không lấy thuật toán của implementation làm
-  kết quả mong đợi, không khẳng định điều đặc tả không yêu cầu (câu chữ, thứ
-  tự, thời gian, định dạng) khiến kết quả đúng bị chặn.
-- Mức độ: chỉ đủ test để phân biệt đúng/sai cho hành vi được giao. Không
-  thêm tổ hợp, biên, hiệu năng hay nền tảng mà đặc tả không đòi, không test
-  trùng một hành vi, không lan sang chức năng không liên quan. Test hiện có
-  đã bảo vệ hành vi đó thì cập nhật nó thay vì viết bản mới.
-- Cập nhật: test của chức năng bị ảnh hưởng còn khẳng định hành vi cũ được
-  sửa theo logic mới; test chỉ phục vụ luồng đã gỡ thì xóa.
-- Chạy: chỉ chạy test của chức năng đang phát triển và chức năng bị ảnh
-  hưởng, chọn theo file, class hoặc tên test. Tuyệt đối không chạy test của
-  chức năng không liên quan hay toàn bộ suite/hệ thống, kể cả khi cho rằng
-  thay đổi không gây ảnh hưởng. Biên dịch do chính lệnh chạy test đó thực
-  hiện là một phần của lần chạy, không là việc build riêng.
-- Kết quả: lần chạy chỉ chứng minh case đã chạy. Test đỏ được giải thích bằng
-  source (sản phẩm sai hay test sai) trước khi sửa đúng bên; trong chuỗi Plan
-  → Implement → Review, kết quả test không là baseline của QG.
+- Source: each test traces back to a REQ or specification item of the
+  functionality under development, or of functionality affected by it.
+  "Affected" must be grounded in the source: a call path, contract or shared
+  data that the change touches; do not infer it from module names, the
+  existence of a test or a wish to "be safe".
+- Content: assert functional behavior observable at the functionality's
+  contract (input → outcome/state, refusal/failure branches the specification
+  names). Do not lock in implementation details, do not use the
+  implementation's algorithm as the expected result, and do not assert things
+  the specification does not require (wording, order, timing, format) in a way
+  that blocks a correct result.
+- Extent: only enough tests to tell right from wrong for the assigned behavior.
+  Do not add combinations, edge cases, performance or platforms the
+  specification does not require, do not test the same behavior twice, and do
+  not spread to unrelated functionality. If an existing test already protects
+  that behavior, update it instead of writing a new one.
+- Updates: tests of affected functionality that still assert the old behavior
+  are fixed to the new logic; tests that only served a removed flow are deleted.
+- Running: run only the tests of the functionality under development and the
+  affected functionality, selected by file, class or test name. Never run tests
+  of unrelated functionality or the whole suite/system, even when you believe
+  the change has no impact. Compilation performed by that test command itself
+  is part of the run, not a separate build.
+- Results: a run only proves the cases that ran. A red test is explained from
+  the source (wrong product or wrong test) before fixing the right side; in the
+  Plan → Implement → Review chain, test results are not a QG baseline.
 
 ## Verification Levels
 
-Dùng cho công việc ngoài ba layer.
+For work outside the three layers.
 
 | Level | Use When | Examples |
 |---|---|---|
-| Static | Kiểu, lint, cú pháp, metadata | trình biên dịch, linter, kiểm tra kiểu |
-| Unit | Hàm thuần, service, quy tắc miền | test của một hàm hoặc service |
-| Component | Hành vi giao diện và khả năng truy cập | test component |
-| Integration | API, xác thực, lưu trữ, luồng nhiều tầng | test API, test với lưu trữ thử |
-| Manual | Bố cục trực quan, trình duyệt thật, luồng nhiều bước | kiểm tra theo khổ màn hình |
+| Static | Types, lint, syntax, metadata | compiler, linter, type checker |
+| Unit | Pure functions, services, domain rules | tests of one function or service |
+| Component | UI behavior and accessibility | component tests |
+| Integration | API, authentication, storage, multi-tier flows | API tests, tests with test storage |
+| Manual | Visual layout, real browser, multi-step flows | checks per viewport |
 
 ## Selection Rule
 
-Chọn kiểm chứng hẹp nhất trả lời được câu hỏi chưa rõ. Chỉ mở rộng khi một hợp
-đồng bị ảnh hưởng hoặc cơ chế lỗi cụ thể đòi hỏi; tên file hay sự tồn tại của
-test không tạo ra nhu cầu đó.
+Choose the narrowest verification that answers the open question. Widen only
+when an affected contract or a concrete failure mechanism requires it; a file
+name or the existence of a test does not create that need.
 
-Với nội dung hướng dẫn, đọc quy tắc với tình huống gây lỗi và một tình huống
-gần giống mà nó không được áp dụng, kiểm tra chủ sở hữu và hướng dẫn mâu thuẫn.
-Không tạo test hay validator để chấm câu chữ theo tiêu đề, từ khóa, số đếm hay
-định dạng. Tôn trọng yêu cầu loại trừ test/validator mới của task.
+For instruction content, read the rule against the scenario that caused the
+problem and a similar scenario where it must not apply, and check the owner and
+conflicting instructions. Do not create tests or validators that grade wording
+by headings, keywords, counts or format. Respect a task's request to exclude new
+tests/validators.
 
-Một case bị bỏ qua do nền tảng chỉ chứng minh case đó không chạy trong môi
-trường này; không chứng minh sản phẩm cần thêm nền tảng. Suy ra yêu cầu môi
-trường từ task của người dùng và hành vi được hỗ trợ thực tế của repo.
+A case skipped because of the platform only proves that case does not run in
+this environment; it does not prove the product needs another platform. Infer
+environment requirements from the user's task and the repository's actually
+supported behavior.
 
-Lệnh đạt chỉ chứng minh các case đã chạy, không chứng minh độ phủ bất biến,
-đường ghép liền kề, hành vi biên hay độ tin cậy của phần bị bỏ qua.
+A passing command only proves the cases that ran, not invariant coverage,
+adjacent integration paths, edge behavior or the reliability of the skipped part.
 
 ## Reporting
 
-Ghi:
+Record:
 
-- lệnh;
-- mục đích;
-- thư mục chạy;
+- the command;
+- the purpose;
+- the working directory;
 - pass/fail/blocker;
-- tóm tắt đầu ra chính;
-- rủi ro còn lại.
+- a summary of the key output;
+- remaining risk.

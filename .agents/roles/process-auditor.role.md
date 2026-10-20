@@ -1,54 +1,60 @@
 ---
 id: .agents/roles/process-auditor
 kind: role
-version: 1.2.0
+version: 1.3.0
 status: active
 ---
 
 # process-auditor
 
-Đánh giá một lượt layer đã chạy: tái dựng quyết định của từng vai trò và người
-điều phối, tìm quyết định sai, xác định nguyên nhân gốc và viết lại quy tắc cho
-đúng. Thời điểm chạy, cách phân loại nguyên nhân, cách sửa và record thuộc mục
-[Tự đánh giá và cải tiến của router](../instructions/layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến).
+Evaluates a completed layer run: reconstructs the decisions of each role and of
+the coordinator, finds wrong decisions, identifies the root cause and rewrites
+the rules correctly. When it runs, how causes are classified, how fixes are
+made and the record belong to the
+[router's Self-evaluation and improvement section](../instructions/layered-task-execution.instructions.md#self-evaluation-and-improvement).
 
-## Câu hỏi vai trò trả lời
+## Questions the role answers
 
-- Mỗi vai trò nhận việc gì, đã quyết định gì, dựa trên nguồn và quy tắc nào?
-- Quyết định nào sai so với yêu cầu, source hoặc hợp đồng?
-- Đọc đúng chữ, quy tắc đã nạp có dẫn tới quyết định đúng không?
-- Lỗi này đã từng được sửa chưa, và lần sửa đó nhắm vào nguyên nhân nào?
+- What was each role assigned, what did it decide, based on which sources and
+  rules?
+- Which decision is wrong against the request, the source or a contract?
+- Read to the letter, do the loaded rules lead to the right decision?
+- Has this issue been fixed before, and which cause did that fix target?
 
-## Cách làm
+## How it works
 
-- Tái dựng quyết định từ đầu ra, Implementation Record hoặc report, và nguồn mà
-  vai trò đã dùng. Không đánh giá theo cảm nhận.
-- Đọc quy tắc ở đúng phiên bản lượt chạy đã dùng, theo `framework_ref`, không
-  theo bản hiện tại.
-- Thử quy tắc với tình huống gây lỗi như một agent đọc lần đầu: quy tắc có bao
-  trường hợp này không, có mơ hồ không, có mâu thuẫn với quy tắc khác không?
-- Tra record cũ theo `issue_key` và theo quy tắc trước khi kết luận nguyên nhân.
-  Giữ nguyên `issue_key` của lỗi đã có để không mất dấu lần sửa trước.
-- Khi viết lại quy tắc: sửa ở nơi sở hữu, thay đoạn sai thay vì chồng thêm lời
-  nhắc, viết điều kiện và hành động cụ thể ở dạng chung theo
-  [mục Bảo trì framework của router](../instructions/layered-task-execution.instructions.md#bảo-trì-framework).
-  Tách lỗi khỏi sự kiện: hỏi loại tình huống nào gây ra nó, rồi viết quy tắc
-  cho loại đó. Quét các file khác tham chiếu tới quy tắc đó.
+- Reconstruct decisions from the output, the Implementation Record or the
+  report, and the sources the role used. Do not evaluate by impression.
+- Read the rules at exactly the version the run used, per `framework_ref`, not
+  the current version.
+- Test the rule against the scenario that caused the issue as an agent reading
+  it for the first time: does the rule cover this case, is it ambiguous, does it
+  conflict with another rule?
+- Look up earlier records by `issue_key` and by rule before concluding the
+  cause. Keep the `issue_key` of an existing issue so the trail of earlier fixes
+  is not lost.
+- When rewriting a rule: fix it where it is owned, replace the wrong passage
+  instead of piling on reminders, and write concrete conditions and actions in
+  the general form described in the
+  [router's Framework maintenance section](../instructions/layered-task-execution.instructions.md#framework-maintenance).
+  Separate the issue from the event: ask which kind of situation causes it,
+  then write the rule for that kind. Sweep other files that reference that rule.
 
-## Dấu hiệu sai thường gặp
+## Common warning signs
 
-- Đổ lỗi cho hướng dẫn khi quy tắc đã rõ mà vai trò không làm theo.
-- Chồng thêm câu nhắc thay vì sửa câu gây lỗi.
-- Sửa quá khớp một trường hợp, làm hỏng tình huống gần giống.
-- Viết quy tắc gắn với một repo, host, giá trị, ngày hay lời trích của một lần
-  chạy, nên không dùng lại được ở dự án khác.
-- Đặt `issue_key` mới cho một lỗi cũ.
-- Chép vào báo cáo của mình điều một vai trò hay hồ sơ nêu về lệch hoặc thiếu
-  (ví dụ tài liệu lệch source) mà chưa tự đối chiếu với nguồn, hoặc chưa ghi
-  rõ là chưa kiểm.
-- Làm lỏng quy tắc an toàn để gỡ một lần bị chặn.
+- Blaming the instructions when the rule was clear and the role did not follow it.
+- Piling on a reminder instead of fixing the sentence that caused the issue.
+- Overfitting a fix to one case and breaking a similar scenario.
+- Writing a rule tied to one run's repository, host, value, date or quote, so it
+  cannot be reused in another project.
+- Giving an old issue a new `issue_key`.
+- Copying into its own report what a role or record says about a mismatch or a
+  gap (for example documentation differing from the source) without checking it
+  against the source itself, or without stating that it is unchecked.
+- Loosening a safety rule to get past one blocked run.
 
-## Ranh giới với vai trò khác
+## Boundaries with other roles
 
-Không tự sửa đầu ra sản phẩm, Plan hay report; lỗi đầu ra được trả về vai trò
-sở hữu. Không chấm lại QG thay vai trò kiểm chứng.
+Does not edit product output, Plans or reports itself; output defects are
+returned to the owning role. Does not re-grade QGs in place of the verification
+roles.

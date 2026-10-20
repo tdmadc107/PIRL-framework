@@ -14,17 +14,17 @@ REPO = EVALS.parents[2]
 sys.path.insert(0, str(EVALS))
 from validate_layer_artifact import load_roles  # noqa: E402
 
-AGENTS = """# Vai trò AI Agent
+AGENTS = """# AI Agent roles
 
-| ID | Chuyên môn | Dùng ở |
+| ID | Expertise | Used in |
 | --- | --- | --- |
-| `business-analyst` | Logic nghiệp vụ | plan, review |
-| `code-analyst` | Lần luồng | plan, verify, review |
-| `backend-developer` | Viết source | implement |
-| `code-reviewer` | Phản biện diff | verify, review |
-| `process-auditor` | Tự đánh giá | audit |
+| `business-analyst` | Business logic | plan, review |
+| `code-analyst` | Flow tracing | plan, verify, review |
+| `backend-developer` | Writes source | implement |
+| `code-reviewer` | Challenges the diff | verify, review |
+| `process-auditor` | Self-evaluation | audit |
 
-# Mục khác
+# Other section
 """
 MANIFEST = """schema: "pirl-repos/v1"
 repos:
@@ -34,7 +34,7 @@ repos:
 """
 PLAN = """---
 schema: pirl-plan/v1
-content_language: vi
+content_language: en
 plan_set: request_20260909-090000
 task_id: T01
 title: Short API task
@@ -49,18 +49,18 @@ implementation_roles: [backend-developer]
 verification_roles: [code-reviewer]
 ---
 # API task
-## Cần làm gì
+## What to do
 API DTO HTTP response contract.
-## Làm như thế nào
+## How to do it
 Read the input and return the requested result.
-## Vai trò tham gia
+## Participating roles
 Use the roles assigned above.
-## Tiêu chí chất lượng bắt buộc
+## Required quality gates
 The caller receives the requested data.
 """
 REVIEW = """---
 schema: pirl-review/v1
-content_language: vi
+content_language: en
 plan_file: ".agents/plan/request_20260909-090000/task.md"
 task_id: T01
 review_round: 1
@@ -183,7 +183,7 @@ class RoleCatalogTests(unittest.TestCase):
         catalog = load_roles(REPO)
         for layer, usages in self.LAYER_USAGES.items():
             path = REPO / f".agents/instructions/{layer}.instructions.md"
-            section = re.search(rf"(?ms)^## Vai trò AI Agent tại layer {layer.capitalize()}\s*$(.*?)(?=^## )", path.read_text(encoding="utf-8"))
+            section = re.search(rf"(?ms)^## AI Agent roles at the {layer.capitalize()} layer\s*$(.*?)(?=^## )", path.read_text(encoding="utf-8"))
             self.assertIsNotNone(section, layer)
             rows = self.ROW.findall(section.group(1))
             self.assertTrue(rows, layer)

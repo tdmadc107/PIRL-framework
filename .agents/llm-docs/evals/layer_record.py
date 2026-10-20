@@ -3,7 +3,7 @@
 
 Records live in .agents/records/<layer>/<YYYY-MM-DD>.jsonl, one JSON object per line, append-only.
 The record contract (when to write, field meanings, causes, fix rules) is owned by the router,
-section "Tự đánh giá và cải tiến"; this tool only enforces the structure of that contract.
+section "Self-evaluation and improvement"; this tool only enforces the structure of that contract.
 """
 
 from __future__ import annotations

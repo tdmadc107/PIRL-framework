@@ -1,191 +1,200 @@
 # PIRL Framework
 
-**Plan – Implement – Review Layer**: Hub điều phối công việc phát triển phần
-mềm cho AI Agent, chạy hoàn toàn bằng file hướng dẫn (instruction).
+**Plan – Implement – Review Layer**: a Hub that coordinates software development
+work for AI Agents, running entirely on instruction files.
 
-Bạn giao việc bằng lời. Agent đọc [`AGENTS.md`](AGENTS.md), chọn đúng layer,
-chia việc cho các vai trò chuyên môn, ghi kết quả thành file trong repo, rồi tự
-cải tiến chính các file hướng dẫn sau mỗi lượt.
+You assign work in plain words. The Agent reads [`AGENTS.md`](AGENTS.md), picks
+the right layer, splits the work among specialist roles, records the results as
+files in the repository, then improves the instruction files themselves after
+each run.
 
-## Framework làm gì
+## What the framework does
 
-- **Ba layer.** Plan chốt việc cần làm và tiêu chí chất lượng (QG). Implement
-  sửa source theo Plan. Review đối chiếu kết quả với QG bằng lập luận trên
-  source.
-- **Nhiều repo.** Mỗi repo sản phẩm là một git submodule trong `.repos/` và được
-  đăng ký trong `.repos/manifest.yaml`.
-- **Vai trò AI Agent.** Mỗi layer giao việc cho vai trò đúng chuyên môn, ví dụ
-  `business-analyst`, `backend-developer`, `code-reviewer`.
-- **Tự cải tiến.** Cuối mỗi lượt layer, vai trò `process-auditor` tìm lỗi của
-  từng vai trò, sửa tận gốc file hướng dẫn liên quan, ghi một record JSONL và báo
-  lại đã sửa gì, ở đâu.
+- **Three layers.** Plan settles the work to do and the quality gates (QG).
+  Implement edits the source according to the Plan. Review checks the result
+  against the QGs by reasoning on the source.
+- **Multiple repositories.** Each product repository is a git submodule in
+  `.repos/` and is registered in `.repos/manifest.yaml`.
+- **AI Agent roles.** Each layer assigns work to roles with the right expertise,
+  for example `business-analyst`, `backend-developer`, `code-reviewer`.
+- **Self-improvement.** At the end of each layer run, the `process-auditor` role
+  finds each role's mistakes, fixes the relevant instruction files at the root,
+  writes a JSONL record and reports what was fixed and where.
 
-Framework không build, không chạy ứng dụng để nghiệm thu và không deploy. Các
-việc đó thuộc giai đoạn build/test/release của bạn. Implement chỉ viết và chạy
-test chức năng liên quan tới yêu cầu, và chụp layout bằng mock khi giao diện
-thay đổi.
+The framework does not build, does not run the application for acceptance and
+does not deploy. Those belong to your build/test/release stage. Implement only
+writes and runs functional tests related to the request, and captures layout
+with mocks when the UI changes.
 
-## Yêu cầu
+## Requirements
 
-- Một AI Agent đọc được file trong repo và chạy được lệnh, ví dụ Claude Code.
-  Host tự nạp `AGENTS.md` thì dùng ngay; host không tự nạp thì yêu cầu Agent đọc
-  `AGENTS.md` trước khi giao việc.
+- An AI Agent that can read files in the repository and run commands, for
+  example Claude Code. If the host loads `AGENTS.md` automatically, it works
+  right away; if not, ask the Agent to read `AGENTS.md` before assigning work.
 - Git.
-- Python 3.9 trở lên, cho validator và công cụ ghi record.
-- Node.js (khuyến nghị 20 trở lên), nếu dùng dashboard.
-- PowerShell 7 (`pwsh`) trên Windows, nếu dùng `claude-resume` hoặc
+- Python 3.9 or later, for the validator and the record tool.
+- Node.js (20 or later recommended), if you use the dashboard.
+- PowerShell 7 (`pwsh`) on Windows, if you use `claude-resume` or
   `claude-schedule`.
 
-## Bắt đầu nhanh
+## Quick start
 
-### 1. Lấy Hub về máy
+### 1. Get the Hub
 
 ```powershell
 git clone --recurse-submodules https://github.com/tdmadc107/PIRL-framework.git
 ```
 
-### 2. Đăng ký repo sản phẩm
+### 2. Register a product repository
 
-Bạn có thể nhờ Agent làm bước này, ví dụ: "Đăng ký repo `<url>` với id
-`shop-web`". Làm tay gồm hai phần:
+You can ask the Agent to do this step, for example: "Register repository `<url>`
+with id `shop-web`". Doing it by hand has two parts:
 
 ```powershell
 git submodule add <url> .repos/shop-web
 ```
 
-Rồi thêm mục vào `.repos/manifest.yaml`. Khi thêm mục đầu tiên, thay
-`repos: {}` bằng `repos:`.
+Then add an entry to `.repos/manifest.yaml`. When adding the first entry,
+replace `repos: {}` with `repos:`.
 
 ```yaml
 schema: "pirl-repos/v1"
 repos:
   shop-web:
     path: ".repos/shop-web"
-    product: "Cửa hàng trực tuyến"
+    product: "Online store"
     stack: "React + Node.js"
-    keywords: ["cửa hàng", "giỏ hàng", "thanh toán"]
+    keywords: ["store", "cart", "checkout"]
     commands:
-      test: "npm test -- <file test>"
+      test: "npm test -- <test file>"
     context_docs: [".agents/llm-docs/repos/shop-web.md"]
     rules: []
 ```
 
-Repo chỉ được coi là đã đăng ký khi có cả submodule lẫn mục trong manifest.
-Thiếu một trong hai thì Agent chưa định tuyến tới repo đó, và dashboard cảnh báo.
+A repository counts as registered only when it has both the submodule and the
+manifest entry. If either is missing, the Agent does not route to that
+repository yet, and the dashboard shows a warning.
 
-Nên có thêm tài liệu ngữ cảnh `.agents/llm-docs/repos/shop-web.md`, gồm: kiến
-trúc, quy ước, ngôn ngữ giao diện và khổ màn hình cần chụp layout, khoảng trống
-đã biết. Có thể giao Agent soạn tài liệu này như một task độc lập.
+It is worth adding context documentation at `.agents/llm-docs/repos/shop-web.md`,
+covering: architecture, conventions, UI languages and viewports to capture in
+layout snapshots, and known gaps. You can assign the Agent to write this
+document as a standalone task.
 
-### 3. Giao việc
+### 3. Assign work
 
-Không cần lệnh hay từ khóa đặc biệt; nói bằng lời:
+No special commands or keywords are needed; just say it:
 
-| Bạn muốn | Ví dụ câu giao việc | Agent chạy |
+| You want to | Example request | The Agent runs |
 | --- | --- | --- |
-| Lập kế hoạch | "Lập Plan cho yêu cầu: khách hàng nhận email khi đơn hàng bị hủy" | Plan |
-| Triển khai | "Triển khai Plan T01 trong `.agents/plan/<gói>`" | Implement |
-| Review | "Review phần triển khai của Plan T01" | Review |
-| Sửa theo Review | "Sửa theo report `<đường dẫn report>`" | Implement, lượt sửa |
-| Việc nhỏ ngoài chuỗi | "Cập nhật tài liệu ngữ cảnh của shop-web" | Task độc lập |
-| Sửa chính framework | "Sửa quy tắc dọn tài nguyên trong router" | Bảo trì framework |
-| Chỉ hỏi | "Plan T01 phụ thuộc vào task nào?" | Trả lời, không tạo file |
+| Plan | "Create a Plan for: customers get an email when an order is cancelled" | Plan |
+| Implement | "Implement Plan T01 in `.agents/plan/<package>`" | Implement |
+| Review | "Review the implementation of Plan T01" | Review |
+| Fix per a Review | "Fix per report `<report path>`" | Implement, repair run |
+| Small work outside the chain | "Update the context documentation of shop-web" | Standalone task |
+| Edit the framework itself | "Fix the cleanup rule in the router" | Framework maintenance |
+| Just ask | "Which tasks does Plan T01 depend on?" | Answer, no files created |
 
-Mỗi layer chỉ chạy khi bạn yêu cầu; Agent không tự chuyển sang layer kế tiếp.
-Agent tự chọn đội vai trò nhỏ nhất đủ chuyên môn. Muốn chỉ định đội, nêu tên vai
-trò trong câu giao việc; danh mục vai trò nằm ở
-[`AGENTS.md`](AGENTS.md#vai-trò-ai-agent).
+Each layer runs only when you ask for it; the Agent does not move on to the next
+layer by itself. The Agent picks the smallest team of roles with enough
+expertise. To choose the team yourself, name the roles in your request; the role
+catalog is in [`AGENTS.md`](AGENTS.md#ai-agent-roles).
 
-## Một vòng làm việc đầy đủ
+## A full working cycle
 
-1. **Plan.** Agent khảo sát source và hỏi khi thiếu quyết định sản phẩm. Kết
-   quả là một gói Plan trong `.agents/plan/<request-slug>_<YYYYMMDD-HHmmss>/`,
-   mỗi task một file gồm: Cần làm gì (REQ), Làm như thế nào, Vai trò tham gia,
-   Tiêu chí chất lượng bắt buộc (QG). Hãy đọc và chốt Plan trước khi triển khai.
-2. **Implement.** Agent sửa source trong repo sản phẩm, đúng phạm vi Plan. Vai
-   trò kiểm chứng kết luận từng QG bằng lập luận trên source. Kết quả ghi vào mục
-   `Implementation Record` ở cuối file Plan. Khi giao diện thay đổi, ảnh layout
-   nằm trong `.tmp/layout-snapshots/` (không vào git).
-3. **Review.** Agent đối chiếu từng QG trên source và ghi report vào
-   `.agents/review/<plan-set>/<task>/round-<NN>-review-...md`. Report có hai mục:
-   `Business` (kết luận PASS, FAIL hoặc BLOCKED cùng các FIND, RISK, BLOCK) và
-   `Evaluations` (đánh giá từng vai trò của lượt Implement).
-4. **Sửa.** Khi Business FAIL, giao "Sửa theo report ...". Implement chạy lượt
-   sửa với đội ghi trong report, rồi bạn yêu cầu Review vòng mới.
-5. **Commit.** Agent chỉ commit hoặc push khi bạn yêu cầu. Thay đổi trong repo
-   sản phẩm được commit trong submodule trước; sau đó commit ở Hub gồm con trỏ
-   submodule, Plan, report, record và cải tiến framework của cùng lượt.
+1. **Plan.** The Agent investigates the source and asks when a product decision
+   is missing. The result is a Plan package in
+   `.agents/plan/<request-slug>_<YYYYMMDD-HHmmss>/`, one file per task with: What
+   to do (REQs), How to do it, Participating roles, Required quality gates (QGs).
+   Read and settle the Plan before implementing.
+2. **Implement.** The Agent edits the source in the product repository, within
+   the Plan's scope. Verification roles conclude each QG by reasoning on the
+   source. The results go into the `Implementation Record` section at the end of
+   the Plan file. When the UI changes, layout screenshots are in
+   `.tmp/layout-snapshots/` (not in git).
+3. **Review.** The Agent checks each QG against the source and writes a report to
+   `.agents/review/<plan-set>/<task>/round-<NN>-review-...md`. The report has two
+   sections: `Business` (a PASS, FAIL or BLOCKED conclusion with FINDs, RISKs and
+   BLOCKs) and `Evaluations` (an assessment of each role of the Implement run).
+4. **Fix.** When Business is FAIL, assign "Fix per report ...". Implement runs a
+   repair run with the team named in the report, then you ask for a new Review
+   round.
+5. **Commit.** The Agent commits or pushes only when you ask. Changes in a
+   product repository are committed in the submodule first; then a Hub commit
+   includes the submodule pointer, Plan, report, records and framework
+   improvements of the same run.
 
-## Đọc phần tự cải tiến sau mỗi lượt
+## Reading the self-improvement part after each run
 
-Cuối mỗi lượt Plan, Implement hoặc Review, phản hồi của Agent có:
+At the end of each Plan, Implement or Review run, the Agent's response has:
 
-- **Tự cải tiến:** mã record, và với mỗi cải tiến đã áp dụng: lỗi, nguyên nhân,
-  file và mục đã sửa, version cũ → mới. Hãy xem diff các file này trước khi
-  commit.
-- **Cần xác nhận:** khối cuối câu trả lời, chỉ có điểm về cải tiến này khi cải
-  tiến sẽ làm lỏng một quy tắc an toàn. Bạn chọn áp dụng, bỏ qua, hoặc cho đánh
-  giá lại bằng agent riêng; chi tiết lỗi và thay đổi nằm trong mục "Tự cải
-  tiến". Việc đánh giá luôn được giao cho một agent riêng; chỉ khi host không
-  tạo được agent, Agent mới tự đánh giá và nêu lý do.
+- **Self-improvement:** the record ID, and for each applied improvement: the
+  issue, cause, file and section edited, old → new version. Look at the diff of
+  these files before committing.
+- **Needs confirmation:** the closing block of the answer; it has a point about
+  this improvement only when the improvement would loosen a safety rule. You
+  choose to apply, skip, or have it re-evaluated by a separate agent; the
+  details of the issue and the change are in the "Self-improvement" section.
+  The evaluation is always delegated to a separate agent; only when the host
+  cannot create agents does the Agent evaluate itself and state the reason.
 
-Quy tắc an toàn (commit, push, secret, thao tác phá hủy, các điểm cần bạn quyết
-định) không bao giờ bị tự cải tiến làm lỏng khi chưa có bạn đồng ý. Định nghĩa
-đầy đủ nằm trong
+Safety rules (commit, push, secrets, destructive actions, points that need your
+decision) are never loosened by self-improvement without your consent. The full
+definition is in
 [`core-agent.rule.md`](.agents/llm-docs/rules/core-agent.rule.md#safety-rules-and-self-improvement).
 
-Record nằm trong `.agents/records/<layer>/<YYYY-MM-DD>.jsonl`. Tra lịch sử:
+Records live in `.agents/records/<layer>/<YYYY-MM-DD>.jsonl`. To look up history:
 
 ```powershell
-python -B .agents/llm-docs/evals/layer_record.py query --issue-key <khóa lỗi>
-python -B .agents/llm-docs/evals/layer_record.py query --layer review --plan-set <gói> --task T01
+python -B .agents/llm-docs/evals/layer_record.py query --issue-key <issue key>
+python -B .agents/llm-docs/evals/layer_record.py query --layer review --plan-set <package> --task T01
 python -B .agents/llm-docs/evals/layer_record.py check
 ```
 
-## Công cụ cục bộ
+## Local tools
 
-- **Dashboard:** theo dõi phiên Claude Code, hạn mức, tiến độ Plan/Review, thay
-  đổi file và git của Hub cùng mọi repo, và cảnh báo repo đăng ký dở. Chạy
-  `.tools\dashboard\dashboard.bat` hoặc `node .tools/dashboard/dashboard.js`.
-- **claude-resume, claude-schedule:** chạy lại phiên sau khi hạn mức reset, và
-  hẹn giờ một task bằng Windows Task Scheduler.
+- **Dashboard:** monitors Claude Code sessions, quota, Plan/Review progress, file
+  and git changes in the Hub and every repository, and warns about partially
+  registered repositories. Run `.tools\dashboard\dashboard.bat` or
+  `node .tools/dashboard/dashboard.js`.
+- **claude-resume, claude-schedule:** resume a session after the quota resets,
+  and schedule a task with Windows Task Scheduler.
 
-Chi tiết và tham số: [`.tools/README.md`](.tools/README.md).
+Details and options: [`.tools/README.md`](.tools/README.md).
 
-## Kiểm tra sau khi sửa framework
+## Checks after editing the framework
 
 ```powershell
 python -B -m unittest discover -s .agents/llm-docs/evals/tests -p "test_*.py"
 ```
 
-Chọn lệnh kiểm tra theo phần đã sửa: xem
-[Kiểm tra framework](AGENTS.md#kiểm-tra-framework).
+Pick the check commands that match what you edited: see
+[Framework checks](AGENTS.md#framework-checks).
 
-## Cấu trúc thư mục
+## Directory structure
 
 ```text
-AGENTS.md        gốc: cấu trúc, luồng, vai trò, định tuyến repo
-CONTEXT.md       cách trình bày phản hồi gửi người dùng
-.agents/         hướng dẫn layer, vai trò, quy tắc, công cụ, Plan, report, record
-.repos/          manifest và submodule của repo sản phẩm
+AGENTS.md        root: structure, flow, roles, repository routing
+CONTEXT.md       how responses to the user are presented
+.agents/         layer instructions, roles, rules, tools, Plans, reports, records
+.repos/          manifest and submodules of the product repositories
 .tools/          dashboard, claude-resume, claude-schedule
-.tmp/            đầu ra tạm, không vào git
+.tmp/            temporary output, not in git
 ```
 
-Cây đầy đủ: [`AGENTS.md`](AGENTS.md#cấu-trúc).
+Full tree: [`AGENTS.md`](AGENTS.md#structure).
 
-## Tài liệu tham chiếu
+## Reference documentation
 
-| Muốn biết | Đọc |
+| To learn about | Read |
 | --- | --- |
-| Cấu trúc, luồng, vai trò, đăng ký repo | [`AGENTS.md`](AGENTS.md) |
-| Cách Agent trình bày câu trả lời, tóm tắt, đề xuất | [`CONTEXT.md`](CONTEXT.md) |
-| Cách chọn layer, hợp đồng chung, tự cải tiến | [Router](.agents/instructions/layered-task-execution.instructions.md) |
-| Chi tiết từng layer | [Plan](.agents/instructions/plan.instructions.md), [Implement](.agents/instructions/implement.instructions.md), [Review](.agents/instructions/review.instructions.md) |
-| Chuyên môn từng vai trò | [`.agents/roles/`](.agents/roles/) |
-| Quy tắc an toàn và test | [`core-agent`](.agents/llm-docs/rules/core-agent.rule.md), [`test-verification`](.agents/llm-docs/rules/test-verification.rule.md) |
-| Công cụ cục bộ | [`.tools/README.md`](.tools/README.md) |
+| Structure, flow, roles, repository registration | [`AGENTS.md`](AGENTS.md) |
+| How the Agent presents answers, summaries, proposals | [`CONTEXT.md`](CONTEXT.md) |
+| Choosing a layer, shared contracts, self-improvement | [Router](.agents/instructions/layered-task-execution.instructions.md) |
+| Each layer in detail | [Plan](.agents/instructions/plan.instructions.md), [Implement](.agents/instructions/implement.instructions.md), [Review](.agents/instructions/review.instructions.md) |
+| Each role's expertise | [`.agents/roles/`](.agents/roles/) |
+| Safety and test rules | [`core-agent`](.agents/llm-docs/rules/core-agent.rule.md), [`test-verification`](.agents/llm-docs/rules/test-verification.rule.md) |
+| Local tools | [`.tools/README.md`](.tools/README.md) |
 
-## Giấy phép
+## License
 
 [MIT](LICENSE).

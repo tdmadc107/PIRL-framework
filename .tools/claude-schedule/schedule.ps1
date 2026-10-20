@@ -1,8 +1,8 @@
-# Hẹn giờ một task Claude Code chạy một lần, xem danh sách và xoá task đã hẹn.
-# Task nằm trong thư mục \Claude\ của Task Scheduler, gọi run.ps1 -Name <Name>; prompt lưu ở
-# .tmp\claude-schedule\tasks\<Name>.txt của Hub (.tmp/ không vào git).
+# Schedules a Claude Code task to run once, lists scheduled tasks and removes them.
+# Tasks live in the \Claude\ folder of Task Scheduler and call run.ps1 -Name <Name>; the prompt is stored
+# in the Hub's .tmp\claude-schedule\tasks\<Name>.txt (.tmp/ is not in git).
 #   schedule.ps1 -Name review-t01 -At "2026-10-10 08:00" -Prompt "..." [-SessionId <uuid>]
-#   schedule.ps1 -Name review-t01 -At 08:00 -PromptFile D:\prompt.md   # HH:mm: lần tới của giờ đó
+#   schedule.ps1 -Name review-t01 -At 08:00 -PromptFile D:\prompt.md   # HH:mm: next occurrence of that time
 #   schedule.ps1 -List
 #   schedule.ps1 -Remove -Name review-t01
 [CmdletBinding(DefaultParameterSetName = "Add")]
@@ -27,7 +27,7 @@ $taskPath = "\Claude\"
 
 if ($List) {
     $tasks = @(Get-ScheduledTask -TaskPath $taskPath -ErrorAction SilentlyContinue)
-    if (-not $tasks) { "Chưa có task nào trong $taskPath"; return }
+    if (-not $tasks) { "No tasks in $taskPath yet"; return }
     $tasks | ForEach-Object {
         $info = $_ | Get-ScheduledTaskInfo
         [pscustomobject]@{
@@ -46,11 +46,11 @@ $file = Join-Path $taskDir "$Name.txt"
 if ($Remove) {
     Unregister-ScheduledTask -TaskPath $taskPath -TaskName $Name -Confirm:$false
     Remove-Item -LiteralPath $file -ErrorAction SilentlyContinue
-    "Đã xoá task $Name"
+    "Removed task $Name"
     return
 }
 
-# Không dựa vào định dạng ngày của locale (yy/MM/dd trên máy này).
+# Do not rely on the locale's date format (yy/MM/dd on this machine).
 $inv = [cultureinfo]::InvariantCulture
 $when = [datetime]::MinValue
 if ([datetime]::TryParseExact($At, "yyyy-MM-dd HH:mm", $inv, "None", [ref]$when)) {
@@ -58,16 +58,16 @@ if ([datetime]::TryParseExact($At, "yyyy-MM-dd HH:mm", $inv, "None", [ref]$when)
     $when = (Get-Date).Date + $when.TimeOfDay
     if ($when -le (Get-Date)) { $when = $when.AddDays(1) }
 } else {
-    throw "-At phải ở dạng 'yyyy-MM-dd HH:mm' hoặc 'HH:mm', nhận '$At'"
+    throw "-At must be in the form 'yyyy-MM-dd HH:mm' or 'HH:mm', got '$At'"
 }
-if ($when -le (Get-Date)) { throw "Thời điểm $($when.ToString('yyyy-MM-dd HH:mm')) đã qua" }
+if ($when -le (Get-Date)) { throw "The time $($when.ToString('yyyy-MM-dd HH:mm')) has already passed" }
 
-if ([bool]$Prompt -eq [bool]$PromptFile) { throw "Cần đúng một trong -Prompt hoặc -PromptFile" }
+if ([bool]$Prompt -eq [bool]$PromptFile) { throw "Exactly one of -Prompt or -PromptFile is required" }
 $text = if ($PromptFile) { Get-Content -LiteralPath $PromptFile -Raw -Encoding utf8 } else { $Prompt }
-if (-not $text.Trim()) { throw "Prompt rỗng" }
+if (-not $text.Trim()) { throw "The prompt is empty" }
 
 if (-not $Force -and (Get-ScheduledTask -TaskPath $taskPath -TaskName $Name -ErrorAction SilentlyContinue)) {
-    throw "Task $Name đã tồn tại; thêm -Force để ghi đè"
+    throw "Task $Name already exists; add -Force to overwrite"
 }
 
 New-Item -ItemType Directory -Force $taskDir | Out-Null
@@ -85,4 +85,4 @@ if ($summary.Length -gt 200) { $summary = $summary.Substring(0, 200) + "..." }
 
 Register-ScheduledTask -TaskPath $taskPath -TaskName $Name -Action $action -Trigger $trigger `
     -Principal $principal -Settings $settings -Description $summary -Force | Out-Null
-"Đã hẹn task $Name lúc $($when.ToString('yyyy-MM-dd HH:mm')); prompt: $file"
+"Scheduled task $Name at $($when.ToString('yyyy-MM-dd HH:mm')); prompt: $file"

@@ -1,7 +1,7 @@
 ---
 id: .agents/llm-docs/rules/core-agent
 kind: rule
-version: 5.4.2
+version: 5.4.3
 status: active
 ---
 
@@ -21,7 +21,7 @@ status: active
 
 ### Safety rules and self-improvement
 
-Safety rules are: every rule in this Safety section; the "Git và submodule" section of `AGENTS.md`; and any rule anywhere in the framework that limits commit, push, deploy, secrets or destructive and externally consequential actions, or that requires the user's decision or authorization. The self-improvement guards of the router are safety rules too: the mode-self guard (a self-evaluation record never applies fixes itself; improvements that touch no safety rule are applied in the same turn as user-directed maintenance under the standing authorization in `AGENTS.md`, section "Luồng làm việc", and everything else goes to the user) and the never-loosen rule below, including this definition. That authorization covers improvements that touch no safety rule and nothing else.
+Safety rules are: every rule in this Safety section; the "Git and submodules" section of `AGENTS.md`; and any rule anywhere in the framework that limits commit, push, deploy, secrets or destructive and externally consequential actions, or that requires the user's decision or authorization. The self-improvement guards of the router are safety rules too: the mode-self guard (a self-evaluation record never applies fixes itself; improvements that touch no safety rule are applied in the same turn as user-directed maintenance under the standing authorization in `AGENTS.md`, section "Workflow", and everything else goes to the user) and the never-loosen rule below, including this definition. That authorization covers improvements that touch no safety rule and nothing else.
 
 Code and tests that enforce a safety rule are part of that rule: for example, the check in `.agents/llm-docs/evals/layer_record.py` that rejects applied fixes from a self-evaluation, together with its tests.
 

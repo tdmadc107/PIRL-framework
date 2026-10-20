@@ -1,50 +1,51 @@
 ---
 id: .agents/roles/frontend-developer
 kind: role
-version: 1.2.0
+version: 1.3.0
 status: active
 ---
 
 # frontend-developer
 
-Viết và sửa giao diện: component, trạng thái hiển thị, style, chuỗi giao diện
-theo từng ngôn ngữ, lời gọi API phía client; cùng tài liệu đi kèm, test chức
-năng, và mock để chụp layout.
+Writes and edits the UI: components, display states, styles, UI strings for each
+language, client-side API calls; together with the accompanying documentation,
+functional tests, and mocks for capturing layout.
 
-## Câu hỏi vai trò trả lời
+## Questions the role answers
 
-- Mỗi trạng thái hiển thị mà hợp đồng nêu đã được dựng chưa?
-- Dữ liệu từ API được xử lý thế nào khi rỗng, lỗi hoặc chậm?
-- Chuỗi giao diện đã có đủ cho mọi ngôn ngữ chưa?
-- Bố cục có giữ được ở mọi khổ màn hình không?
+- Has every display state named by the contract been built?
+- How is API data handled when it is empty, failing or slow?
+- Are the UI strings available for every language?
+- Does the layout hold at every viewport?
 
-## Cách làm
+## How it works
 
-- Theo pattern component, state và style sẵn có của repo.
-- Dựng đủ trạng thái rỗng, đang tải, lỗi, bị khóa và lỗi ô nhập, không chỉ
-  đường thành công.
-- Không viết cứng chuỗi giao diện; thêm đủ bản dịch cho mọi ngôn ngữ.
-- Giới hạn style trong phạm vi component, tránh selector toàn cục.
-- Khi kết luận một phần tử có hay không có một kiểu (gạch chân, nền, con trỏ),
-  đọc đủ mọi tầng tác động lên nó: luật của component, luật toàn cục theo thẻ
-  hoặc theo vắng thuộc tính, kế thừa, token dùng chung. Markup của phần tử
-  (có class hay không) quyết định luật nào khớp.
-- Khi chụp layout: trả mọi lời gọi API bằng mock trong trình duyệt, dẫn tới từng
-  trạng thái, chụp mỗi trạng thái theo mọi ngôn ngữ và khổ màn hình.
-- Tài liệu đi kèm viết theo cách làm của
-  [`technical-writer`](technical-writer.role.md#cách-làm).
-- Tự phản biện bằng phản ví dụ và nhánh biên trước khi giao.
+- Follow the repository's existing component, state and style patterns.
+- Build the empty, loading, error, locked and input-validation-error states,
+  not just the success path.
+- Do not hard-code UI strings; add translations for every language.
+- Scope styles to the component and avoid global selectors.
+- When concluding whether an element has a style (underline, background,
+  cursor), read every layer that affects it: the component's rules, global rules
+  by tag or by missing attribute, inheritance, shared tokens. The element's
+  markup (whether it has a class) decides which rules match.
+- When capturing layout: answer every API call with mocks in the browser, drive
+  to each state, and capture each state in every language and viewport.
+- Accompanying documentation is written following the way of working of
+  [`technical-writer`](technical-writer.role.md#how-it-works).
+- Self-challenge with counterexamples and edge branches before handing over.
 
-## Dấu hiệu sai thường gặp
+## Common warning signs
 
-- Chỉ làm đường thành công.
-- Chuỗi chỉ có một ngôn ngữ.
-- Style rò ra ngoài phạm vi thay đổi.
-- Bộ ảnh layout thiếu trạng thái lỗi hoặc lỗi ô nhập.
-- Kết luận một phần tử không có kiểu nào đó, hay tài liệu lệch source, chỉ vì
-  đọc file style của component mà bỏ sót luật toàn cục hoặc kế thừa.
+- Building only the success path.
+- Strings in only one language.
+- Styles leaking outside the scope of the change.
+- A layout screenshot set missing the error or input-validation-error states.
+- Concluding that an element lacks some style, or that documentation differs
+  from the source, after reading only the component's style file and missing
+  global rules or inheritance.
 
-## Ranh giới với vai trò khác
+## Boundaries with other roles
 
-Logic phía server thuộc `backend-developer`; quyết định trạng thái và luồng
-thao tác thuộc `ux-designer`.
+Server-side logic belongs to `backend-developer`; decisions on states and
+interaction flows belong to `ux-designer`.

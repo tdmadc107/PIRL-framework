@@ -1,206 +1,227 @@
 ---
-name: "Hướng dẫn layer Review"
-description: "Đối chiếu quality gate của Plan bằng lập luận trên source, không dựa vào build/test, báo Business và Evaluations (đánh giá vai trò Implement, nguyên nhân lỗi và cải tiến đã áp dụng)."
+name: "Review Layer Instructions"
+description: "Check the Plan's quality gates by reasoning on the source, without relying on builds/tests, and report Business and Evaluations (assessment of the Implement roles, causes of their issues and improvements applied)."
 applyTo: ".agents/instructions/review.instructions.md"
 metadata:
   id: ".agents/instructions/review"
   kind: "instruction"
-  version: "1.3.1"
+  version: "1.4.0"
   status: "active"
 ---
 
-# Hướng dẫn layer Review
+# Review Layer Instructions
 
-Chỉ áp dụng quy trình Review khi yêu cầu và [router](layered-task-execution.instructions.md)
-đã chọn layer này. Đọc hoặc cập nhật một file Plan/report không tự kích hoạt
-layer khác.
+Apply the Review process only when the request and the [router](layered-task-execution.instructions.md)
+have selected this layer. Reading or updating a Plan/report file does not
+activate another layer.
 
-Đây là nguồn quy trình, mẫu report và điều kiện kết thúc Review theo Plan.
-Review phải phân biệt sản phẩm sai, chưa đủ bằng chứng và hướng dẫn khiến
-agent quyết định sai. Dùng đúng hai mục `Business` và `Evaluations`; giữ nguyên
-ID, symbol, tên vai trò và đường dẫn, diễn giải bằng tiếng Việt dễ hiểu.
+This is the source of the process, the report template and the exit
+conditions of a Review against a Plan. Review must distinguish a wrong product,
+insufficient evidence and instructions that led an agent to a wrong decision.
+Use exactly the two sections `Business` and `Evaluations`; keep IDs, symbols,
+role names and paths verbatim, and explain in plain English.
 
-## Vai trò AI Agent tại layer Review
+## AI Agent roles at the Review layer
 
-Danh mục vai trò và nguyên tắc giao việc nằm ở [AGENTS.md](../../AGENTS.md#vai-trò-ai-agent);
-chuyên môn của từng vai trò nằm trong file vai trò được liên kết trong bảng.
-Review chọn `review_roles` trong bảng dưới theo cột "Chọn khi", theo thứ tự của
-bảng: bốn vai trò đầu là mặc định, thêm `ux-designer` khi diff đổi giao diện.
-Mỗi vai trò xử lý chuyên môn của mình theo QG/ranh giới cụ thể, không bắt mỗi
-vai trò tìm một lỗi.
+The role catalog and assignment principles live in [AGENTS.md](../../AGENTS.md#ai-agent-roles);
+each role's expertise lives in the role file linked in the table.
+Review picks `review_roles` from the table below using the "Select when"
+column, in the table's order: the first four roles are the default, and
+`ux-designer` is added when the diff changes the UI. Each role applies its own
+expertise to specific QGs/boundaries; do not force every role to find a defect.
 
-| Vai trò | Chọn khi | Trách nhiệm tại Review | Hoàn tất khi |
+| Role | Select when | Responsibility at Review | Done when |
 | --- | --- | --- | --- |
-| [`code-analyst`](../roles/code-analyst.role.md) | Mặc định | Lần entrypoint, caller, bên ghi/đọc, cấu hình tới trạng thái cuối của từng QG | Kết luận QG kèm đường đã lần và nguồn |
-| [`code-reviewer`](../roles/code-reviewer.role.md) | Mặc định | Phản biện diff: bug, hồi quy, quyền và bảo mật, mất nhất quán, guard/xử lý lỗi, test vi phạm FUT | Nghi vấn được chứng minh thành FIND hoặc bị bác bỏ có nguồn |
-| [`business-analyst`](../roles/business-analyst.role.md) | Mặc định | Đối chiếu REQ và `Logic bắt buộc` của QG với hành vi source; chặn tiêu chí tự thêm | Mỗi QG có `PASS\|FAIL\|BLOCKED` đúng REQ |
-| [`solution-architect`](../roles/solution-architect.role.md) | Mặc định | Xét hợp đồng, ownership, ranh giới task và phụ thuộc có bị phá không | Nêu được QG bị ảnh hưởng hoặc xác nhận không ảnh hưởng |
-| [`ux-designer`](../roles/ux-designer.role.md) | Diff đổi giao diện | Đọc `layout_verification` và ảnh của Implement, đối chiếu QG giao diện | Mỗi QG giao diện có kết luận kèm ảnh và source đã đối chiếu |
-| [`process-auditor`](../roles/process-auditor.role.md) | Mọi vòng Review; không ghi vào `review_roles` | Đánh giá lại vai trò Implement (mục Evaluations) và tự đánh giá lượt Review theo [router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến) | Evaluations bao phủ đội Implement; record đã ghi; cải tiến đã áp dụng hoặc đã tổng hợp cho người dùng |
+| [`code-analyst`](../roles/code-analyst.role.md) | Default | Trace the entrypoint, callers, writers/readers and configuration to the final state of each QG | QG conclusions with the path traced and sources |
+| [`code-reviewer`](../roles/code-reviewer.role.md) | Default | Challenge the diff: bugs, regressions, permissions and security, inconsistency, guards/error handling, tests that violate FUT | Each suspicion is proven as a FIND or refuted with sources |
+| [`business-analyst`](../roles/business-analyst.role.md) | Default | Check the REQs and the QGs' `Required logic` against the source's behavior; block self-invented criteria | Each QG has `PASS\|FAIL\|BLOCKED` true to its REQ |
+| [`solution-architect`](../roles/solution-architect.role.md) | Default | Consider whether contracts, ownership, task boundaries and dependencies are broken | Names the affected QGs or confirms there is no impact |
+| [`ux-designer`](../roles/ux-designer.role.md) | The diff changes the UI | Read Implement's `layout_verification` and screenshots and check them against the UI QGs | Each UI QG has a conclusion with the screenshots and source checked |
+| [`process-auditor`](../roles/process-auditor.role.md) | Every Review round; not recorded in `review_roles` | Re-evaluate the Implement roles (Evaluations section) and self-evaluate the Review run per the [router](layered-task-execution.instructions.md#self-evaluation-and-improvement) | Evaluations cover the Implement team; record written; improvements applied or summarized for the user |
 
-- Phân xử bất đồng bằng source, hợp nhất nghi vấn cùng nguyên nhân; không bỏ
-  phiếu. Giao từng vai trò trong `review_roles` theo
-  [nguyên tắc giao việc](../../AGENTS.md#vai-trò-ai-agent). Report ghi cách
-  thực hiện của từng vai trò (agent riêng, hoặc tự thực hiện kèm lý do) và mức
-  độc lập thực tế khi một vai trò đã đọc bản nháp hay kết luận của lượt hoặc đã
-  hỏi người phản biện ngoài đội vai trò.
-- Với từng record Implement, phân một chủ đánh giá và đối chiếu chéo khi có
-  nghi vấn.
+- Settle disagreements by the source and merge suspicions with the same cause;
+  do not vote. Delegate each role in `review_roles` per the
+  [assignment principles](../../AGENTS.md#ai-agent-roles). The report records
+  how each role was performed (a separate agent, or self-performed with the
+  reason) and the actual level of independence when a role has read the run's
+  drafts or conclusions or has consulted a reviewer outside the role team.
+- For each Implement record, assign one evaluation owner and cross-check when
+  there is a suspicion.
 
-## Đầu vào và quyền
+## Inputs and permissions
 
-- Đọc đúng Plan `pirl-plan/v1`, Implementation Record, source/diff của lượt
-  được giao và report trước cùng task nếu có. Xác định snapshot trước khi kết
-  luận và đọc nó theo
-  [mục Snapshot chung và hồ sơ cũ](layered-task-execution.instructions.md#snapshot-chung-và-hồ-sơ-cũ)
-  của router.
-- Kết luận mỗi QG trên source cuối; khi nhiều task chung snapshot, ghi snapshot
-  chung trong `implementation_target`. Chỗ lệch với QG của task trước mà thuộc
-  task chạy sau theo thứ tự dựng ở router không là FAIL của task trước và không
-  tính cho vai trò Implement của task trước; nếu nó nằm ngoài REQ của task sau
-  thì là FIND của task sau. Thay đổi chưa có chủ không là FIND của task nào: nếu
-  nó làm vỡ QG của task đang review, ghi QG đó `BLOCKED` kèm BLOCK `escalate`
-  vì chưa có chủ để giao `repair`; còn lại nêu nó trong `implementation_target`
-  và `Tiếp theo`.
-- Plan có chú thích `Thay đổi đã xác nhận` là Plan hiện hành: kết luận QG theo
-  nó, sau khi tìm được dấu vết của từng chú thích theo
-  [quy tắc Implement](implement.instructions.md#thay-đổi-so-với-plan-do-người-dùng-xác-nhận):
-  mục `plan_amendments` của Implementation Record, hoặc record của lượt Plan
-  cùng task mà chú thích ghi `record_id`. Chú thích không có dấu vết nào, hoặc
-  dấu vết không nêu xác nhận của người dùng cho thay đổi đó, thì không là
-  baseline: kết luận QG theo giá trị trước thay đổi và ghi BLOCK `escalate` để
-  người dùng xác nhận.
-- Source sản phẩm, test, config, Plan và Implementation Record là đầu vào chỉ
-  đọc. Review ghi report của lượt này; file framework chỉ do `process-auditor`
-  sửa theo [router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến).
-  Không sửa sản phẩm, Plan hay Implementation Record.
+- Read exactly the `pirl-plan/v1` Plan, the Implementation Record, the
+  source/diff of the assigned run and any earlier report for the same task.
+  Identify the snapshot before concluding and read it per the
+  [Shared snapshots and older records section](layered-task-execution.instructions.md#shared-snapshots-and-older-records)
+  of the router.
+- Conclude each QG on the final source; when several tasks share a snapshot,
+  record the shared snapshot in `implementation_target`. A mismatch with an
+  earlier task's QG that belongs to a later task, in the order rebuilt per the
+  router, is not a FAIL of the earlier task and is not counted against the
+  earlier task's Implement roles; if it lies outside the later task's REQs, it
+  is a FIND of the later task. An unowned change is not a FIND of any task: if
+  it breaks a QG of the task under review, record that QG `BLOCKED` with an
+  `escalate` BLOCK because there is no owner to assign a `repair` to; otherwise
+  state it in `implementation_target` and `Next`.
+- A Plan with `Confirmed change` annotations is the current Plan: conclude the
+  QGs against it, after finding the trace of each annotation per the
+  [Implement rule](implement.instructions.md#changes-to-the-plan-confirmed-by-the-user):
+  the `plan_amendments` field of the Implementation Record, or the record of the
+  Plan run for the same task whose `record_id` the annotation states. An
+  annotation without any trace, or whose trace does not state the user's
+  confirmation of that change, is not a baseline: conclude the QGs against the
+  value before the change and record an `escalate` BLOCK for the user to confirm.
+- Product source, tests, config, the Plan and the Implementation Record are
+  read-only inputs. Review writes this run's report; framework files are edited
+  only by `process-auditor` per the [router](layered-task-execution.instructions.md#self-evaluation-and-improvement).
+  Do not edit the product, the Plan or the Implementation Record.
 
-## Business: chứng minh hoặc bác bỏ từng nghi vấn
+## Business: prove or refute each suspicion
 
-1. Lấy QG và `Logic bắt buộc` nguyên từ Plan. REQ và quyết định người dùng
-   giải thích tiêu chí; rubric, sở thích reviewer và lỗi hướng dẫn không
-   tạo tiêu chí sản phẩm mới.
-   Đối chiếu [ranh giới task của Plan](plan.instructions.md#chia-task-để-triển-khai-và-nghiệm-thu-riêng):
-   không lấy tiêu chí tích hợp của task khác làm điều kiện PASS task đang
-   review. Nếu chính QG cần phần việc giao cho task chạy sau/song song,
-   ghi QG đó `BLOCKED`, tạo BLOCK `escalate` về Plan để sửa phân công/QG,
-   không giao `repair`/`retry` cùng task chỉ để chờ phần việc kia. Không tự
-   bỏ QG hoặc ghi PASS; vẫn đánh giá lỗi triển khai độc lập có đủ bằng chứng.
-2. Lần theo entrypoint, caller, guard, bên ghi/đọc, cấu hình và nhánh thất bại
-   có thể xảy ra. Xác nhận trigger nằm trong hợp đồng sử dụng. Một hàm nội bộ
-   không kiểm tra dữ liệu không chứng minh toàn hệ thống thiếu kiểm tra.
-3. Với nghi vấn, nối trigger → cơ chế → hậu quả → QG bị vi phạm. Chủ động tìm
-   nguồn bác bỏ, kể cả invariant có chủ đích. Mức độ nghiêm trọng phải dựa
-   vào tác động và khả năng tới đường lỗi; tên gọi, regex hoặc một đoạn mã
-   không đủ chứng minh deadlock, mất dữ liệu hay lỗi Critical.
-4. Kết luận QG bằng lập luận trên source theo
-   [router](layered-task-execution.instructions.md#kiểm-chứng-bằng-lập-luận):
-   Review không build, không tạo/chạy test, script, mock hay ứng dụng và không lấy
-   kết quả test/build, kể cả kết quả ghi trong Implementation Record, làm
-   baseline hay bằng chứng PASS/FAIL. Khi diff đổi giao diện, đọc
-   `layout_verification` và ảnh mà Implement đã chụp theo
-   [kiểm chứng layout bằng mock](layered-task-execution.instructions.md#kiểm-chứng-layout-bằng-mock)
-   như nguồn cho QG về giao diện, không chụp lại. Test xanh không chứng minh nghiệp vụ
-   đúng, test đỏ không chứng minh sản phẩm sai. Phản ví dụ là đầu vào và
-   đường gọi lần được trên source, chỉ hợp lệ nếu có thể xuất hiện trong
-   phạm vi QG.
-5. Chỉ giữ kết luận đủ căn cứ:
-   - `FIND`: bug thực sự vi phạm QG, có trigger, source, nguyên nhân và tác động.
-   - `RISK`: cơ chế rủi ro có căn cứ trong khi QG vẫn đạt; ghi giới hạn, chủ
-     xử lý và điều kiện xem lại. Risk không bắt sửa hoặc chặn business PASS.
-   - `BLOCK`: thiếu nguồn, điều kiện hoặc quyết định cần để kết luận QG;
-     nêu bằng chứng thiếu, chủ cung cấp và hành động tiếp tục.
-   Nghi vấn bị bác bỏ phải bỏ khỏi finding, không đổi nhãn sang risk để giữ nó.
-   Thiếu test, chưa build/chạy hay kết quả test đỏ/xanh không tự là FIND,
-   RISK hoặc BLOCK; không đòi thêm test, build hay release. Ngược lại, test
-   trong diff vi phạm [quy tắc FUT](../llm-docs/rules/test-verification.rule.md#quy-tắc-fut-test-chức-năng)
-   (không truy về REQ/đặc tả, ngoài chức năng đang phát triển và chức năng bị
-   ảnh hưởng, trùng lặp thừa, khẳng định trái đặc tả hoặc chặn kết quả đúng)
-   là FIND `repair`; trường QG ghi `FUT` cùng REQ liên quan. Diff đổi giao
-   diện mà Implementation Record thiếu `layout_verification`, hoặc ảnh cho thấy
-   layout vi phạm QG, cũng là FIND `repair` cho vai trò triển khai sở hữu giao diện.
-6. Giao chỉ dẫn theo cơ chế cần sửa, file/symbol, thứ tự và kết quả cần giữ;
-   chỉ dẫn sửa source, tài liệu hoặc test theo FUT; không giao build hay chạy
-   test ngoài phạm vi FUT.
-   FIND trong phạm vi Plan dùng `repair`; nếu thay hành vi, đường dẫn hay
-   quyết định đã chốt thì dùng `replan`. Khi còn `replan`, để `repair_roles`
-   rỗng và bàn giao Plan. Nếu chỉ sửa trong phạm vi, đội sửa gồm đúng các
-   vai trò triển khai chịu FIND `repair` và BLOCK `retry`, theo thứ tự bàn giao.
-   RISK được trì hoãn: `Chỉ dẫn` và `Xem lại khi` nêu task và layer sẽ xử lý
-   hoặc việc người dùng cần giao; chưa có task chủ thì không dùng "lượt sau"
-   hay "lần kế tiếp chỉnh <file>", và chỉ dẫn cho task khác xử lý thì ghi tên
-   task đó. BLOCK `escalate` chuyển chủ. Chỉ giao `retry` khi có hành động/điều
-   kiện mới, không mở vòng khác với cùng một blocker.
-7. Ghi QG `PASS|FAIL|BLOCKED`. Business `FAIL` khi đã có QG thất bại hoặc
-   FIND `FUT`, nếu chưa có thất bại nhưng thiếu căn cứ bắt buộc thì `BLOCKED`,
-   còn lại `PASS`. Risk và lỗi hướng dẫn tự thân không đảo ngược kết luận này.
+1. Take the QGs and `Required logic` verbatim from the Plan. The REQs and the
+   user's decisions explain the criteria; rubrics, reviewer preferences and
+   instruction defects do not create new product criteria.
+   Check against the [Plan's task boundaries](plan.instructions.md#splitting-tasks-for-separate-implementation-and-acceptance):
+   do not use another task's integration criteria as a PASS condition of the
+   task under review. If a QG itself needs work assigned to a later/parallel
+   task, record that QG `BLOCKED` and create an `escalate` BLOCK back to Plan to
+   fix the assignment/QG; do not assign `repair`/`retry` to the same task just
+   to wait for that work. Do not drop the QG or record PASS yourself; still
+   evaluate independent implementation defects that have enough evidence.
+2. Trace the entrypoint, callers, guards, writers/readers, configuration and
+   failure branches that can occur. Confirm the trigger is within the usage
+   contract. An internal function that does not validate data does not prove
+   the whole system lacks validation.
+3. For a suspicion, connect trigger → mechanism → consequence → violated QG.
+   Actively look for refuting sources, including deliberate invariants.
+   Severity must rest on impact and on whether the failure path is reachable;
+   a name, a regex or a code fragment is not enough to prove a deadlock, data
+   loss or a Critical defect.
+4. Conclude QGs by reasoning on the source per the
+   [router](layered-task-execution.instructions.md#verification-by-reasoning):
+   Review does not build, does not create/run tests, scripts, mocks or the
+   application, and does not use test/build results, including results written
+   in the Implementation Record, as a baseline or PASS/FAIL evidence. When the
+   diff changes the UI, read the `layout_verification` and screenshots that
+   Implement captured per
+   [layout verification with mocks](layered-task-execution.instructions.md#layout-verification-with-mocks)
+   as a source for UI QGs, without capturing again. A green test does not prove
+   the business logic is right, and a red test does not prove the product is
+   wrong. A counterexample is an input and call path traceable on the source,
+   valid only if it can occur within the QG's scope.
+5. Keep only well-grounded conclusions:
+   - `FIND`: a real bug that violates a QG, with trigger, source, cause and impact.
+   - `RISK`: a grounded risk mechanism while the QG still holds; record the
+     limit, owner and revisit condition. A risk does not require a fix or
+     block a business PASS.
+   - `BLOCK`: missing sources, conditions or decisions needed to conclude a
+     QG; state the missing evidence, who provides it and the action to continue.
+   A refuted suspicion is removed from the findings, not relabeled as a risk to
+   keep it. Missing tests, not having built/run, or red/green test results are
+   not by themselves a FIND, RISK or BLOCK; do not ask for more tests, builds or
+   releases. Conversely, tests in the diff that violate the
+   [FUT rule](../llm-docs/rules/test-verification.rule.md#fut-rule-functional-tests)
+   (not traceable to a REQ/specification, outside the functionality under
+   development and the affected functionality, redundant duplicates, assertions
+   contrary to the specification or that block a correct result) are a
+   `repair` FIND; its QG field records `FUT` with the related REQ. A diff that
+   changes the UI while the Implementation Record lacks `layout_verification`,
+   or screenshots showing a layout that violates a QG, is also a `repair` FIND
+   for the implementation role that owns the UI.
+6. Give instructions by the mechanism to fix, file/symbol, order and the
+   outcome to preserve; instructions cover editing source, documentation or
+   tests under FUT; do not assign builds or running tests outside FUT.
+   A FIND within the Plan's scope uses `repair`; if it changes settled
+   behavior, paths or decisions, use `replan`. While any `replan` remains,
+   leave `repair_roles` empty and hand off to Plan. If the fix stays within
+   scope, the repair team is exactly the implementation roles accountable for
+   `repair` FINDs and `retry` BLOCKs, in handoff order.
+   RISKs are deferred: `Instructions` and `Revisit when` name the task and layer
+   that will handle them or the work the user needs to assign; while there is no
+   owning task, do not write "a later run" or "the next edit of <file>", and
+   instructions for another task to handle name that task. `escalate` BLOCKs
+   move to another owner. Assign `retry` only when there is a new
+   action/condition; do not open another round for the same blocker.
+7. Record QG `PASS|FAIL|BLOCKED`. Business is `FAIL` when a QG has failed or
+   there is a `FUT` FIND; if nothing failed but mandatory grounds are missing,
+   it is `BLOCKED`; otherwise `PASS`. Risks and instruction defects alone do not
+   reverse this conclusion.
 
-## Evaluations: đánh giá vai trò Implement
+## Evaluations: assessing Implement roles
 
-Mục này trả lời: mỗi vai trò của lượt Implement được review có làm đúng phần
-được giao không, nếu sai thì nguyên nhân gốc là gì và framework đã được cải tiến
-ở đâu. `process-auditor` của Review thực hiện mục này cùng phần tự đánh giá lượt
-Review, theo [router](layered-task-execution.instructions.md#tự-đánh-giá-và-cải-tiến).
-Review biết thêm các FIND mà lượt Implement bỏ sót, nên đây là lần đánh giá có
-nhiều bằng chứng hơn lần tự đánh giá của chính Implement.
+This section answers: did each role of the reviewed Implement run do its
+assigned part correctly, and if not, what was the root cause and where was the
+framework improved. The Review's `process-auditor` carries out this section
+together with the Review run's self-evaluation, per the
+[router](layered-task-execution.instructions.md#self-evaluation-and-improvement).
+Review also knows the FINDs that the Implement run missed, so this evaluation
+has more evidence than Implement's own self-evaluation.
 
-1. Tìm record của lượt Implement được review bằng
+1. Find the record of the reviewed Implement run with
    `python -B .agents/llm-docs/evals/layer_record.py query --layer implement --plan-set <plan-set> --task <task-id>`.
-   Trong kết quả, chọn record mới nhất có danh sách `roles` chứa các vai trò
-   Implement cần đánh giá và ghi nó vào `evaluates` của record Review. Record chỉ áp
-   dụng cải tiến hay đính chính (`supersedes` có giá trị, `roles` chỉ có
-   `coordinator`) không là record được đánh giá; nêu nó trong mục Bằng chứng
-   của EVAL. Record đính chính mang đủ vai trò thì chính nó được đánh giá.
-2. Lập một EVAL cho mỗi vai trò trong `effective_implementation_roles` rồi mỗi
-   vai trò kiểm chứng của Plan, đúng thứ tự Implementation Record. Đánh giá theo
-   phần việc, thông tin và chỉ dẫn thực sự được giao; không đánh trượt cả đội
-   vì một bug. Vai trò kiểm chứng được đánh giá ở kết luận QG của nó: lập luận
-   có đứng vững trước source không, có bỏ sót FIND mà Review tìm thấy không, có
-   dựa vào kết quả chạy thay lập luận không.
-3. Mỗi lỗi của một vai trò Implement được phân loại nguyên nhân và cải tiến theo
-   router, ghi vào record Review với `record` là record trong `evaluates`; lỗi
-   được quy cho task và lượt đã làm ra nó theo
-   [mục Snapshot chung và hồ sơ cũ](layered-task-execution.instructions.md#snapshot-chung-và-hồ-sơ-cũ)
-   của router. EVAL ghi lại nguyên nhân, `issue_key` và nơi đã sửa, hoặc trạng
-   thái chờ người dùng.
-4. Không tạo lỗi giả. Lỗi của vai trò hay hướng dẫn không hạ verdict Business và
-   không chặn bàn giao một delivery đã đủ điều kiện; nếu chính report sai, sửa
-   report trước khi chốt.
+   In the result, pick the latest record whose `roles` list contains the
+   Implement roles to evaluate and write it into the Review record's `evaluates`.
+   A record that only applies improvements or corrections (`supersedes` set,
+   `roles` containing only `coordinator`) is not the evaluated record; mention it
+   in the EVAL's Evidence field. A correction record that carries all the roles
+   is itself the evaluated record.
+2. Create one EVAL for each role in `effective_implementation_roles`, then each
+   verification role of the Plan, in the Implementation Record's order. Evaluate
+   against the work, information and instructions actually assigned; do not
+   fail the whole team over one bug. A verification role is evaluated on its QG
+   conclusions: whether its reasoning stands against the source, whether it
+   missed FINDs that Review found, whether it relied on run results instead of
+   reasoning.
+3. Each issue of an Implement role is classified by cause and improved per the
+   router, recorded in the Review record with `record` set to the record in
+   `evaluates`; the issue is attributed to the task and run that produced it per
+   the [Shared snapshots and older records section](layered-task-execution.instructions.md#shared-snapshots-and-older-records)
+   of the router. The EVAL records the cause, the `issue_key` and where it was
+   fixed, or that it is pending the user.
+4. Do not invent issues. Role or instruction issues do not lower the Business
+   verdict and do not block handing off a delivery that already qualifies; if
+   the report itself is wrong, fix the report before settling it.
 
-## Mẫu report duy nhất
+## The single report template
 
-Dùng Review `pirl-review/v1` tại
+Use a `pirl-review/v1` Review at
 `.agents/review/<plan-set>/<task-id-lower>-<todo-slug>/round-<NN>-review-<todo-slug>-<YYYYMMDD-HHmmss>.md`.
-Vòng đầu có `prior_review: null`; vòng sau tham chiếu report ngay trước.
-Yêu cầu bổ sung phase hoặc bằng chứng cho cùng lượt triển khai thuộc vòng
-Review hiện tại: cập nhật report đó, giữ `review_round` và `prior_review`.
-Không tăng vòng chỉ vì có tin nhắn, thời điểm kiểm chứng hoặc phạm vi khảo sát
-bổ sung. Mở vòng mới khi được giao Review lượt triển khai/sửa tiếp theo hoặc
-người dùng yêu cầu rõ vòng độc lập. Khi sửa report đã chốt, ghi lý do sửa
-trong report và giữ nguyên các vòng khác.
+The first round has `prior_review: null`; later rounds reference the report
+immediately before.
+A request for additional phases or evidence for the same implementation run
+belongs to the current Review round: update that report and keep
+`review_round` and `prior_review`. Do not increment the round just because of
+a message, the time of verification or an extra investigation scope. Open a new
+round when assigned to review the next implementation/repair run or when the
+user explicitly asks for an independent round. When editing a settled report,
+record the reason for the edit in the report and leave the other rounds intact.
 
-### Quy tắc trình bày
+### Presentation rules
 
-Giữ hai mục cấp hai `Business` và `Evaluations`; dùng tiêu đề cấp ba/bốn để
-chia nội dung bên trong. Trình bày QG bằng bảng ba cột; mỗi FIND/RISK/BLOCK
-và EVAL có bảng hai cột `Trường | Nội dung` riêng dưới tiêu đề chứa ID.
-Phần `Tiếp theo` dùng bảng hai cột. Không ghép nhiều trường thành một bullet
-dài hoặc dồn mọi trường của finding/evaluation vào một bảng quá rộng.
+Keep the two level-two sections `Business` and `Evaluations`; use level-three/
+four headings to divide the content inside. Present QGs as a three-column
+table; each FIND/RISK/BLOCK and EVAL has its own two-column `Field | Content`
+table under a heading containing its ID.
+The `Next` part uses a two-column table. Do not merge several fields into one
+long bullet or cram all fields of a finding/evaluation into one overly wide table.
 
-Đây chỉ là cách trình bày: giữ đủ trường, ID, kết luận, bằng chứng và chỉ dẫn;
-không rút bớt thông tin để làm bảng ngắn hơn. Trong mỗi ô, dùng `<br>` khi cần
-tách nhiều nguồn hoặc bước xử lý; giữ đường dẫn, symbol và lệnh nguyên vẹn.
-Escape dấu `|` thuộc nội dung ô thành `\|`, kể cả trong inline code, để không
-phát sinh cột. Quy tắc escape này chỉ áp dụng cho bảng Markdown, không đổi
-giá trị trong frontmatter. Đặt dòng trống trước/sau mỗi bảng.
+This is only presentation: keep all fields, IDs, conclusions, evidence and
+instructions; do not drop information to make a table shorter. In each cell,
+use `<br>` when you need to separate several sources or processing steps; keep
+paths, symbols and commands intact.
+Escape a `|` that belongs to cell content as `\|`, including inside inline
+code, so it does not create a column. This escape rule applies only to Markdown
+tables and does not change values in the frontmatter. Put a blank line
+before/after each table.
 
-### Mẫu Markdown
+### Markdown template
 
 ````markdown
 ---
 schema: pirl-review/v1
-content_language: vi
-plan_file: "<đường dẫn Plan tương đối>"
+content_language: en
+plan_file: "<relative Plan path>"
 task_id: T01
 review_round: 1
 prior_review: null
@@ -209,120 +230,125 @@ repair_roles: []
 business_verdict: PASS
 verdict: PASS
 status: completed
-reviewed_at: "<ISO-8601 với +07:00>"
-implementation_target: "<diff/commit/đường dẫn đã review>"
+reviewed_at: "<ISO-8601 with +07:00>"
+implementation_target: "<diff/commit/paths reviewed>"
 ---
 
-# Review <NN>: <Task ID> — <Tên công việc>
+# Review <NN>: <Task ID> — <Task name>
 
 ## Business
 
 ### Quality gates
 
-| QG | Kết quả | Bằng chứng |
+| QG | Result | Evidence |
 | --- | --- | --- |
-| QG-01 | <PASS / FAIL / BLOCKED> | <source/symbol, logic và kết quả đối chiếu> |
+| QG-01 | <PASS / FAIL / BLOCKED> | <source/symbol, logic and the result of the check> |
 
 ### Findings
 
 #### FIND-01
 
-| Trường | Nội dung |
+| Field | Content |
 | --- | --- |
 | QG | QG-01 |
-| Tác động | <trigger thực tế và hậu quả> |
-| Nguồn | <file/symbol hoặc hợp đồng đáng tin> |
-| Nguyên nhân | <cơ chế sai> |
-| Phản biện | <căn cứ bác bỏ lời giải thích cạnh tranh> |
-| Vai trò | <vai-trò, ...> |
-| Đích | `<file cần xử lý>` |
-| Chỉ dẫn | <việc cụ thể của từng vai trò theo thứ tự> |
+| Impact | <realistic trigger and consequence> |
+| Source | <file/symbol or trusted contract> |
+| Cause | <the faulty mechanism> |
+| Challenge | <grounds that refute competing explanations> |
+| Roles | <role, ...> |
+| Target | `<file to handle>` |
+| Instructions | <concrete work for each role, in order> |
 | Disposition | <repair / replan> |
 
 ### Risks
 
 #### RISK-01
 
-| Trường | Nội dung |
+| Field | Content |
 | --- | --- |
 | QG | QG-02 |
-| Tác động | <phơi nhiễm thực tế và giới hạn> |
-| Nguồn | <file/symbol> |
-| Nguyên nhân | <cơ chế tạo rủi ro> |
-| Phản biện | <vì sao rủi ro còn đứng vững nhưng QG vẫn đạt> |
-| Vai trò | <vai-trò, ...> |
-| Đích | `<file liên quan>` |
-| Chỉ dẫn | <cách giảm thiểu khi được giao> |
-| Xem lại khi | <điều kiện cụ thể> |
+| Impact | <realistic exposure and limits> |
+| Source | <file/symbol> |
+| Cause | <the mechanism that creates the risk> |
+| Challenge | <why the risk stands while the QG still holds> |
+| Roles | <role, ...> |
+| Target | `<related file>` |
+| Instructions | <how to mitigate when assigned> |
+| Revisit when | <concrete condition> |
 
 ### Blockers
 
 #### BLOCK-01
 
-| Trường | Nội dung |
+| Field | Content |
 | --- | --- |
 | QG | QG-03 |
-| Thiếu | <đầu vào bắt buộc chưa có> |
-| Nguồn | <bằng chứng về việc thiếu> |
-| Nguyên nhân | <cơ chế chặn việc kết luận> |
-| Owner | <vai trò hoặc chủ cung cấp đầu vào> |
-| Đích | `<file liên quan>` |
-| Chỉ dẫn | <hành động gỡ chặn> |
+| Missing | <mandatory input not yet available> |
+| Source | <evidence of what is missing> |
+| Cause | <the mechanism that blocks the conclusion> |
+| Owner | <role or provider of the input> |
+| Target | `<related file>` |
+| Instructions | <action to unblock> |
 | Disposition | <retry / escalate> |
-| Điều kiện | <thay đổi cần có trước khi tiếp tục> |
+| Condition | <change needed before continuing> |
 
-### Tiếp theo
+### Next
 
-| Trường | Nội dung |
+| Field | Content |
 | --- | --- |
-| Tiếp theo | <chủ xử lý/layer, file đầu vào và điều kiện tiếp tục> |
+| Next | <owner/layer, input file and condition to continue> |
 
 ## Evaluations
 
 ### EVAL-01
 
-| Trường | Nội dung |
+| Field | Content |
 | --- | --- |
-| Vai trò | <vai trò triển khai hoặc kiểm chứng của Implement> |
-| Kết quả | <PASS / FAIL / BLOCKED> |
-| Lỗi | <quyết định sai có căn cứ của vai trò; hoặc không có> |
-| Nguyên nhân | <instruction / ineffective_fix / input / execution kèm `issue_key`; hoặc không có> |
-| Cải tiến | <file và mục đã sửa, version cũ → mới; hoặc chờ người dùng (safety); hoặc không cần> |
-| Bằng chứng | <Implementation Record, record Implement, nguồn/diff đã đối chiếu> |
+| Role | <Implement implementation or verification role> |
+| Result | <PASS / FAIL / BLOCKED> |
+| Issue | <the role's grounded wrong decision; or none> |
+| Cause | <instruction / ineffective_fix / input / execution with `issue_key`; or none> |
+| Improvement | <file and section edited, old → new version; or pending the user (safety); or not needed> |
+| Evidence | <Implementation Record, Implement record, sources/diff checked> |
 ````
 
-Thay placeholder bằng nội dung thực tế, chọn một giá trị cho mỗi trạng thái
-hoặc disposition. Mỗi QG có đúng một hàng trong bảng Quality gates. Chỉ ghi
-FIND/RISK/BLOCK thực sự có; nhóm không có mục nào dùng một câu ngắn dưới
-tiêu đề, không tạo bảng rỗng hay ID giả. Đánh số mỗi loại liên tục, giữ thứ
-tự findings, risks rồi blockers. EVAL bao phủ đội Implement đã chốt theo
-đúng thứ tự Implementation Record; không thêm inventory hoặc mục cấp hai
-thứ ba lặp bàn giao.
+Replace placeholders with actual content and choose one value for each status
+or disposition. Each QG has exactly one row in the Quality gates table. Record
+only FINDs/RISKs/BLOCKs that actually exist; a group with no items uses one
+short sentence under its heading, with no empty table or fake ID. Number each
+kind consecutively, keeping the order findings, risks, then blockers. EVALs
+cover the settled Implement team in the Implementation Record's order; do not
+add an inventory or a third level-two section that repeats the handoff.
 
-## Kết thúc và quyền tiếp theo
+## Finishing and next permissions
 
-Chạy validator report và sửa lỗi cấu trúc trước phản hồi cuối:
+Run the report validator and fix structural errors before the final response:
 
 ```powershell
-python -B .agents/llm-docs/evals/validate_layer_artifact.py --kind review --path <file report>
+python -B .agents/llm-docs/evals/validate_layer_artifact.py --kind review --path <report file>
 ```
 
-Người điều phối và mọi vai trò Review thực hiện
-[dọn tài nguyên tạm](layered-task-execution.instructions.md#dọn-tài-nguyên-tạm-trước-bàn-giao)
-sau lần kiểm chứng, tự đánh giá và ghi record cuối, rồi kiểm lại trước phản
-hồi cuối. Quy tắc áp dụng cả khi Business FAIL hoặc Review bị chặn; không nhận
-đã hoàn tất chỉ vì report và validator đã đạt.
+The coordinator and every Review role carry out the
+[temporary-resource cleanup](layered-task-execution.instructions.md#cleaning-up-temporary-resources-before-handoff)
+after the final verification, self-evaluation and record writing, then check
+again before the final response. The rule applies even when Business is FAIL or
+the Review is blocked; do not claim completion just because the report and
+validator pass.
 
-`verdict` bằng `business_verdict`. `status: completed` nghĩa là đã hoàn tất
-đánh giá: Business có kết luận đủ căn cứ, Evaluations bao phủ đội Implement,
-record Review đã ghi, và đã dọn, kiểm lại tài nguyên tạm theo hợp đồng chung.
-Business FAIL vẫn có thể là một Review hoàn tất. Thiếu đầu vào cần để đánh giá dùng `status: blocked`.
+`verdict` equals `business_verdict`. `status: completed` means the evaluation
+is complete: Business has a well-grounded conclusion, Evaluations cover the
+Implement team, the Review record is written, and temporary resources have been
+cleaned up and checked again under the shared contract.
+A Business FAIL can still be a completed Review. Missing input needed for the
+evaluation uses `status: blocked`.
 
-Thiếu Implementation Record hoặc đầu vào của lượt triển khai thì giữ bản nháp
-hai phần với đúng đầu vào còn thiếu. Bản nháp chưa đủ hợp đồng không được dùng
-làm nguồn giao sửa sản phẩm. Bổ sung ngay trên bản nháp khi có đầu vào, không
-mở một vòng chỉ để điền thông tin thiếu.
+If the Implementation Record or the implementation run's input is missing,
+keep a two-part draft with exactly the missing input. A draft that does not
+meet the contract cannot be used as a source for assigning product repairs.
+Complete it directly on the draft when the input arrives; do not open a round
+just to fill in missing information.
 
-Báo rõ Business, mức hoàn tất đánh giá, kết quả tự cải tiến theo mục báo cáo
-của router và liên kết report/Plan. Kết thúc tại bàn giao; không tự Implement sản phẩm,
-chọn task kế tiếp hay mở vòng Review mới.
+Report the Business result, the level of evaluation completion, the
+self-improvement result per the router's reporting section and links to the
+report/Plan. Finish at handoff; do not implement the product, pick the next
+task or open a new Review round on your own.

@@ -1,58 +1,63 @@
 ---
 id: .agents/roles/code-analyst
 kind: role
-version: 1.4.0
+version: 1.5.0
 status: active
 ---
 
 # code-analyst
 
-Lần luồng dữ liệu và điều khiển trong source, xác định caller/consumer và tác
-động của thay đổi, lập bảng kịch bản khi luồng có nhiều nhánh, trạng thái hoặc
-thứ tự.
+Traces data and control flow in the source, identifies callers/consumers and the
+impact of a change, and builds scenario tables when a flow has many branches,
+states or orderings.
 
-## Câu hỏi vai trò trả lời
+## Questions the role answers
 
-- Từ entrypoint, đường chạy đi qua guard, chuyển đổi dữ liệu và thao tác ghi/đọc
-  nào để tới trạng thái cuối?
-- Ai ghi và ai đọc dữ liệu này; thay đổi chạm những caller, consumer, cấu hình
-  và tài liệu nào?
-- Với mỗi tổ hợp nhánh, trạng thái trước và thứ tự sự kiện, kết quả là gì?
-- Thay đổi này lan tới phần tử, consumer hay cấu hình nào ngoài đích định sửa,
-  và hiệu ứng lên từng cái là gì?
+- From the entrypoint, which guards, data transformations and write/read
+  operations does the execution path pass through to reach the final state?
+- Who writes and who reads this data; which callers, consumers, configuration
+  and documentation does the change touch?
+- For each combination of branch, prior state and event order, what is the
+  result?
+- Which elements, consumers or configuration beyond the intended target does
+  this change spread to, and what is its effect on each?
 
-## Cách làm
+## How it works
 
-- Bắt đầu từ entrypoint thật: route, handler, job, lệnh CLI, listener.
-- Tìm caller theo symbol, không theo tên file. Tính cả lời gọi gián tiếp qua
-  event, cấu hình, dependency injection hoặc phản chiếu.
-- Với luồng nhiều nhánh: lập bảng kịch bản từ hợp đồng (đầu vào, trạng thái
-  trước, thứ tự) trước khi đọc code, rồi lần từng dòng bảng qua source.
-- Với thay đổi có phạm vi lan (thuộc tính kế thừa hoặc cascade, thuộc tính tạo
-  khối chứa hay stacking context, cấu hình hay giá trị mặc định dùng chung,
-  middleware, tham số toàn cục): trước khi chọn nơi đặt thay đổi, liệt kê các
-  phần tử con hoặc consumer mà nó chạm tới và hiệu ứng lên từng cái; đặt ở nơi
-  có phạm vi lan đúng bằng phạm vi cần, hoặc nêu hiệu ứng phụ chấp nhận được.
-- Đối chiếu tài liệu (mục lục, danh mục API/lỗi/cấu hình/quyền) với source.
-  Đọc cả câu văn nêu quy tắc, giới hạn hay đại lượng, không chỉ bảng giá trị,
-  và đọc trọn câu mà diff chỉ đổi một phần, kể cả mệnh đề nằm ngoài phần diff.
-  Với bảng hay danh sách, đọc cả câu dẫn, tiêu đề và nhãn cột rồi đối chiếu với
-  từng hàng hay mục. Kiểm các câu đó theo cách làm của
-  [`technical-writer`](technical-writer.role.md#cách-làm).
-- Ghi nguồn file/symbol cho mỗi bước đã lần.
+- Start from a real entrypoint: route, handler, job, CLI command, listener.
+- Find callers by symbol, not by file name. Include indirect calls through
+  events, configuration, dependency injection or reflection.
+- For multi-branch flows: build the scenario table from the contract (input,
+  prior state, order) before reading the code, then trace each row of the table
+  through the source.
+- For changes with a spreading scope (inherited or cascading properties,
+  properties that create a containing block or stacking context, shared
+  configuration or default values, middleware, global parameters): before
+  choosing where to put the change, list the child elements or consumers it
+  reaches and its effect on each; put it where its spread matches exactly the
+  scope needed, or state the acceptable side effects.
+- Check documentation (indexes, API/error/configuration/permission catalogs)
+  against the source. Read the sentences that state rules, limits or
+  quantities too, not just tables of values, and read in full any sentence the
+  diff changes only in part, including clauses outside the diff. For tables or
+  lists, read the lead-in sentence, heading and column labels as well, then
+  check them against each row or item. Check those sentences following the way
+  of working of [`technical-writer`](technical-writer.role.md#how-it-works).
+- Record the file/symbol source for each step traced.
 
-## Dấu hiệu sai thường gặp
+## Common warning signs
 
-- Kết luận cho cả hệ thống từ một hàm nội bộ.
-- Dừng ở lớp gọi đầu tiên, bỏ sót consumer gián tiếp.
-- Dựng bảng kịch bản từ code hiện có thay vì từ hợp đồng, nên lặp lại đúng lỗi
-  của code.
-- Chọn nơi đặt thay đổi theo ý định ("nền của thanh điều hướng", "cấu hình của
-  module") mà không liệt kê những gì thay đổi đó lan tới.
-- Kết luận tài liệu khớp source vì bảng giá trị khớp, trong khi một câu quy tắc
-  ở mục khác, hoặc câu dẫn của chính bảng, mâu thuẫn với một hàng của bảng đó.
+- Drawing a conclusion about the whole system from one internal function.
+- Stopping at the first calling layer and missing indirect consumers.
+- Building the scenario table from the existing code instead of the contract,
+  thereby repeating the code's own defects.
+- Choosing where to put a change by intent ("the navigation bar's background",
+  "the module's configuration") without listing what that change spreads to.
+- Concluding that documentation matches the source because the table of values
+  matches, while a rule sentence in another section, or the table's own lead-in
+  sentence, contradicts a row of that table.
 
-## Ranh giới với vai trò khác
+## Boundaries with other roles
 
-Phản biện diff để tìm bug thuộc `code-reviewer`; quyết định hợp đồng thuộc
-`solution-architect`.
+Challenging a diff to find bugs belongs to `code-reviewer`; contract decisions
+belong to `solution-architect`.
