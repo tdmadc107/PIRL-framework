@@ -9,23 +9,23 @@ A "mission control" terminal dashboard that monitors, all at once:
   context %, cost and state `EXEC <tool>`, `THINK`, `STANDBY` or `FAULT`; the
   second line of each session prints the full UUID to use with `claude-resume`
   when the running session cannot be exited;
-- `03 // PLAN · REVIEW`: one line per task in `.agents/plan/`, with the Plan
-  status (`PLANNED`, `AWAIT`, `IMPLEMENTED`, `BLOCKED`, `FAILED`) and the latest
+- `03 // PLAN · REVIEW`: one line per Plan task found under the Hub root (files
+  with a `pirl-plan/v1` frontmatter, up to three directory levels deep, outside
+  hidden directories; Plans the user stores elsewhere are not shown), with the
+  Plan status (`PLANNED`, `AWAIT`, `IMPLEMENTED`, `BLOCKED`, `FAILED`) and the latest
   Review round with its verdict (`R1 PASS`); tasks that are `implemented` but have
   no Review yet are counted in `PENDING REVIEW`;
-- `04 // REPOSITORIES`: files changed according to git in the Hub and every
-  product repository, with +/- line counts; files modified in the last 60
+- `04 // REPOSITORIES`: files changed according to git in the Hub and in every
+  Git repository inside it, with +/- line counts; files modified in the last 60
   seconds are marked `◆`. The repository list is the union of the submodules in
-  `.gitmodules` and the entries in `.repos/manifest.yaml`. A partially registered
-  repository (defined in the "Repository routing" section of `AGENTS.md`) gets a
-  `⚠` line at the top of the panel naming the missing part: a submodule without a
-  manifest entry, a manifest entry pointing to a path that is not a submodule, a
-  manifest entry without `path`, or a submodule that is not cloned. Directories
+  `.gitmodules` and the directories up to two levels below the Hub root that
+  have their own `.git` (for example a local clone in `.repos/`). A submodule
+  that is not cloned gets a `⚠` line at the top of the panel. Directories
   without `.git` are not scanned by git;
 - `05 // EVENT LOG`: a live log of new/modified/deleted files, staging
   (`STAGE`) and unstaging (`UNSTAGE`), commits, branch switches, repository
-  registration/unregistration and submodules added/removed (`REPO`), partial
-  registration warnings (`WARN`), Plan status transitions (`PLAN`), Review
+  repositories and submodules added/removed (`REPO`), warnings about submodules
+  that are not cloned (`WARN`), Plan status transitions (`PLAN`), Review
   conclusions (`REVIEW`) and AI session state transitions; the `ACTIVITY` bar in
   the footer counts events in the last 60 seconds, along with the total number
   of events since startup.
@@ -37,7 +37,7 @@ terminal, Windows Terminal).
 
 Change-tracking scope:
 
-- Files: one recursive `fs.watch` watcher on the Hub root (including `.repos/*`)
+- Files: one recursive `fs.watch` watcher on the Hub root (including nested repositories)
   reports every new (`NEW`), modified (`MOD`) and deleted (`DEL`) file almost
   instantly, including paths ignored by Git (`.tmp/`, `node_modules/`, build
   directories) and files created and deleted before `git status` can scan them
@@ -49,10 +49,10 @@ Change-tracking scope:
   dashboard runs `git status` after about 0.2 seconds and logs `STAGE`,
   `UNSTAGE`, `COMMIT`, `BRANCH` accordingly. In addition, every `--interval`
   seconds (default 10) the dashboard runs a periodic scan for the
-  `REPOSITORIES` panel and rereads `.gitmodules` and `.repos/manifest.yaml` to
+  `REPOSITORIES` panel and rereads `.gitmodules` and the nested repositories to
   log `REPO` and `WARN`.
 - Plans and Reviews: reread on every git scan; while `fs.watch` is running they
-  are also reread as soon as a file in `.agents/plan/` or `.agents/review/`
+  are also reread as soon as a Markdown file outside the hidden directories
   changes.
 - Scan pacing: an event-driven scan runs at least 0.5 seconds after the previous
   scan for git changes and 3 seconds for file changes; events arriving during a
@@ -128,7 +128,7 @@ The task is created in the `\Claude\` folder of Task Scheduler and calls
 
 ```powershell
 # New session, full date and time; a short prompt written inline
-.tools\claude-schedule\schedule.ps1 -Name review-t01 -At "2026-10-10 08:00" -Prompt "Review the implementation of Plan T01 in .agents/plan/<package>"
+.tools\claude-schedule\schedule.ps1 -Name review-t01 -At "2026-10-10 08:00" -Prompt "Review the implementation of Plan T01 in <package>"
 # A long prompt kept in a file; giving only HH:mm uses the next occurrence of that time
 .tools\claude-schedule\schedule.ps1 -Name implement-t02 -At 23:30 -PromptFile D:\prompts\t02.md
 # Continue an existing session instead of opening a new one

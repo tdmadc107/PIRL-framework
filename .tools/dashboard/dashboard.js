@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Terminal dashboard for the PIRL Hub ("mission control"): state of the Claude Code sessions
 // (context, 5h/7d quota, what they are doing), files changing according to git in the Hub and
-// every submodule `.repos/*`, the framework's Plan/Review progress, and a live event log:
+// every Git repository inside it, the framework's Plan/Review progress, and a live event log:
 // new/modified/deleted files via fs.watch, stage/unstage, commits and branch switches via git.
 //
 // Run:    node .tools/dashboard/dashboard.js [--interval 10] [--max-age 12] [--files 10] [--agents 2] [--plans 6]
@@ -28,9 +28,8 @@ const path = require('path');
 const { execFile } = require('child_process');
 
 const HUB = path.resolve(__dirname, '..', '..');
-const PLAN_DIR = path.join(HUB, '.agents', 'plan');
-const MANIFEST = path.join(HUB, '.repos', 'manifest.yaml');
-const REVIEW_DIR = path.join(HUB, '.agents', 'review');
+// Directories never searched for repositories, Plans or Reviews.
+const SKIP_DIRS = new Set(['.git', 'node_modules', '.tmp']);
 const SESSION_DIR = path.join(os.homedir(), '.claude', 'dashboard', 'sessions');
 
 const args = parseArgs(process.argv.slice(2));
@@ -68,61 +67,41 @@ function git(cwd, gitArgs) {
   });
 }
 
-// Reads `repos.<id>.path` from .repos/manifest.yaml (the framework's YAML subset, two-space indentation).
-// An entry without `path` is kept with a null value so the registration error can be reported.
-function manifestRepos() {
-  let text;
-  try { text = fs.readFileSync(MANIFEST, 'utf8'); } catch { return new Map(); }
-  const unquote = s => s.trim().replace(/^["']|["']$/g, '');
-  const out = new Map();
-  let inRepos = false;
-  let id = null;
-  for (const raw of text.split(/\r?\n/)) {
-    if (!raw.trim() || raw.trimStart().startsWith('#')) continue;
-    const indent = raw.length - raw.trimStart().length;
-    const line = raw.trim();
-    if (indent === 0) { inRepos = /^repos\s*:/.test(line); id = null; continue; }
-    if (!inRepos) continue;
-    if (indent === 2) {
-      const m = line.match(/^([^:]+):\s*$/);
-      id = m ? unquote(m[1]) : null;
-      if (id) out.set(id, null);
-    } else if (indent === 4 && id) {
-      const m = line.match(/^path\s*:\s*(.+)$/);
-      if (m) out.set(id, unquote(m[1]).replace(/\\/g, '/').replace(/\/+$/, '') || null);
-    }
+// Directories up to `depth` levels below the Hub root that have their own `.git` (for example a local clone of a
+// target repository). Nothing below a repository is searched.
+function nestedRepos(rel, depth) {
+  if (!depth) return [];
+  let entries = [];
+  try { entries = fs.readdirSync(path.join(HUB, rel), { withFileTypes: true }); } catch { return []; }
+  const found = [];
+  for (const e of entries) {
+    if (!e.isDirectory() || SKIP_DIRS.has(e.name)) continue;
+    const child = rel ? `${rel}/${e.name}` : e.name;
+    if (fs.existsSync(path.join(HUB, child, '.git'))) found.push(child);
+    else found.push(...nestedRepos(child, depth - 1));
   }
-  return out;
+  return found;
 }
 
-// The Hub plus the union of submodules in `.gitmodules` and repositories in the manifest, matched by path.
-// A repository is registered when it has both (AGENTS.md, Repository routing section); missing one is partial.
+// The Hub plus the submodules in `.gitmodules` and the Git repositories found up to two levels below the Hub root,
+// matched by path. The framework keeps no registry of product repositories (AGENTS.md, Target repository section).
 function listRepos() {
-  const repos = [{ name: 'Hub', dir: HUB, submodule: true, ids: [] }];
+  const repos = [{ name: 'Hub', dir: HUB, submodule: true }];
   const byPath = new Map();
   let text = '';
-  try { text = fs.readFileSync(path.join(HUB, '.gitmodules'), 'utf8'); } catch { /* no submodules yet */ }
+  try { text = fs.readFileSync(path.join(HUB, '.gitmodules'), 'utf8'); } catch { /* no submodules */ }
   for (const m of text.matchAll(/^\s*path\s*=\s*(.+?)\s*$/gm)) {
     const p = m[1].replace(/\\/g, '/').replace(/\/+$/, '');
-    byPath.set(p, { name: p, submodule: true, ids: [] });
+    byPath.set(p, { name: p, submodule: true });
   }
-  manifestIssues = [];
-  for (const [id, p] of manifestRepos()) {
-    if (!p) { manifestIssues.push(`entry ${id} in .repos/manifest.yaml has no path`); continue; }
-    if (!byPath.has(p)) byPath.set(p, { name: p, submodule: false, ids: [] });
-    byPath.get(p).ids.push(id);
-  }
+  for (const p of nestedRepos('', 2)) if (!byPath.has(p)) byPath.set(p, { name: p, submodule: false });
   for (const r of byPath.values()) repos.push({ ...r, dir: path.join(HUB, r.name) });
   return repos;
 }
 
-// Why a repository is not fully registered, or '' when it is.
+// Why a repository cannot be scanned, or '' when it can.
 function registryIssue(r) {
-  if (r.name === 'Hub') return '';
-  if (!r.ids.length) return 'submodule has no entry in .repos/manifest.yaml';
-  if (r.ids.length > 1) return `several manifest entries share the path (${r.ids.join(', ')})`;
-  if (!r.submodule) return `manifest entry ${r.ids[0]} points to a path that is not a submodule in .gitmodules`;
-  if (r.absent) return 'submodule not cloned (git submodule update --init)';
+  if (r.name !== 'Hub' && r.submodule && r.absent) return 'submodule not cloned (git submodule update --init)';
   return '';
 }
 
@@ -165,8 +144,8 @@ function parseNumstat(out) {
 }
 
 async function scanRepo(repo) {
-  // A directory without `.git` (a submodule not cloned, or a manifest path that does not exist yet) is
-  // not scanned: `git -C` would walk up to the Hub and wrongly report the Hub's changes.
+  // A directory without `.git` (a submodule not cloned) is not scanned: `git -C` would walk up to the Hub
+  // and wrongly report the Hub's changes.
   if (repo.name !== 'Hub' && !fs.existsSync(path.join(repo.dir, '.git'))) return { ...repo, absent: true, files: [] };
   // The Hub ignores changes inside submodules because each submodule has its own block.
   const ignore = repo.name === 'Hub' ? ['--ignore-submodules=dirty'] : [];
@@ -210,33 +189,36 @@ function frontmatter(file) {
   return fm;
 }
 
-function markdownFiles(dir) {
+// Markdown files up to `depth` levels below `dir`, skipping hidden directories. Plan packages and their Review reports
+// are created under the Hub root unless the user names another directory; files elsewhere are not shown.
+const FRAMEWORK_DEPTH = 3;
+function markdownFiles(dir, depth) {
   let entries = [];
   try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return []; }
   return entries.flatMap(e => {
     const p = path.join(dir, e.name);
-    return e.isDirectory() ? markdownFiles(p) : e.name.endsWith('.md') ? [p] : [];
+    if (e.isDirectory()) return depth > 1 && !e.name.startsWith('.') && !SKIP_DIRS.has(e.name) ? markdownFiles(p, depth - 1) : [];
+    return e.name.endsWith('.md') ? [p] : [];
   });
 }
 
 const mtimeOf = file => { try { return fs.statSync(file).mtimeMs; } catch { return 0; } };
 
-// One line per Plan task, with its latest Review round.
+// One line per Plan task, with its latest Review round. Files are told apart by their frontmatter schema.
 function scanFramework() {
   const tasks = new Map();
-  for (const file of markdownFiles(PLAN_DIR)) {
-    const fm = frontmatter(file);
-    if (!fm || !fm.task_id) continue;
+  const files = markdownFiles(HUB, FRAMEWORK_DEPTH).map(file => ({ file, fm: frontmatter(file) })).filter(x => x.fm);
+  for (const { file, fm } of files) {
+    if (fm.schema !== 'pirl-plan/v1' || !fm.task_id) continue;
     const set = fm.plan_set || path.basename(path.dirname(file));
     tasks.set(`${set}/${fm.task_id}`, {
       key: `${set}/${fm.task_id}`, set, id: fm.task_id, title: fm.title || '', status: fm.status || '?',
       mtime: mtimeOf(file), review: null,
     });
   }
-  for (const file of markdownFiles(REVIEW_DIR)) {
-    const fm = frontmatter(file);
-    if (!fm || !fm.task_id || !fm.plan_file) continue;
-    // plan_file has the form .agents/plan/<plan_set>/<file>.md
+  for (const { file, fm } of files) {
+    if (fm.schema !== 'pirl-review/v1' || !fm.task_id || !fm.plan_file) continue;
+    // plan_file has the form [<directory>/]<plan_set>/<file>.md
     const set = path.basename(path.dirname(fm.plan_file.replace(/\\/g, '/')));
     const task = tasks.get(`${set}/${fm.task_id}`);
     if (!task) continue;
@@ -518,8 +500,6 @@ const KINDS = {
 // ---------- state ----------
 
 let repoState = [];
-let manifestIssues = []; // errors in the manifest itself (entries without path), recorded by listRepos
-let reportedManifestIssues = new Set();
 let planState = [];
 let planLoaded = false;
 let sessions = [];
@@ -552,10 +532,10 @@ function pushGrouped(entries) {
   }
 }
 
-const shortName = name => (name === 'Hub' ? 'hub' : name.replace(/^\.repos\//, ''));
+const shortName = name => (name === 'Hub' ? 'hub' : name);
 
-// Logs repository registration changes: manifest entries and submodules added or removed, plus a warning when a
-// repository becomes partially registered (registryIssue). The first scan only reports partially registered repositories.
+// Logs repositories that appear or disappear (a new clone, a submodule added or removed), plus a warning when a
+// submodule cannot be scanned (registryIssue). The first scan only reports the warnings.
 function diffRegistry(prev, next) {
   const prevMap = new Map(prev.map(r => [r.name, r]));
   const nextMap = new Map(next.map(r => [r.name, r]));
@@ -564,17 +544,13 @@ function diffRegistry(prev, next) {
     const tag = shortName(name);
     const before = p ? registryIssue(p) : '', after = r ? registryIssue(r) : '';
     if (prev.length) {
-      const was = p || { ids: [], submodule: false }, now = r || { ids: [], submodule: false };
-      for (const id of now.ids) if (!was.ids.includes(id)) pushEvent('REPO', `registered ${id} → ${name}`);
-      for (const id of was.ids) if (!now.ids.includes(id)) pushEvent('REPO', `unregistered ${id} (${name})`);
-      if (now.submodule && !was.submodule) pushEvent('REPO', `new submodule: ${tag}`);
-      if (was.submodule && !now.submodule) pushEvent('REPO', `submodule removed: ${tag}`);
-      if (r && !after && before) pushEvent('REPO', `${tag}: fully registered`);
+      if (r && !p) pushEvent('REPO', `${r.submodule ? 'new submodule' : 'new repository'}: ${tag}`);
+      if (p && !r) pushEvent('REPO', `${p.submodule ? 'submodule removed' : 'repository removed'}: ${tag}`);
+      if (p && r && p.submodule !== r.submodule) pushEvent('REPO', `${tag}: ${r.submodule ? 'now a submodule' : 'no longer a submodule'}`);
+      if (r && !after && before) pushEvent('REPO', `${tag}: cloned`);
     }
     if (after && after !== before) pushEvent('WARN', `${tag}: ${after}`);
   }
-  for (const issue of manifestIssues) if (!reportedManifestIssues.has(issue)) pushEvent('WARN', issue);
-  reportedManifestIssues = new Set(manifestIssues);
 }
 
 // Column X of porcelain v2 is the index state; '.' means nothing staged, and untracked files count the same.
@@ -675,7 +651,7 @@ function refreshPlans() {
 
 // ---------- real-time file watching ----------
 
-// A recursive fs.watch on the Hub root (including `.repos/*`) also sees paths ignored by Git and files created and
+// A recursive fs.watch on the Hub root (including nested repositories) also sees paths ignored by Git and files created and
 // deleted between two scans. File events are batched for FLUSH_MS, then logged through pushGrouped; .git/ is skipped.
 const FLUSH_MS = 700;
 // Minimum gap since the previous git scan: after a git state change, scan early to log
@@ -745,7 +721,7 @@ function flushFs() {
     const { tag, sub } = repoTagFor(rel);
     const label = `${sub}${st && st.isDirectory() ? '/' : ''}${!st && p.renames > 1 ? ' (created and deleted)' : ''}`;
     entries.push({ kind, tag, sub, label });
-    if (rel.startsWith('.agents/plan/') || rel.startsWith('.agents/review/')) framework = true;
+    if (rel.endsWith('.md') && !rel.startsWith('.')) framework = true; // a Plan or Review may have changed
   }
   pushGrouped(entries);
   if (framework) refreshPlans(); // only reads Markdown files, no need to wait for the git scan
@@ -949,8 +925,8 @@ function reposBody(iw, now) {
   if (!repoState.length) return [paint(P.cyan, `${SPIN[Math.floor(now / 80) % SPIN.length]} scanning repositories…`)];
   const lines = [];
   if (scanError) lines.push(paint(P.red, `× ${scanError}`));
-  // Partial registrations go first so the file lists cannot push them off the screen.
-  const issues = [...manifestIssues, ...repoState.filter(registryIssue).map(r => `${shortName(r.name)} · ${registryIssue(r)}`)];
+  // Warnings go first so the file lists cannot push them off the screen.
+  const issues = repoState.filter(registryIssue).map(r => `${shortName(r.name)} · ${registryIssue(r)}`);
   for (const issue of issues) lines.push(paint(P.red, `⚠ ${issue}`));
   if (issues.length) lines.push('');
   const clean = [];
@@ -994,7 +970,7 @@ function reposBody(iw, now) {
 function reposTag() {
   const dirty = repoState.filter(r => r.files.length);
   const files = dirty.reduce((n, r) => n + r.files.length, 0);
-  const warn = manifestIssues.length + repoState.filter(registryIssue).length;
+  const warn = repoState.filter(registryIssue).length;
   return paint(dirty.length ? P.amber : P.muted, `${dirty.length}/${repoState.length} DIRTY · ${files} Δ`) +
     (warn ? paint(P.red, ` · ${warn} ⚠`) : '');
 }
@@ -1007,7 +983,7 @@ const VERDICTS = { PASS: P.green, FAIL: P.red, BLOCKED: P.amber };
 
 // One line per Plan task, most recently active first: Plan status, latest Review round and verdict.
 function planBody(iw) {
-  if (!planState.length) return [paint(P.muted, 'No Plans in .agents/plan/ yet.')];
+  if (!planState.length) return [paint(P.muted, 'No Plans under the Hub root yet.')];
   // The Plan package name shows only when there is more than one package, without its timestamp to leave room for the title.
   const multiSet = new Set(planState.map(t => t.set)).size > 1;
   return planState.slice(0, MAX_PLANS).map(t => {

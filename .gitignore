@@ -1,3 +1,7 @@
 .tmp/
 __pycache__/
 *.stackdump
+
+# Private data about the user's projects: kept on the local machine, never committed.
+.agents/evals/records/
+.repos/

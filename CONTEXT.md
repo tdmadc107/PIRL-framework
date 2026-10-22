@@ -13,7 +13,7 @@ Scope:
 - The format of Plan files, reports and records is owned by the layer
   contracts, not by this file.
 - How evidence is classified and recorded follows the
-  [core rules](.agents/llm-docs/rules/core-agent.rule.md#evidence); this file
+  [core rules](AGENTS.md#evidence); this file
   only governs how they are expressed in an answer.
 
 ## 1. General principles

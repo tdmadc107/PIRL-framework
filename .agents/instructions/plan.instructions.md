@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/plan.instructions.md"
 metadata:
   id: ".agents/instructions/plan"
   kind: "instruction"
-  version: "1.6.0"
+  version: "2.0.0"
   status: "active"
 ---
 
@@ -13,7 +13,10 @@ metadata:
 
 Apply the Plan process only when the request and the [router](layered-task-execution.instructions.md)
 have selected this layer. Reading or updating a Plan/report file does not
-activate another layer.
+activate another layer. The run is carried out through the
+[`plan` skill](../../.skills/plan/SKILL.md), which owns the run procedure, the
+Plan file format and the helper script; this contract owns the decisions and
+the exit conditions.
 
 A Plan settles the work to do, how to do it, the implementation roles, the
 verification roles and the logic that must hold. Write it in English; keep
@@ -48,7 +51,7 @@ differ. When self-performed, do not claim an independent challenge happened.
 ## Investigating and settling decisions
 
 - Read the request and the existing decisions; identify the target repository
-  per [repository routing](../../AGENTS.md#repository-routing) and the part to
+  per [AGENTS.md](../../AGENTS.md#target-repository) and the part to
   change from the source.
 - Read the related callers/consumers, constraints and configuration before
   claiming a mechanism is missing; do not infer the whole system from one file
@@ -116,9 +119,9 @@ differ. When self-performed, do not claim an independent challenge happened.
 
 Per the [router](layered-task-execution.instructions.md#verification-by-reasoning),
 a task covers implementing product source code (with accompanying documentation
-in the target repository), creating/updating the repository's context
-documentation (`context_docs` in `.repos/manifest.yaml`), and functional tests
-under the [FUT rule](../llm-docs/rules/test-verification.rule.md#fut-rule-functional-tests)
+in the target repository), creating/updating the target repository's context
+documentation ([AGENTS.md](../../AGENTS.md#target-repository)), and functional
+tests under the [FUT rule](layered-task-execution.instructions.md#functional-tests-fut-rule)
 when a REQ/specification needs them.
 
 - Never create a task, a `How to do it` step, a REQ, a QG, a `Done when` or
@@ -217,61 +220,14 @@ when a REQ/specification needs them.
   logic. When the task is content, the criterion is that the instructions lead
   to the right decision, not that a tool accepts the text.
 
-## Output template
+## Plan file format
 
-Keep the four sections; add only details that change how the work is done, and
-do not add per-role reports or checklists as a fifth section.
-
-````markdown
----
-schema: pirl-plan/v1
-content_language: en
-plan_set: <request-slug>_<YYYYMMDD-HHmmss>
-task_id: T01
-title: "<Task name>"
-layer: implement
-status: planned
-depends_on: []
-created_at: "<ISO-8601 with +07:00>"
-target_repo: "<Target repository path in .repos/manifest.yaml, or . for the Hub itself>"
-source_request: "<Short version of the user's request>"
-planning_roles: [<planning-role>]
-implementation_roles: [<implementation-role>]
-verification_roles: [<verification-role>]
----
-
-# T01: <Task name>
-
-## What to do
-
-- REQ-01 | Source: <Request or file/symbol read> | Requirement: <Business behavior to achieve>
-- Scope: <Work to be done; write exclusions only when needed to avoid misunderstanding>.
-- Allowed paths: `<specific paths of source, documentation and tests under FUT, if any>`.
-- Standalone task outcome: <Output that can be accepted while later/parallel tasks are not yet implemented>.
-<If the specification has build/test/release goals: one line saying they belong to the user's build/test/release stage>.
-
-## How to do it
-
-1. <ROLE-01: which file/symbol to change, how and with what outcome; add steps when there is a real dependency>.
-<If there are tests: ROLE-01 writes/updates tests under FUT for which REQ and which affected functionality, and runs exactly those tests (file/class/name)>.
-2. <ROLE-02: after ROLE-01, reasons on the diff/source to conclude which QGs; runs no commands/tests>.
-
-<If depends_on is set: the concrete output to receive from each prerequisite task>.
-<If end-to-end criteria are assigned to another task: the owning task and the integration part to verify; not a QG of this task>.
-<Input conditions or decisions to stop at, if any>.
-Next step: the user names this Plan file for Implement once the Plan content
-fixes are complete; Implement carries out only this task within the scope above.
-
-## Participating roles
-
-- ROLE-01 | Type: implementation | Role: <implementation-role> | Responsible for: <Concrete work> | Input: <Information or dependent results> | Done when: <Source/documentation to deliver>
-- ROLE-02 | Type: verification | Role: <verification-role> | Responsible for: <QGs and the questions to answer> | Input: <ROLE-01's diff/source> | Done when: <PASS/FAIL/BLOCKED conclusion for each QG by reasoning with sources>
-- Planning | Roles: <the roles in planning_roles> | Execution: <separate agent, or the coordinator self-performing with the reason delegation was not possible; per role when they differ>
-
-## Required quality gates
-
-- QG-01 | Requirement: REQ-01 | Required logic: <Situation → where it is handled → outcome/state and failure branches; provable by reasoning on the source with the prerequisite inputs and this task's changes, without tests/builds/runs or later/parallel tasks>
-````
+Each task is one Plan file. The [`plan` skill](../../.skills/plan/SKILL.md)
+owns its format: the [template](../../.skills/plan/assets/plan-template.md)
+with the four sections `What to do`, `How to do it`, `Participating roles` and
+`Required quality gates`, and the [format reference](../../.skills/plan/references/plan-format.md)
+with the frontmatter fields, file naming and output location. This contract
+owns what those sections must settle.
 
 ## Self-review before handoff
 
@@ -308,15 +264,11 @@ fixes are complete; Implement carries out only this task within the scope above.
      to capture go in the UI QGs and in the implementation role's `Done when`.
      The UI verification role's step only says it runs after the implementation
      role captures.
-2. Run the Plan validator and fix structural errors before handoff:
-
-   ```powershell
-   python -B .agents/llm-docs/evals/validate_layer_artifact.py --kind plan --path <Plan file or package directory>
-   ```
-
-   The validator only checks the handoff input (schema, required fields, roles,
-   dependencies, time zone); it does not grade content. The reviewer still has
-   to prove the Plan is right.
+2. Run the Plan validator (command in the
+   [`plan` skill's procedure](../../.skills/plan/SKILL.md#procedure)) and fix
+   structural errors before handoff. The validator only checks the handoff
+   input (schema, required fields, roles, dependencies, time zone); it does not
+   grade content. The reviewer still has to prove the Plan is right.
 3. `process-auditor` self-evaluates the Plan run, applies improvements and
    writes the record per the [router](layered-task-execution.instructions.md#self-evaluation-and-improvement).
    Defects of the Plan itself are fixed in the Plan before handoff; instruction
@@ -328,11 +280,9 @@ fixes are complete; Implement carries out only this task within the scope above.
   complete the [temporary-resource cleanup](layered-task-execution.instructions.md#cleaning-up-temporary-resources-before-handoff)
   and check again before declaring the Plan ready. A blocked draft must still
   clean up what is no longer needed; do not hand Plan clutter to Implement.
-- Keep the `pirl-plan/v1` schema, the `+07:00` time zone, ASCII kebab slugs and
-  the name `<NN>-plan-<todo-slug>-<timestamp>.md` in
-  `.agents/plan/<request-slug>_<YYYYMMDD-HHmmss>/`. Task IDs start at T01 and are
-  consecutive; files in the same package share the same timestamp. Do not
-  overwrite history.
+- Save each task file where the user says, or by default under the Hub root,
+  per the [Plan file format](../../.skills/plan/references/plan-format.md).
+  Do not overwrite history.
 - State clearly whether the Plan has all decisions or still has unsettled
   parts, its path and the self-improvement result per the router's reporting
   section. Do not call a draft with insufficient input ready for Implement.

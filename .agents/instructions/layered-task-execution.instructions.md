@@ -1,11 +1,11 @@
 ---
 name: "Layered Task Execution Instructions"
-description: "Routes Plan, Implement and Review, defines the boundaries between layers and the shared contracts: verification by reasoning, layout verification, shared snapshots and older records, self-evaluation and improvement, temporary-resource cleanup."
-applyTo: ".repos/**/*,.agents/instructions/**/*,.agents/plan/**/*,.agents/review/**/*"
+description: "Routes Plan, Implement and Review, defines the boundaries between layers and the shared contracts: verification by reasoning, functional tests, layout verification, shared snapshots and older records, self-evaluation and improvement, temporary-resource cleanup."
+applyTo: ".agents/instructions/**/*,.skills/**/*"
 metadata:
   id: ".agents/instructions/layered-task-execution"
   kind: "instruction"
-  version: "1.7.0"
+  version: "2.0.0"
   status: "active"
 ---
 
@@ -18,10 +18,12 @@ and holds their shared rules. The current request and the permissions the
 user has granted decide the scope; AI Agent roles supply expertise and do not
 add product goals or a new approval round on their own.
 
-[AGENTS.md](../../AGENTS.md) owns the structure, the role catalog and
-repository routing; role files own each role's expertise; the router owns
-layer selection and the shared contracts; layer contracts own the sequence,
-the roles' responsibilities at the layer and the output.
+[AGENTS.md](../../AGENTS.md) owns the core rules, the structure, the role
+catalog and how the target repository is chosen; role files own each role's
+expertise; the router owns layer selection and the shared contracts; layer
+contracts own the roles' responsibilities at the layer, the decisions and the
+content of the output; each layer's skill in `.skills/` owns the run
+procedure, the output format and the helper scripts.
 Fix things where the decision is owned; do not copy a process into several files.
 
 The current handoff schemas are `pirl-plan/v1` and `pirl-review/v1`. Other
@@ -65,15 +67,15 @@ Implement layer; "Review the implementation of Plan T01" is the Review layer.
 
 | Layer | Result and owning contract |
 | --- | --- |
-| Plan | Write/adjust a Plan from the request and the source; [Plan contract](plan.instructions.md). |
-| Implement | Carry out one selected Plan, or repair it per a report for the same task; [Implement contract](implement.instructions.md). |
-| Review | Check an implementation run against the Plan; [Review contract](review.instructions.md). |
+| Plan | Write/adjust a Plan from the request and the source; [Plan contract](plan.instructions.md), run through the [`plan` skill](../../.skills/plan/SKILL.md). |
+| Implement | Carry out one selected Plan, or repair it per a report for the same task; [Implement contract](implement.instructions.md), run through the [`implement` skill](../../.skills/implement/SKILL.md). |
+| Review | Check an implementation run against the Plan; [Review contract](review.instructions.md), run through the [`review` skill](../../.skills/review/SKILL.md). |
 | Standalone task | Work assigned directly, outside a Plan's chain; [Standalone tasks section](#standalone-tasks). |
-| Framework maintenance | Edit `AGENTS.md`, instructions, rules or framework tools themselves; [Framework maintenance section](#framework-maintenance). |
+| Framework maintenance | Edit `AGENTS.md`, instructions, roles, skills or framework tools themselves; [Framework maintenance section](#framework-maintenance). |
 
-Load only the documents relevant to the current decision: the contract of the
-selected layer, and the context and rules of the target repository. Do not
-load every file in `.agents/`.
+Load only the documents relevant to the current decision: the skill and the
+contract of the selected layer, and the context documentation of the target
+repository. Do not load every file in `.agents/` or `.skills/`.
 
 ## Standalone tasks
 
@@ -101,22 +103,47 @@ No Review is scheduled, so the person doing the work closes the loop within the 
 If the user later asks for a Review, the Review evaluates as usual;
 self-verification does not replace the Review's conclusions.
 
+### Verifying standalone work
+
+Applies to standalone tasks and to work done directly without a layer; the
+three layers verify per the
+[Verification by reasoning section](#verification-by-reasoning).
+
+- Choose the narrowest verification that answers the open question: static
+  (types, lint, syntax, metadata), unit (pure functions, services, domain
+  rules), component (UI behavior and accessibility), integration (API,
+  authentication, storage, multi-tier flows) or manual (visual layout, real
+  browser, multi-step flows per viewport). Widen only when an affected contract
+  or a concrete failure mechanism requires it; a file name or the existence of
+  a test does not create that need. Tests written or run follow the
+  [FUT rule](#functional-tests-fut-rule).
+- A passing command only proves the cases that ran, not invariant coverage,
+  adjacent integration paths, edge behavior or the reliability of the skipped
+  part. A case skipped because of the platform only proves that case does not
+  run in this environment; it does not prove the product needs another
+  platform. Infer environment requirements from the user's task and the
+  repository's actually supported behavior.
+- Report each verification with the command, its purpose, the working
+  directory, pass/fail/blocker, a summary of the key output and the remaining
+  risk.
+
 ## Framework maintenance
 
-A request to edit `AGENTS.md`, `CONTEXT.md`, instructions, rules,
-`.repos/manifest.yaml` or the tools in `.agents/llm-docs/evals/` and `.tools/`
-directly is framework maintenance within the scope the user assigns. Do not force a product Plan or
+A request to edit `AGENTS.md`, `CONTEXT.md`, instructions, roles, skills or
+the tools in `.agents/evals/` and `.tools/` directly is framework maintenance within the scope the user assigns. Do not force a product Plan or
 report before editing. Improvements that `process-auditor` applies during a
 layer run under the
 [Self-evaluation and improvement section](#self-evaluation-and-improvement) are
 also framework maintenance, allowed by that section without a separate request.
 
 - Start from the wrong or missing decision, then identify the owning file:
-  `AGENTS.md` for structure, roles and routing; `CONTEXT.md` for how responses
-  to the user are presented; the router for layer boundaries and shared
-  contracts; the layer for sequence and output; a rule for a reusable
-  constraint. Read the files that reference the rule before changing it, so
-  that other files do not restore the old behavior.
+  `AGENTS.md` for the core rules, structure, roles and the target repository;
+  `CONTEXT.md` for how responses to the user are presented; the router for
+  layer boundaries and shared contracts; the layer contract for the roles'
+  responsibilities, decisions and exit conditions; the layer's skill for the
+  run procedure, the output format and the helper scripts. Read the files that
+  reference the rule before changing it, so that other files do not restore the
+  old behavior.
 - Write rules in the framework's general form, reusable for every repository,
   host and situation of the same kind: conditions are stated by kind of
   situation, actions by role and output, not by one event that happened. The
@@ -126,14 +153,17 @@ also framework maintenance, allowed by that section without a separate request.
   specific tokens or values, task or record IDs, dates, quotes from the user,
   names of a specific host or tool. Illustrative examples, when needed, are
   marked as examples and do not become conditions. Knowledge specific to one
-  repository lives in that repository's `context_docs`; the decisions and
-  evidence of a run live in Plans, Implementation Records, reports and records.
+  repository lives in that repository's own context documentation; the
+  decisions and evidence of a run live in Plans, Implementation Records,
+  reports and records.
 - Fix with conditions and actions that are concrete enough; replace the wrong
   passage instead of piling on reminders. Re-read against three scenarios: the
   scenario that caused the problem, a similar scenario where the rule must not
   apply, and a scenario of the same kind in another repository or host; the
   rule must apply to the third scenario without changes. Do not add tests,
-  validators or schemas in place of improving the content.
+  validators or schemas in place of improving the content, and do not create
+  tests or validators that grade wording by headings, keywords, counts or
+  format.
 - After editing, run the matching commands in the
   [Framework checks](../../AGENTS.md#framework-checks) section of `AGENTS.md`.
   The checks only confirm structure; they do not prove the quality of the wording.
@@ -154,8 +184,7 @@ This rule applies to the Plan → Implement → Review chain of development work
 Work in the chain covers implementing product source code (with accompanying
 documentation in the target repository), creating/updating the repository's
 context documentation, and writing, updating and running functional tests under
-the [FUT rule](../llm-docs/rules/test-verification.rule.md#fut-rule-functional-tests)
-when a REQ/specification needs them. Building, running the application/
+the [FUT rule](#functional-tests-fut-rule) when a REQ/specification needs them. Building, running the application/
 database/browser for acceptance, measuring performance or load, running tests
 outside FUT, building new harnesses or verification scripts, deploying and
 releasing belong to the user's build/test/release stage, outside the task
@@ -258,8 +287,8 @@ Standalone tasks and direct work outside a Plan do this only when the user asks.
   mocks right in the browser; no backend, database, build or typecheck. Drive
   to each state the diff creates or changes, including error branches and
   input validation errors, then capture each state in every UI language, at
-  the desktop and mobile viewports that the repository's context documentation
-  (`context_docs` in `.repos/manifest.yaml`) specifies. If the documentation
+  the desktop and mobile viewports that the target repository's context
+  documentation ([AGENTS.md](../../AGENTS.md#target-repository)) specifies. If the documentation
   does not specify them, take the languages from the i18n configuration and the
   viewports from the repository's CSS breakpoints, and record the set of
   viewports/languages used. When the diff changes the size or number of
@@ -275,8 +304,8 @@ Standalone tasks and direct work outside a Plan do this only when the user asks.
   closing. This approach is for web UIs served by a dev server; for other UIs
   (extensions, native apps) the layout part is `BLOCKED` with an owner, without
   improvising a means. Tools, how to run a stable server and known environment
-  obstacles belong in the tooling notes of the repository's context
-  documentation ([AGENTS.md](../../AGENTS.md#repository-routing)), not in the
+  obstacles belong in the tooling notes of the target repository's context
+  documentation ([AGENTS.md](../../AGENTS.md#target-repository)), not in the
   framework.
 - **State without the diff:** the post-diff capture of the preceding task in
   the same package, when that capture covered exactly the screens and
@@ -289,13 +318,14 @@ Standalone tasks and direct work outside a Plan do this only when the user asks.
   working tree intact (except `.git`) into a temporary directory before the task
   edits it, or export the base commit and reapply exactly those changes. Do not
   use stash, checkout or reset on the working repository
-  ([safety rules](../llm-docs/rules/core-agent.rule.md#safety)). Record in
+  ([safety rules](../../AGENTS.md#safety)). Record in
   `layout_verification` the base commit and the uncommitted changes counted in
   the base; the Plan does not describe how to build this base.
 - **Where:** mock scripts, screenshots and the results table go in
   `.tmp/layout-snapshots/<plan-set>/<task-id>/<YYYYMMDD-HHmmss>/` at the Hub root
-  (ignored by Git). Each run gets a new directory; do not delete or overwrite
-  earlier runs. This directory is handoff output and is kept; dev servers,
+  (ignored by Git), whatever directory holds the Plan; the `implement` skill's
+  helper script creates it. Each run gets a new directory; do not delete or
+  overwrite earlier runs. This directory is handoff output and is kept; dev servers,
   browsers and temporary profiles are still stopped or deleted per the cleanup
   section.
 - **Role as evidence:** the screenshots and measurements of the checks in the
@@ -343,6 +373,41 @@ Standalone tasks and direct work outside a Plan do this only when the user asks.
   screenshots showing a layout that violates a QG, is a `repair` FIND for
   `frontend-developer`.
 
+## Functional tests (FUT rule)
+
+Applies to all writing, updating and running of tests, inside and outside the
+three layers. Tests that are created or updated must be functional tests based
+on the REQ/specification. If the user explicitly asks for something else,
+follow that request.
+
+- Source: each test traces back to a REQ or specification item of the
+  functionality under development, or of functionality affected by it.
+  "Affected" must be grounded in the source: a call path, contract or shared
+  data that the change touches; do not infer it from module names, the
+  existence of a test or a wish to "be safe".
+- Content: assert functional behavior observable at the functionality's
+  contract (input → outcome/state, refusal/failure branches the specification
+  names). Do not lock in implementation details, do not use the
+  implementation's algorithm as the expected result, and do not assert things
+  the specification does not require (wording, order, timing, format) in a way
+  that blocks a correct result.
+- Extent: only enough tests to tell right from wrong for the assigned behavior.
+  Do not add combinations, edge cases, performance or platforms the
+  specification does not require, do not test the same behavior twice, and do
+  not spread to unrelated functionality. If an existing test already protects
+  that behavior, update it instead of writing a new one.
+- Updates: tests of affected functionality that still assert the old behavior
+  are fixed to the new logic; tests that only served a removed flow are deleted.
+- Running: run only the tests of the functionality under development and the
+  affected functionality, selected by file, class or test name, with the
+  command the target repository's context documentation gives. Never run tests
+  of unrelated functionality or the whole suite/system, even when you believe
+  the change has no impact. Compilation performed by that test command itself
+  is part of the run, not a separate build.
+- Results: a run only proves the cases that ran. A red test is explained from
+  the source (wrong product or wrong test) before fixing the right side; in the
+  Plan → Implement → Review chain, test results are not a QG baseline.
+
 ## Shared snapshots and older records
 
 Applies to every layer when drawing conclusions about the source, the
@@ -388,7 +453,7 @@ not apply this section.
 ### Timing and evaluator
 
 - At the start of the run, the coordinator runs
-  `python -B .agents/llm-docs/evals/layer_record.py start` and keeps the returned
+  `python -B .agents/evals/layer_record.py start` and keeps the returned
   `framework_ref`: the Hub commit and the hashes of framework files that differ
   from that commit. This is the version of the rules the run applies.
 - After the layer's output is settled and before cleanup,
@@ -419,7 +484,7 @@ by how many times it repeated:
 | --- | --- | --- |
 | `instruction` | Reading the rules at exactly `framework_ref`: no rule covers this case, a rule leads to the wrong decision, two rules conflict, or a rule is ambiguous | Fix the rule |
 | `ineffective_fix` | An earlier record fixed an issue with the same key or the same rule, and the issue still happens | Determine why that fix failed (wrong cause, does not cover this case, the role does not load the rule), then replace or revert that fix itself, without stacking another. Record `prior_fix` |
-| `input` | The rule is right but the input is missing or wrong: the Plan lacks a decision, the context documentation is incomplete, the manifest is wrong | Fix where the input is produced: the rule of the layer that produces it, `context_docs`, the manifest |
+| `input` | The rule is right but the input is missing or wrong: the Plan lacks a decision, the target repository's context documentation is incomplete or wrong | Fix where the input is produced: the rule of the layer or skill that produces it. A gap in the target repository's context documentation lies outside the framework: record that improvement `pending_user` with reason `repository` and propose it to the user as a standalone task in that repository |
 | `execution` | The rule is clear, was loaded and leads to the right decision, but the role did not follow it | Increase enforcement: put that point in the role's "Done when" column in the layer file's table, or assign a verification role to check exactly that point |
 
 Output issues (product source, Plan, report) are also returned to the owning
@@ -433,8 +498,10 @@ Applies in `mode: agent`, and in `mode: self` per the
 Every issue must have an improvement applied within the run. There are no
 off-limits areas and no waiting for proposals:
 
-1. Fix every place that owns the cause: layer files, role files, `AGENTS.md`,
-   the router, rules, framework tools with their tests, `context_docs`, the manifest.
+1. Fix every place that owns the cause: layer files, skills, role files,
+   `AGENTS.md`, the router, framework tools with their tests. The only
+   improvement not applied this way is one in a target repository's context
+   documentation, handled per the `input` row above.
 2. Sweep the whole framework for places still describing the old behavior and
    fix them in the same run.
 3. Replace the wrong passage with concrete conditions and actions; do not pile
@@ -447,7 +514,7 @@ off-limits areas and no waiting for proposals:
    that match what was edited.
 
 Mandatory exception: never loosen the
-[safety rules](../llm-docs/rules/core-agent.rule.md#safety-rules-and-self-improvement).
+[safety rules](../../AGENTS.md#safety-rules-and-self-improvement).
 An improvement that would loosen a safety rule is not applied: record
 `pending_user` with reason `safety` and ask the user.
 
@@ -479,13 +546,16 @@ that choice writes a new record whose `supersedes` points to the old record.
 ### Record
 
 Each run writes exactly one record with
-`python -B .agents/llm-docs/evals/layer_record.py append --input <JSON file>`
+`python -B .agents/evals/layer_record.py append --input <JSON file>`
 (or by passing JSON on stdin). On Windows, use `--input` with a UTF-8 file so
 non-ASCII text is not corrupted. The tool adds `schema`, `record_id`,
 `recorded_at` and rejects malformed records; if the record is rejected, the run
 is not complete. Do not edit the JSONL files by hand; correct a record with a
 new record that has `supersedes`. Records are handoff output, stored at
-`.agents/records/<layer>/<YYYY-MM-DD>.jsonl`.
+`.agents/evals/records/<layer>/<YYYY-MM-DD>.jsonl`. That directory is ignored
+by Git because records describe the user's projects: they stay on the local
+machine and are never committed, and the tool still reads them for `query` and
+`check`.
 
 | Field | Content |
 | --- | --- |
@@ -497,7 +567,7 @@ new record that has `supersedes`. Records are handoff output, stored at
 | `roles` | Each participating role: `role`, `mode`, `assignment`, `result` (`PASS`, `FAIL`, `BLOCKED`) |
 | `audit` | `role: process-auditor`, `mode`, `result` (`clean` or `issues`) |
 | `issues` | Each issue: `id` (`ISSUE-NN`), `issue_key`, `role`, `record` (null; or the record in `evaluates` when the issue belongs to the re-evaluated run), `cause`, `decision`, `rule`, `evidence`, `prior_fix` (`<record_id>#FIX-NN`, only for `ineffective_fix`) |
-| `fixes` | Each improvement: `id` (`FIX-NN`), the `issues` it addresses, `status` (`applied` or `pending_user`), `reason` when pending (`mode_self` or `safety`), `files` (`path`, `section`), `summary`, `checks` (check commands that were run, required when `applied`) |
+| `fixes` | Each improvement: `id` (`FIX-NN`), the `issues` it addresses, `status` (`applied` or `pending_user`), `reason` when pending (`mode_self`, `safety` or `repository`), `files` (`path`, `section`), `summary`, `checks` (check commands that were run, required when `applied`) |
 | `evaluates` | Review: the record of the reviewed Implement run; other layers write null |
 | `supersedes` | The record being corrected, or null |
 
@@ -513,6 +583,10 @@ supersedes the self-evaluation record. An improvement pending the user for
 reason `safety` is described in the "Self-improvement" section, and the decision
 about it is one point of "Needs confirmation" per the
 [Self-evaluation when `mode: self`](#self-evaluation-when-mode-self) section.
+An improvement pending for reason `repository` is described in the
+"Self-improvement" section and offered as one point of "Proposals"
+([CONTEXT.md](../../CONTEXT.md#5-closing-block-needs-confirmation-and-proposals)):
+the user assigns it as a standalone task in the target repository.
 
 ## Cleaning up temporary resources before handoff
 
@@ -524,9 +598,9 @@ delegated to sub-agents. Do not push cleanup to a later layer or wait for the
 user to remind you. PASS, FAIL, blocked or cancelled, everything no longer
 needed must be cleaned up before handing off the corresponding result.
 
-- The mandatory cleanup scope is the Git-committable area of the Hub and the
-  submodules in `.repos/`: tracked files and untracked files not excluded by
-  `.gitignore`. Paths ignored by Git (for example `.tmp/` at the Hub root,
+- The mandatory cleanup scope is the Git-committable area of the Hub and of
+  each target repository used: tracked files and untracked files not excluded
+  by `.gitignore`. Paths ignored by Git (for example `.tmp/` at the Hub root,
   `node_modules/`, build directories) and locations outside the repository are
   not committed and are not part of the cleanup duty; they may be kept for a
   later run. The `.tmp/layout-snapshots/` directory of
@@ -543,12 +617,13 @@ needed must be cleaned up before handing off the corresponding result.
   that are output the user needs to keep using.
 - Before deleting raw evidence, save the trigger, reproduction steps, runtime,
   measurements and conclusions needed into the official output under the
-  applicable contract. Keep source, user inputs, Plans, reports and records in
-  `.agents/records/`. Keep raw files only when the user asks or when they are a
-  defined handoff output; do not use possible reuse as an excuse to keep
-  clutter. Do not leave required references pointing to temporary files about
-  to be deleted, to paths ignored by Git or to locations outside the
-  repository, because they do not go with commits.
+  applicable contract. Keep source, user inputs, Plans, reports and records.
+  Keep raw files only when the user asks or when they are a defined handoff
+  output; do not use possible reuse as an excuse to keep clutter. Do not leave
+  required references pointing to temporary files about to be deleted, to paths
+  ignored by Git or to locations outside the repository, because they do not go
+  with commits. Self-evaluation records are the exception: they are local by
+  design and are referenced by `record_id`.
 - Verify ownership and the absolute path before deleting, using specific
   targets. Do not delete the whole TEMP, run a broad `git clean`, or treat every
   untracked file as clutter. For resources with an unclear owner, verify first;
@@ -556,7 +631,7 @@ needed must be cleaned up before handing off the corresponding result.
   own part and report exactly what remains if they hit a real error; the
   coordinator takes it over and handles it in the same run.
 - After the last verification command that can regenerate files, sweep
-  `git status --short` of the Hub and each submodule used: every remaining change
+  `git status --short` of the Hub and each target repository used: every remaining change
   or untracked file must be handoff output or a pre-existing user change.
   Claim completion only after cleaning up and checking again. If a file is
   locked or permissions are genuinely missing, clean up what can be cleaned,

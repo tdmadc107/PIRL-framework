@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/implement.instructions.md"
 metadata:
   id: ".agents/instructions/implement"
   kind: "instruction"
-  version: "1.7.0"
+  version: "2.0.0"
   status: "active"
 ---
 
@@ -17,9 +17,12 @@ activate another layer. Work assigned directly outside a Plan follows the
 [router's standalone tasks](layered-task-execution.instructions.md#standalone-tasks);
 do not borrow this layer's wait-for-Review rules for that work.
 
-This is the source of the Implement process and its results ledger. The goal
-is to carry out the settled product decisions exactly, keep enough evidence
-for handoff and recognize when those decisions no longer fit.
+This contract owns the decisions of the Implement layer and the content of its
+results ledger. The goal is to carry out the settled product decisions exactly,
+keep enough evidence for handoff and recognize when those decisions no longer
+fit. The run is carried out through the
+[`implement` skill](../../.skills/implement/SKILL.md), which owns the run
+procedure, the Implementation Record format and the helper scripts.
 
 ## AI Agent roles at the Implement layer
 
@@ -51,7 +54,7 @@ work, the sources and the related REQs/QGs, then merges the results by evidence.
   report belong to no QG, so no verification role receives them. The role
   states them only as observations after checking them against all sources that
   could refute them, per the
-  [Evidence rule](../llm-docs/rules/core-agent.rule.md#evidence). The coordinator
+  [Evidence rule](../../AGENTS.md#evidence). The coordinator
   checks them against the source again before putting them in `residual_risk`,
   the record's `summary` or a response to the user, or states that they are
   unchecked and what was not read.
@@ -121,7 +124,7 @@ work, the sources and the related REQs/QGs, then merges the results by evidence.
   functionality under development and of affected functionality that still
   assert the old behavior are updated to the new logic, and tests that only
   served a removed flow are deleted, all under the
-  [FUT rule](../llm-docs/rules/test-verification.rule.md#fut-rule-functional-tests);
+  [FUT rule](layered-task-execution.instructions.md#functional-tests-fut-rule);
   do not touch tests of unrelated functionality and do not build new harnesses
   or verification scripts, inside or outside the repository (the only exception
   is layout mock and capture scripts in `.tmp/` per the
@@ -266,35 +269,11 @@ of that run itself. The Plan content changes only per the
 section; do not edit the Plan to legitimize a direction the agent changed on its
 own.
 
-```markdown
-## Implementation Record
-- status: awaiting_confirmation | implemented | blocked | failed
-- updated_at: "<ISO-8601 with +07:00>"
-- changed_paths: <relative paths or []>
-- role_work: <role=status/evidence, with commands and test scope under FUT if any; ...>
-- execution_mode: <separate agent per role | self-performed in turn, with the reason delegation was not possible; with each role's actual level of independence per the assignment principles in AGENTS.md: sources read beyond the assignment, reviewers outside the role team consulted>
-- checkpoint_evidence: <checkpoint, evidence and input to continue; or N/A>
-- quality_gate_results: <QG-01=PASS|FAIL|BLOCKED per the verification role's conclusion; ...>
-- quality_gate_evidence: <each QG -> verification role, file/symbol, path traced, counterexample and conclusion>
-- layout_verification: <N/A when the diff does not change the UI; or states captured, languages, viewports, the base used for comparison (base commit and uncommitted changes counted), number of screenshots, checks passed/failed (each failed check with its cause per the router) and the .tmp/layout-snapshots/... directory>
-- repair_closure_evidence: <each report item -> REQ/QG, cause, solution/disposition and matching before/after evidence; or exactly N/A for the first run>
-- root_cause_revalidation: <ITEM-ID=confirmed|contradicted|blocked/evidence before the fix; or exactly N/A for the first run>
-- review_item_disposition: <FIND-01=resolved|failed|blocked/evidence; RISK-01=deferred/owner and revisit condition; BLOCK-01=unblocked|blocked|escalated/evidence; or exactly N/A for the first run>
-- plan_amendments: <each Plan edit per the "Changes to the Plan confirmed by the user" section: Plan line, old -> new value, what the user confirmed and when; or exactly N/A>
-- role_challenge_results: <role=PASS|FAIL|BLOCKED/claim, challenge and evidence; ...>
-- residual_risk: <remaining risk and impact; or none>
-- review_handoff: <Plan file, implementation target, source report if any>
-- role_selection_source: plan | <relative path of the source report>
-- effective_implementation_roles: <list of roles in order, comma-separated>
-- Next allowed owner/layer: <owner/layer>
-- Authorization condition: <input or decision for the next step>
-1. <concrete action and related paths>
-```
-
-The validator reads the two fields `status` and `updated_at` verbatim: write
-them exactly as in the template, without backticks or a trailing period; the
-other fields are free text. After writing the Implementation Record, run
-`python -B .agents/llm-docs/evals/validate_layer_artifact.py --kind plan --path <Plan file>`
+The Implementation Record follows the
+[template](../../.skills/implement/assets/implementation-record-template.md) and
+the [format reference](../../.skills/implement/references/implementation-record-format.md)
+of the `implement` skill. After writing it, run the Plan validator (command in
+the [`implement` skill's procedure](../../.skills/implement/SKILL.md#procedure))
 and fix errors before handoff.
 
 `role_work` and `role_challenge_results` cover each implementation/repair role,

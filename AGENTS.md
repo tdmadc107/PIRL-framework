@@ -3,12 +3,13 @@
 This repository is PIRL (Plan – Implement – Review Layer): a Hub that
 coordinates software development work for AI Agents. The framework runs entirely
 on instruction files: three layers, Plan, Implement and Review, define what the
-Agent does, how it does it and what it produces. `.repos/*` are git submodules
-of the product repositories, each with its own history and branches; the list
-of registered repositories lives in `.repos/manifest.yaml`.
+Agent does, how it does it and what it produces. Each layer is run through its
+skill in `.skills/`. The product repositories the Agent works on are not part of
+the Hub; the user names the target repository of each request, as described in
+[Target repository](#target-repository).
 
-Always apply the [core rules](.agents/llm-docs/rules/core-agent.rule.md) on
-safety, scope and evidence, even when no layer is opened.
+Always apply the [core rules](#core-rules) on safety, scope and evidence, even
+when no layer is opened.
 
 Read [CONTEXT.md](CONTEXT.md) before the first answer of each session and apply
 it to every answer, summary, report and proposal sent to the user, even when no
@@ -17,42 +18,139 @@ layer is opened.
 # Structure
 
 ```text
-AGENTS.md                         root: structure, flow, Agent roles, repository routing
+AGENTS.md                         root: core rules, structure, flow, Agent roles, target repository
 CONTEXT.md                        how responses to the user are presented
 .agents/
   instructions/
     layered-task-execution.instructions.md   router: layer selection, shared contracts
-    plan.instructions.md                     Plan layer
-    implement.instructions.md                Implement layer
-    review.instructions.md                   Review layer
+    plan.instructions.md                     Plan layer contract
+    implement.instructions.md                Implement layer contract
+    review.instructions.md                   Review layer contract
   roles/          expertise of each role: <role-id>.role.md
-  llm-docs/
-    rules/        shared rules (core-agent, test-verification)
-    repos/        context documentation for each registered repository (created when needed)
-    evals/        Plan/Review validator, record tool and their tests
-  plan/           Plan output: <request-slug>_<YYYYMMDD-HHmmss>/<NN>-plan-...md
-  review/         Review output: <plan-set>/<task>/round-<NN>-review-...md
-  records/        self-evaluation records: <layer>/<YYYY-MM-DD>.jsonl
-.repos/
-  manifest.yaml   product repository registry
-  <repo-id>/      git submodule of a product repository
+  evals/
+    validate_layer_artifact.py   Plan/Review validator
+    layer_record.py              self-evaluation record tool
+    tests/                       tests of the tools, the role catalog and the skills
+    records/                     self-evaluation records: <layer>/<YYYY-MM-DD>.jsonl (local, ignored by Git)
+.skills/
+  plan/           Plan skill: SKILL.md, assets/, references/, scripts/
+  implement/      Implement skill: same layout
+  review/         Review skill: same layout
 .tools/           local tools (dashboard, claude-resume, claude-schedule)
 .tmp/             temporary output, ignored by Git (layout snapshots, tool logs)
+<plan-set>/       Plan package and its Review reports, created at the Hub root unless the user names another directory
 ```
 
 | Source | Owns |
 | --- | --- |
-| `AGENTS.md` | Structure, flow, role catalog, repository routing, check commands |
+| `AGENTS.md` | Core rules, structure, flow, role catalog, target repository, check commands, Git |
 | `CONTEXT.md` | How answers, summaries, reports, proposals and syntheses sent to the user are presented |
-| Router | How to choose a layer, layer boundaries, shared contracts (verification by reasoning, layout, shared snapshots and older records, self-evaluation and improvement, cleanup) |
-| Layer instruction | Sequence, each role's responsibilities at the layer, the layer's output and exit conditions |
+| Router | How to choose a layer, layer boundaries, shared contracts (verification by reasoning, functional tests, layout, shared snapshots and older records, self-evaluation and improvement, cleanup) |
+| Layer instruction | Each role's responsibilities at the layer, the decisions the layer settles, the content its output must hold and its exit conditions |
+| Skill | How one layer run is carried out: when the skill applies, the ordered procedure linking each step to the contract that owns it, the output format and template, helper scripts |
 | Role file | Shared expertise of one role, identical in every layer |
-| Rule | One constraint reused across several layers |
-| `.repos/manifest.yaml` | Which repositories are registered, where they live, which commands and documents they use |
-| Record | History of self-evaluation and improvement for each layer run; appended only through the tool |
+| Evals | Checking handoff artifacts, writing and checking records, the tests of the framework tools and skills |
+| Record | History of self-evaluation and improvement for each layer run; appended only through the tool and kept on the local machine |
 
 Each rule lives in exactly one owner; other files point to it instead of
 copying it.
+
+# Core rules
+
+## Safety
+
+- Preserve unrelated user changes, including uncommitted work in the Hub and in
+  every target repository.
+- Hub-root operational paths are `.git`, `.github`, `.gitignore`, `.gitmodules`,
+  `.vscode` and `LICENSE`; the working directory of every target repository,
+  wherever it lives, is protected the same way. Never delete or move them, and
+  never reset or clean them wholesale (for example `git clean`,
+  `git reset --hard`, `git checkout -- .`, `git submodule deinit`, or deleting a
+  repository directory) unless the user explicitly asks for that operation.
+  Removing temporary files that the current run created inside them follows the
+  router's cleanup rule.
+- Edit files inside those paths only as the active layer contract or the user's
+  direct assignment allows. For example, Implement edits product files in the
+  target repository within the scope its contract defines. Never edit files
+  inside `.git` by hand.
+- Files inside a target repository, including its own `.github`, `.gitignore`
+  or `.vscode`, follow that task scope, not the Hub-root list.
+- Do not switch branches, reset, or stash inside a target repository, or update
+  a submodule pointer, unless the user asks.
+- Do not commit, push, deploy, alter production data, expose secrets, or contact
+  people without explicit authority.
+- Do not run destructive or externally consequential actions beyond the user's
+  authorized scope.
+- Never print, log, commit, or include in Plans, reports, records, or replies:
+  credentials, tokens, private keys, API keys, password hashes, one-time codes,
+  session identifiers, private payloads, or private reasoning.
+- Do not invent command, agent, source, or verification results.
+
+### Safety rules and self-improvement
+
+Safety rules are: every rule in this Safety section; the [Git](#git) section;
+and any rule anywhere in the framework that limits commit, push, deploy,
+secrets or destructive and externally consequential actions, or that requires
+the user's decision or authorization. The self-improvement guards of the router
+are safety rules too: the mode-self guard (a self-evaluation record never
+applies fixes itself; improvements that touch no safety rule are applied in the
+same turn as user-directed maintenance under the standing authorization in the
+[Workflow](#workflow) section, and everything else goes to the user) and the
+never-loosen rule below, including this definition. That authorization covers
+improvements that touch no safety rule and nothing else.
+
+Code and tests that enforce a safety rule are part of that rule: for example,
+the check in `.agents/evals/layer_record.py` that rejects applied fixes from a
+self-evaluation, together with its tests.
+
+Self-improvement may make a safety rule stricter or clearer. It must never
+loosen, narrow, remove or work around one, even when that rule blocked the
+current run. A change that would loosen a safety rule is not applied: the run
+records it as pending with reason `safety` and asks the user, and only the
+user's explicit approval allows it.
+
+## Scope
+
+- Keep work bounded to the user request, the selected layer, the target
+  repository's own context documentation, and the repositories the user
+  authorized.
+- Prefer existing repository patterns over new abstractions unless evidence
+  justifies a change.
+- Before important edits, inspect the relevant source and workspace state:
+  build/package config, the entrypoint or route involved, related domain types,
+  and nearby tests or their absence.
+- Do not silently switch layers, repositories, roles, or delivery modes; state
+  the handoff when another owner is needed.
+- Keep assumptions, deferred work, and genuine blockers explicit.
+
+## Evidence
+
+Support important claims with at least one of:
+
+- file path and symbol;
+- command and summarized result;
+- raw task input or user-provided fact;
+- a rule, instruction, or repository document that applies to the task;
+- an independent role's finding that cites its evidence.
+
+When recording evidence:
+
+- Distinguish observed fact, inference, assumption, and proposal.
+- A claim that something is absent, always or never true, or differs from its
+  source is observed fact only after everything that could contradict it has
+  been read: every measured value, and for styles every rule that can reach the
+  element (component, global, inherited, shared tokens). Otherwise it is an
+  inference; say what was not read. Whoever carries a finding into a record,
+  report or reply to the user first checks it against that evidence, or labels
+  it unchecked and names what was not read.
+- Back every claim about what the user said, was asked, answered, confirmed or
+  delegated with a source: their message, a Plan, a record or a report. When
+  none is found, write that it was not asked or not found; never fill the gap
+  from assumption or from the user's silence.
+- Record the exact command, working directory, status, and relevant output for
+  verification claims.
+- Treat failed or unavailable evidence honestly; include the blocker and next
+  falsification step.
 
 # Workflow
 
@@ -61,11 +159,15 @@ for that layer, per the
 [router's conditions for opening a layer](.agents/instructions/layered-task-execution.instructions.md#choosing-a-layer);
 no layer opens the next one on its own.
 
-| Layer | Result | Contract |
-| --- | --- | --- |
-| Plan | Plan files: REQs, approach, roles, quality gates (QG) | [plan.instructions.md](.agents/instructions/plan.instructions.md) |
-| Implement | Changed source/docs/tests and an Implementation Record in the Plan file | [implement.instructions.md](.agents/instructions/implement.instructions.md) |
-| Review | A report with `Business` + `Evaluations`, checking the QGs by reasoning on the source | [review.instructions.md](.agents/instructions/review.instructions.md) |
+| Layer | Skill | Result | Contract |
+| --- | --- | --- | --- |
+| Plan | [`plan`](.skills/plan/SKILL.md) | Plan files: REQs, approach, roles, quality gates (QG) | [plan.instructions.md](.agents/instructions/plan.instructions.md) |
+| Implement | [`implement`](.skills/implement/SKILL.md) | Changed source/docs/tests and an Implementation Record in the Plan file | [implement.instructions.md](.agents/instructions/implement.instructions.md) |
+| Review | [`review`](.skills/review/SKILL.md) | A report with `Business` + `Evaluations`, checking the QGs by reasoning on the source | [review.instructions.md](.agents/instructions/review.instructions.md) |
+
+Plan files and Review reports are written where the user says; when the user
+names no location, they go under the Hub root, per the output format of the
+matching skill.
 
 Each layer run ends with
 [self-evaluation and improvement](.agents/instructions/layered-task-execution.instructions.md#self-evaluation-and-improvement):
@@ -85,17 +187,20 @@ Loading order:
 1. Read the [router](.agents/instructions/layered-task-execution.instructions.md);
    the router owns how to identify the kind of work and the boundaries between kinds.
 2. Depending on the kind of work the router identifies:
-   - Plan, Implement or Review: read exactly the layer contract the router points to.
+   - Plan, Implement or Review: run that layer's skill (`.skills/<layer>/SKILL.md`);
+     the skill loads exactly the layer contract and the resources each step
+     needs. A host that loads skills on its own reaches the same file; a host
+     that does not reads it like any other file.
    - [Standalone task](.agents/instructions/layered-task-execution.instructions.md#standalone-tasks),
      meaning work assigned directly outside a Plan's chain: no layer is activated.
    - [Framework maintenance](.agents/instructions/layered-task-execution.instructions.md#framework-maintenance):
-     edit `AGENTS.md`, `CONTEXT.md`, instructions, rules or tools themselves,
-     within the scope the user assigns.
+     edit `AGENTS.md`, `CONTEXT.md`, instructions, roles, skills or tools
+     themselves, within the scope the user assigns.
    - A question that only needs an explanation and creates no durable output:
      answer within its scope, create no files.
-3. For work that touches a product repository, read
-   [repository routing](#repository-routing), then load the context
-   documentation and rules of exactly the target repository.
+3. For work that touches a product repository, identify the
+   [target repository](#target-repository), then read its context
+   documentation.
 
 Without a layer request, do the work directly as asked under the core rules,
 without creating a Plan or report. When asked to create a Plan, the Agent picks
@@ -128,7 +233,7 @@ selected: `plan`, `implement`, `verify` (QG verification at Implement),
 | `code-reviewer` | Challenging the diff: bugs, regressions, permissions and security, data/state consistency, guards/validators/error handling | verify, review |
 | `process-auditor` | Self-evaluating a layer run, finding root causes, improving the framework, writing records | audit |
 
-Constraints that keep roles from turning into skills:
+Constraints that keep roles separate from skills:
 
 - Closed catalog: only the IDs in this table. Adding, merging or removing a role
   means editing this table together with the role file, the layer file tables
@@ -139,12 +244,14 @@ Constraints that keep roles from turning into skills:
   when they do, keep exactly that list.
 - A role file contains only shared expertise: the questions the role answers,
   how it works, warning signs, boundaries with other roles. It does not contain
-  a layer's sequence, output templates, commands or completion conditions.
-- Roles have no artifacts, tools or evaluation mechanism of their own; a role
-  is evaluated through the layer's record.
-- Knowledge specific to one repository lives in that repository's
-  `context_docs`, not in role files. Roles do not rely on a host's skill
-  mechanism or custom agent configuration.
+  a layer's sequence, output templates, commands or completion conditions; those
+  belong to the layer contract and the layer's skill.
+- Roles have no artifacts, tools, skills or evaluation mechanism of their own;
+  a role is evaluated through the layer's record.
+- Knowledge specific to one repository lives in that repository's context
+  documentation, not in role files or skills. Roles do not rely on a host's
+  skill mechanism or custom agent configuration: the layer skills are plain
+  files the coordinator reads and passes on.
 
 Assignment principles, for all three layers:
 
@@ -186,51 +293,42 @@ Assignment principles, for all three layers:
   on the sources the router allows.
 - A role does not verify its own output.
 
-# Repository routing
+# Target repository
 
-`.repos/manifest.yaml` is the only registry of product repositories. Each
-repository is a git submodule at `.repos/<repo-id>` and has one entry under the
-`repos` key:
+The Hub holds no product repository and keeps no registry of them. The target
+repository of a request is a local Git repository that the user names, by path
+or by a name that identifies exactly one local directory, or that the settled
+context names (a Plan's `target_repo`, a report).
 
-| Field | Meaning |
-| --- | --- |
-| `path` | The repository's working directory, relative to the Hub root (usually `.repos/<repo-id>`) |
-| `product` | The product the repository serves |
-| `stack` | Main technology stack |
-| `keywords` | Request keywords used to select the repository |
-| `commands` | Command name → command line run from the repository's `path` directory, used when a Plan assigns tests under FUT |
-| `context_docs` | The repository's context documentation, usually `.agents/llm-docs/repos/<repo-id>.md`: architecture, conventions, viewports, breakpoint thresholds and UI languages to capture in layout snapshots, notes on capture tooling (where the browser automation tool is and how to install it, how to launch a browser without touching the user's open session, how to run a stable dev server, known environment obstacles), where known gaps are recorded |
-| `rules` | Rules that apply to the repository, usually `.agents/llm-docs/rules/<name>.rule.md` |
+- **Path.** A Plan records the target in `target_repo` as a path relative to the
+  Hub root, or as an absolute path when the repository lives outside the Hub;
+  `.` means the Hub itself. The path must be an existing directory when the Plan
+  is handed off.
+- **Context documentation.** The documents inside the target repository that
+  tell agents how it works: architecture, conventions, commands (including how
+  to run tests by file, class or name), the UI languages, viewports and
+  breakpoint thresholds to capture in layout snapshots, notes on capture tooling
+  (where the browser automation tool is and how to install it, how to launch a
+  browser without touching the user's open session, how to run a stable dev
+  server, known environment obstacles) and where known gaps are recorded. They
+  are usually the repository's agent instruction file (for example `AGENTS.md`
+  or `CLAUDE.md`), its README, its contributing guide or a documentation folder.
+- **Rules of the repository.** Constraints that apply to one repository live in
+  that repository's own documentation; the Hub has no per-repository rules.
 
-Registering a repository: add the submodule (`git submodule add <url> .repos/<repo-id>`),
-add an entry to the manifest, then create context documentation and rules if
-needed. Unregistering does the reverse: `git submodule deinit -f` and `git rm`
-the submodule path, delete the manifest entry and any documents that serve only
-that repository.
+Choosing the target repository:
 
-A repository is **registered** when it has both parts: an entry in the
-manifest, and a submodule declared in `.gitmodules` at exactly that entry's
-`path`. Missing either part is a partial registration: the repository is not
-routed yet, the Plan validator rejects a `target_repo` pointing to it, and the
-dashboard warns until the missing part is added.
-
-Choosing a repository for a request:
-
-1. Read the manifest; choose the registered repository whose `id`, `path` or
-   `keywords` match the request. Load only the `context_docs` and `rules` of the
-   chosen repository.
+1. Use the repository the user's words or the settled context name. Read only
+   the context documentation of that repository.
 2. Choose exactly one repository, unless the request explicitly names several;
    in that case handle and record each repository separately, including the
    contracts between them.
-3. If two repositories are equally plausible and the choice changes the result,
-   ask one short question. If the analysis can safely continue, state the
-   assumption and carry on.
+3. If the request needs a repository and none is named, or two repositories are
+   equally plausible and the choice changes the result, ask one short question.
+   If the analysis can safely continue, state the assumption and carry on.
 4. Do not apply one repository's rules or assumptions to another, even when both
    use the same stack: commands, directory layout and conventions must be read
    again from the target repository.
-
-If the manifest has no repositories yet, a request that touches a product
-repository cannot be routed: say so and propose registering the repository first.
 
 # Framework checks
 
@@ -239,21 +337,25 @@ outputs and do not grade the wording; instruction content is re-read against
 the scenario that caused the problem.
 
 ```powershell
-python -B .agents/llm-docs/evals/validate_layer_artifact.py --kind <plan|review> --path <file or directory>
-python -B .agents/llm-docs/evals/layer_record.py <start|append|check|query> ...
-python -B -m unittest discover -s .agents/llm-docs/evals/tests -p "test_*.py"
+python -B .agents/evals/validate_layer_artifact.py --kind <plan|review> --path <file or directory>
+python -B .agents/evals/layer_record.py <start|append|check|query> ...
+python -B -m unittest discover -s .agents/evals/tests -p "test_*.py"
 ```
 
 The first command checks Plan/Review files (schema, required fields, roles,
 dependencies, time zone) and runs when they are handed off. The second writes
 and checks self-evaluation records as the router describes; `check` runs after
 each write or when the tool itself is edited. The last command runs the tests
-of the two tools above and of the role catalog; run it when editing the tools,
-the role catalog, a layer's role table or a role file.
+of the two tools above, of the role catalog, of the skills (structure, helper
+scripts) and of the links between framework files; run it when editing the
+tools, the role catalog, a layer's role table, a role file, a skill or the
+headings that other framework files link to.
 
-# Git and submodules
+# Git
 
-Commit or push only when the user asks. Changes in `.repos/<name>` are
-committed in that submodule first; then commit in the Hub to update the
-submodule pointer, together with the Plan/report, records and framework
-improvements of the same run, if any.
+Commit or push only when the user asks. Changes in a target repository are
+committed in that repository first; then the Hub commit carries the framework
+improvements of the same run and the Plan/report of that run when they live in
+the Hub. When the target repository is a submodule of the Hub, the Hub commit
+also updates its pointer. Self-evaluation records in `.agents/evals/records/`
+are ignored by Git and are never committed.
