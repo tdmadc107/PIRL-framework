@@ -1,11 +1,11 @@
 ---
-name: review
+name: pirl-review
 description: Runs the Review layer of the PIRL framework. Checks one implementation run of a Plan task against the Plan's quality gates by reasoning on the source, without building or running tests, and writes a report with a Business verdict (findings, risks, blockers) and Evaluations of the Implement roles with the framework improvements applied. Use only when the user's own words ask to review the implementation of a named Plan task or to open a new Review round. Do not use to write or implement a Plan, for a general code review outside a Plan or to edit the framework itself.
 metadata:
-  id: .skills/review
+  id: .skills/pirl-review
   kind: skill
   layer: review
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Review
@@ -24,8 +24,8 @@ decides.
 - The user's own words ask for a Review of an implementation run, per the
   router's
   [conditions for opening a layer](../../.agents/instructions/layered-task-execution.instructions.md#choosing-a-layer).
-- Not for writing a Plan ([`plan`](../plan/SKILL.md)), implementing or
-  repairing ([`implement`](../implement/SKILL.md)), a code review that no Plan
+- Not for writing a Plan ([`pirl-plan`](../pirl-plan/SKILL.md)), implementing or
+  repairing ([`pirl-implement`](../pirl-implement/SKILL.md)), a code review that no Plan
   covers
   ([standalone task](../../.agents/instructions/layered-task-execution.instructions.md#standalone-tasks))
   or [framework maintenance](../../.agents/instructions/layered-task-execution.instructions.md#framework-maintenance).
@@ -62,7 +62,7 @@ Run the commands from the Hub root.
    round edits its existing report:
 
    ```powershell
-   python -B .skills/review/scripts/new_review.py --plan <Plan file> --todo-slug <todo-slug> [--out-dir <dir>]
+   python -B .skills/pirl-review/scripts/new_review.py --plan <Plan file> --todo-slug <todo-slug> [--out-dir <dir>]
    ```
 
 4. **Team.** Pick `review_roles` by the "Select when" column

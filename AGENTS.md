@@ -33,9 +33,9 @@ CONTEXT.md                        how responses to the user are presented
     tests/                       tests of the tools, the role catalog and the skills
     records/                     self-evaluation records: <layer>/<YYYY-MM-DD>.jsonl (local, ignored by Git)
 .skills/
-  plan/           Plan skill: SKILL.md, assets/, references/, scripts/
-  implement/      Implement skill: same layout
-  review/         Review skill: same layout
+  pirl-plan/      Plan skill: SKILL.md, assets/, references/, scripts/
+  pirl-implement/ Implement skill: same layout
+  pirl-review/    Review skill: same layout
 .tools/           local tools (dashboard, claude-resume, claude-schedule)
 .tmp/             temporary output, ignored by Git (layout snapshots, tool logs)
 <plan-set>/       Plan package and its Review reports, created at the Hub root unless the user names another directory (ignored by Git)
@@ -161,9 +161,9 @@ no layer opens the next one on its own.
 
 | Layer | Skill | Result | Contract |
 | --- | --- | --- | --- |
-| Plan | [`plan`](.skills/plan/SKILL.md) | Plan files: REQs, approach, roles, quality gates (QG) | [plan.instructions.md](.agents/instructions/plan.instructions.md) |
-| Implement | [`implement`](.skills/implement/SKILL.md) | Changed source/docs/tests and an Implementation Record in the Plan file | [implement.instructions.md](.agents/instructions/implement.instructions.md) |
-| Review | [`review`](.skills/review/SKILL.md) | A report with `Business` + `Evaluations`, checking the QGs by reasoning on the source | [review.instructions.md](.agents/instructions/review.instructions.md) |
+| Plan | [`pirl-plan`](.skills/pirl-plan/SKILL.md) | Plan files: REQs, approach, roles, quality gates (QG) | [plan.instructions.md](.agents/instructions/plan.instructions.md) |
+| Implement | [`pirl-implement`](.skills/pirl-implement/SKILL.md) | Changed source/docs/tests and an Implementation Record in the Plan file | [implement.instructions.md](.agents/instructions/implement.instructions.md) |
+| Review | [`pirl-review`](.skills/pirl-review/SKILL.md) | A report with `Business` + `Evaluations`, checking the QGs by reasoning on the source | [review.instructions.md](.agents/instructions/review.instructions.md) |
 
 Plan files and Review reports are written where the user says; when the user
 names no location, they go under the Hub root, per the output format of the
@@ -187,7 +187,7 @@ Loading order:
 1. Read the [router](.agents/instructions/layered-task-execution.instructions.md);
    the router owns how to identify the kind of work and the boundaries between kinds.
 2. Depending on the kind of work the router identifies:
-   - Plan, Implement or Review: run that layer's skill (`.skills/<layer>/SKILL.md`);
+   - Plan, Implement or Review: run that layer's skill (`.skills/pirl-<layer>/SKILL.md`);
      the skill loads exactly the layer contract and the resources each step
      needs. A host that loads skills on its own reaches the same file; a host
      that does not reads it like any other file.

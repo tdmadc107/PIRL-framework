@@ -13,7 +13,7 @@ each run.
 - **Three layers, three skills.** Plan settles the work to do and the quality
   gates (QG). Implement edits the source according to the Plan. Review checks
   the result against the QGs by reasoning on the source. Each layer is run
-  through its skill in `.skills/` (`plan`, `implement`, `review`).
+  through its skill in `.skills/` (`pirl-plan`, `pirl-implement`, `pirl-review`).
 - **Any repository.** The product repositories are not part of the Hub. You
   name the target repository of each request; the Agent reads that
   repository's own context documentation (its `AGENTS.md`, `CLAUDE.md`, README
@@ -66,10 +66,10 @@ No special commands or keywords are needed; just say it:
 
 | You want to | Example request | The Agent runs |
 | --- | --- | --- |
-| Plan | "Create a Plan for `../shop-web`: customers get an email when an order is cancelled" | `plan` skill |
-| Implement | "Implement Plan T01 in `<package>`" | `implement` skill |
-| Review | "Review the implementation of Plan T01" | `review` skill |
-| Fix per a Review | "Fix per report `<report path>`" | `implement` skill, repair run |
+| Plan | "Create a Plan for `../shop-web`: customers get an email when an order is cancelled" | `pirl-plan` skill |
+| Implement | "Implement Plan T01 in `<package>`" | `pirl-implement` skill |
+| Review | "Review the implementation of Plan T01" | `pirl-review` skill |
+| Fix per a Review | "Fix per report `<report path>`" | `pirl-implement` skill, repair run |
 | Small work outside the chain | "Update the AGENTS.md of shop-web" | Standalone task |
 | Edit the framework itself | "Fix the cleanup rule in the router" | Framework maintenance |
 | Just ask | "Which tasks does Plan T01 depend on?" | Answer, no files created |
@@ -161,7 +161,7 @@ Pick the check commands that match what you edited: see
 AGENTS.md        root: core rules, structure, flow, roles, target repository
 CONTEXT.md       how responses to the user are presented
 .agents/         layer instructions, roles, evals (validator, record tool, tests, local records)
-.skills/         the plan, implement and review skills
+.skills/         the pirl-plan, pirl-implement and pirl-review skills
 .tools/          dashboard, claude-resume, claude-schedule
 .tmp/            temporary output, not in git
 ```
@@ -176,7 +176,7 @@ Full tree: [`AGENTS.md`](AGENTS.md#structure).
 | How the Agent presents answers, summaries, proposals | [`CONTEXT.md`](CONTEXT.md) |
 | Choosing a layer, shared contracts, functional tests, self-improvement | [Router](.agents/instructions/layered-task-execution.instructions.md) |
 | Each layer's decisions | [Plan](.agents/instructions/plan.instructions.md), [Implement](.agents/instructions/implement.instructions.md), [Review](.agents/instructions/review.instructions.md) |
-| Running each layer, file formats, templates | [`plan`](.skills/plan/SKILL.md), [`implement`](.skills/implement/SKILL.md), [`review`](.skills/review/SKILL.md) |
+| Running each layer, file formats, templates | [`pirl-plan`](.skills/pirl-plan/SKILL.md), [`pirl-implement`](.skills/pirl-implement/SKILL.md), [`pirl-review`](.skills/pirl-review/SKILL.md) |
 | Each role's expertise | [`.agents/roles/`](.agents/roles/) |
 | Local tools | [`.tools/README.md`](.tools/README.md) |
 

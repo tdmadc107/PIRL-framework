@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/implement.instructions.md"
 metadata:
   id: ".agents/instructions/implement"
   kind: "instruction"
-  version: "2.0.0"
+  version: "2.0.1"
   status: "active"
 ---
 
@@ -21,7 +21,7 @@ This contract owns the decisions of the Implement layer and the content of its
 results ledger. The goal is to carry out the settled product decisions exactly,
 keep enough evidence for handoff and recognize when those decisions no longer
 fit. The run is carried out through the
-[`implement` skill](../../.skills/implement/SKILL.md), which owns the run
+[`pirl-implement` skill](../../.skills/pirl-implement/SKILL.md), which owns the run
 procedure, the Implementation Record format and the helper scripts.
 
 ## AI Agent roles at the Implement layer
@@ -270,10 +270,10 @@ section; do not edit the Plan to legitimize a direction the agent changed on its
 own.
 
 The Implementation Record follows the
-[template](../../.skills/implement/assets/implementation-record-template.md) and
-the [format reference](../../.skills/implement/references/implementation-record-format.md)
-of the `implement` skill. After writing it, run the Plan validator (command in
-the [`implement` skill's procedure](../../.skills/implement/SKILL.md#procedure))
+[template](../../.skills/pirl-implement/assets/implementation-record-template.md) and
+the [format reference](../../.skills/pirl-implement/references/implementation-record-format.md)
+of the `pirl-implement` skill. After writing it, run the Plan validator (command in
+the [`pirl-implement` skill's procedure](../../.skills/pirl-implement/SKILL.md#procedure))
 and fix errors before handoff.
 
 `role_work` and `role_challenge_results` cover each implementation/repair role,

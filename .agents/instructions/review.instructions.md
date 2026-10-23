@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/review.instructions.md"
 metadata:
   id: ".agents/instructions/review"
   kind: "instruction"
-  version: "2.0.0"
+  version: "2.0.1"
   status: "active"
 ---
 
@@ -17,7 +17,7 @@ activate another layer.
 
 This contract owns the decisions and the exit conditions of a Review against a
 Plan; the run is carried out through the
-[`review` skill](../../.skills/review/SKILL.md), which owns the run procedure,
+[`pirl-review` skill](../../.skills/pirl-review/SKILL.md), which owns the run procedure,
 the report template, its presentation rules, its location and the helper
 script. Review must distinguish a wrong product, insufficient evidence and
 instructions that led an agent to a wrong decision.
@@ -189,9 +189,9 @@ has more evidence than Implement's own self-evaluation.
 ## Report and rounds
 
 Each Review round writes one `pirl-review/v1` report, built from the `review`
-skill's [template](../../.skills/review/assets/review-template.md) and saved
+skill's [template](../../.skills/pirl-review/assets/review-template.md) and saved
 where the user says, or by default under the Hub root, per the
-[report format](../../.skills/review/references/review-format.md). The first
+[report format](../../.skills/pirl-review/references/review-format.md). The first
 round has `prior_review: null`; later rounds reference the report immediately
 before.
 A request for additional phases or evidence for the same implementation run
@@ -205,7 +205,7 @@ record the reason for the edit in the report and leave the other rounds intact.
 ## Finishing and next permissions
 
 Run the report validator (command in the
-[`review` skill's procedure](../../.skills/review/SKILL.md#procedure)) and fix
+[`pirl-review` skill's procedure](../../.skills/pirl-review/SKILL.md#procedure)) and fix
 structural errors before the final response.
 
 The coordinator and every Review role carry out the

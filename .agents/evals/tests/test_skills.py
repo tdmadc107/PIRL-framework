@@ -38,19 +38,19 @@ def anchors(path: Path) -> set[str]:
 class SkillPackageTests(unittest.TestCase):
     def test_each_layer_has_a_complete_skill(self):
         for layer in LAYERS:
-            skill = SKILLS / layer
+            skill = SKILLS / f"pirl-{layer}"
             with self.subTest(skill=layer):
                 text = (skill / "SKILL.md").read_text(encoding="utf-8")
                 header = text.split("---")[1]
-                meta = parse_yaml_subset(header, f"{layer}/SKILL.md")
-                self.assertEqual(meta.get("name"), layer)
+                meta = parse_yaml_subset(header, f"{skill.name}/SKILL.md")
+                self.assertEqual(meta.get("name"), skill.name)
                 self.assertTrue(isinstance(meta.get("description"), str) and 0 < len(meta["description"]) <= 1024)
                 self.assertEqual(meta.get("metadata", {}).get("layer"), layer)
                 self.assertRegex(str(meta.get("metadata", {}).get("version")), r"^\d+\.\d+\.\d+$")
                 self.assertTrue((REPO / f".agents/instructions/{layer}.instructions.md").is_file())
                 for folder in ("assets", "references", "scripts"):
-                    self.assertTrue([p for p in (skill / folder).glob("*") if p.is_file()], f"{layer}/{folder} is empty")
-                self.assertEqual(set(SKILLS.iterdir()), {SKILLS / name for name in LAYERS})
+                    self.assertTrue([p for p in (skill / folder).glob("*") if p.is_file()], f"{skill.name}/{folder} is empty")
+                self.assertEqual(set(SKILLS.iterdir()), {SKILLS / f"pirl-{name}" for name in LAYERS})
 
 
 class FrameworkLinkTests(unittest.TestCase):
@@ -82,7 +82,7 @@ class PrivateOutputTests(unittest.TestCase):
                      ".agents/evals/records/plan/2026-10-23.jsonl", ".repos/shop-web/README.md"):
             with self.subTest(path=path):
                 self.assertTrue(ignored(path))
-        for path in ("AGENTS.md", ".skills/plan/SKILL.md", ".agents/evals/layer_record.py", ".agents/roles/code-analyst.role.md"):
+        for path in ("AGENTS.md", ".skills/pirl-plan/SKILL.md", ".agents/evals/layer_record.py", ".agents/roles/code-analyst.role.md"):
             with self.subTest(path=path):
                 self.assertFalse(ignored(path))
 
@@ -108,7 +108,7 @@ class SkillScriptTests(unittest.TestCase):
         return result.returncode, json.loads(result.stdout)
 
     def new_plan(self, *args):
-        return self.run_script(SKILLS / "plan/scripts/new_plan.py", *args)
+        return self.run_script(SKILLS / "pirl-plan/scripts/new_plan.py", *args)
 
     def fill_plan(self, path):
         text = path.read_text(encoding="utf-8")
@@ -134,7 +134,7 @@ class SkillScriptTests(unittest.TestCase):
         code, result = self.validate("plan", plan.parent)
         self.assertEqual(code, 0, result)
 
-        review = SKILLS / "review/scripts/new_review.py"
+        review = SKILLS / "pirl-review/scripts/new_review.py"
         code, round_one = self.run_script(review, "--plan", first["path"], "--todo-slug", "send-email")
         self.assertEqual(code, 0, round_one)
         self.assertEqual((round_one["review_round"], round_one["prior_review"]), (1, None))
@@ -146,7 +146,7 @@ class SkillScriptTests(unittest.TestCase):
         code, result = self.validate("review", self.root / round_two["path"])
         self.assertEqual(code, 0, result)
 
-        record = SKILLS / "implement/scripts/add_implementation_record.py"
+        record = SKILLS / "pirl-implement/scripts/add_implementation_record.py"
         self.assertEqual(self.run_script(record, "--plan", first["path"])[0], 0)
         self.assertNotEqual(self.run_script(record, "--plan", first["path"])[0], 0)
         text = plan.read_text(encoding="utf-8").replace("status: planned", "status: implemented", 1)
@@ -161,7 +161,7 @@ class SkillScriptTests(unittest.TestCase):
         code, plan = self.new_plan("--request-slug", "cart", "--todo-slug", "badge", "--out-dir", outside.name)
         self.assertEqual(code, 0, plan)
         self.assertTrue(Path(plan["path"]).is_absolute() and Path(plan["path"]).is_file())
-        code, run = self.run_script(SKILLS / "implement/scripts/new_layout_run.py", "--plan", plan["path"])
+        code, run = self.run_script(SKILLS / "pirl-implement/scripts/new_layout_run.py", "--plan", plan["path"])
         self.assertEqual(code, 0, run)
         self.assertRegex(run["path"], rf"^\.tmp/layout-snapshots/{plan['plan_set']}/T01/\d{{8}}-\d{{6}}$")
         self.assertTrue((self.root / run["path"]).is_dir())

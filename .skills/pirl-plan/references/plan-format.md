@@ -1,6 +1,6 @@
 # Plan file format
 
-The `plan` skill owns how a Plan file is laid out, named and stored. What each
+The `pirl-plan` skill owns how a Plan file is laid out, named and stored. What each
 section must settle belongs to the
 [Plan contract](../../../.agents/instructions/plan.instructions.md).
 
@@ -17,7 +17,7 @@ section must settle belongs to the
 - Timestamps use the `+07:00` time zone.
 - Task IDs start at `T01` and are consecutive within the package.
 - Never overwrite an existing file. Review reports of the package are placed
-  per the [report format](../../review/references/review-format.md#location-and-naming).
+  per the [report format](../../pirl-review/references/review-format.md#location-and-naming).
 - Git ignores package directories anywhere in the Hub, by their name pattern
   ([AGENTS.md](../../../AGENTS.md#git)); a package the user places outside the
   Hub follows the Git rules of that location.

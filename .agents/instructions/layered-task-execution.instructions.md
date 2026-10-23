@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/**/*,.skills/**/*"
 metadata:
   id: ".agents/instructions/layered-task-execution"
   kind: "instruction"
-  version: "2.0.1"
+  version: "2.0.2"
   status: "active"
 ---
 
@@ -67,9 +67,9 @@ Implement layer; "Review the implementation of Plan T01" is the Review layer.
 
 | Layer | Result and owning contract |
 | --- | --- |
-| Plan | Write/adjust a Plan from the request and the source; [Plan contract](plan.instructions.md), run through the [`plan` skill](../../.skills/plan/SKILL.md). |
-| Implement | Carry out one selected Plan, or repair it per a report for the same task; [Implement contract](implement.instructions.md), run through the [`implement` skill](../../.skills/implement/SKILL.md). |
-| Review | Check an implementation run against the Plan; [Review contract](review.instructions.md), run through the [`review` skill](../../.skills/review/SKILL.md). |
+| Plan | Write/adjust a Plan from the request and the source; [Plan contract](plan.instructions.md), run through the [`pirl-plan` skill](../../.skills/pirl-plan/SKILL.md). |
+| Implement | Carry out one selected Plan, or repair it per a report for the same task; [Implement contract](implement.instructions.md), run through the [`pirl-implement` skill](../../.skills/pirl-implement/SKILL.md). |
+| Review | Check an implementation run against the Plan; [Review contract](review.instructions.md), run through the [`pirl-review` skill](../../.skills/pirl-review/SKILL.md). |
 | Standalone task | Work assigned directly, outside a Plan's chain; [Standalone tasks section](#standalone-tasks). |
 | Framework maintenance | Edit `AGENTS.md`, instructions, roles, skills or framework tools themselves; [Framework maintenance section](#framework-maintenance). |
 
@@ -323,7 +323,7 @@ Standalone tasks and direct work outside a Plan do this only when the user asks.
   the base; the Plan does not describe how to build this base.
 - **Where:** mock scripts, screenshots and the results table go in
   `.tmp/layout-snapshots/<plan-set>/<task-id>/<YYYYMMDD-HHmmss>/` at the Hub root
-  (ignored by Git), whatever directory holds the Plan; the `implement` skill's
+  (ignored by Git), whatever directory holds the Plan; the `pirl-implement` skill's
   helper script creates it. Each run gets a new directory; do not delete or
   overwrite earlier runs. This directory is handoff output and is kept; dev servers,
   browsers and temporary profiles are still stopped or deleted per the cleanup

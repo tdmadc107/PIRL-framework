@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/plan.instructions.md"
 metadata:
   id: ".agents/instructions/plan"
   kind: "instruction"
-  version: "2.0.0"
+  version: "2.0.1"
   status: "active"
 ---
 
@@ -14,7 +14,7 @@ metadata:
 Apply the Plan process only when the request and the [router](layered-task-execution.instructions.md)
 have selected this layer. Reading or updating a Plan/report file does not
 activate another layer. The run is carried out through the
-[`plan` skill](../../.skills/plan/SKILL.md), which owns the run procedure, the
+[`pirl-plan` skill](../../.skills/pirl-plan/SKILL.md), which owns the run procedure, the
 Plan file format and the helper script; this contract owns the decisions and
 the exit conditions.
 
@@ -222,10 +222,10 @@ when a REQ/specification needs them.
 
 ## Plan file format
 
-Each task is one Plan file. The [`plan` skill](../../.skills/plan/SKILL.md)
-owns its format: the [template](../../.skills/plan/assets/plan-template.md)
+Each task is one Plan file. The [`pirl-plan` skill](../../.skills/pirl-plan/SKILL.md)
+owns its format: the [template](../../.skills/pirl-plan/assets/plan-template.md)
 with the four sections `What to do`, `How to do it`, `Participating roles` and
-`Required quality gates`, and the [format reference](../../.skills/plan/references/plan-format.md)
+`Required quality gates`, and the [format reference](../../.skills/pirl-plan/references/plan-format.md)
 with the frontmatter fields, file naming and output location. This contract
 owns what those sections must settle.
 
@@ -265,7 +265,7 @@ owns what those sections must settle.
      The UI verification role's step only says it runs after the implementation
      role captures.
 2. Run the Plan validator (command in the
-   [`plan` skill's procedure](../../.skills/plan/SKILL.md#procedure)) and fix
+   [`pirl-plan` skill's procedure](../../.skills/pirl-plan/SKILL.md#procedure)) and fix
    structural errors before handoff. The validator only checks the handoff
    input (schema, required fields, roles, dependencies, time zone); it does not
    grade content. The reviewer still has to prove the Plan is right.
@@ -281,7 +281,7 @@ owns what those sections must settle.
   and check again before declaring the Plan ready. A blocked draft must still
   clean up what is no longer needed; do not hand Plan clutter to Implement.
 - Save each task file where the user says, or by default under the Hub root,
-  per the [Plan file format](../../.skills/plan/references/plan-format.md).
+  per the [Plan file format](../../.skills/pirl-plan/references/plan-format.md).
   Do not overwrite history.
 - State clearly whether the Plan has all decisions or still has unsettled
   parts, its path and the self-improvement result per the router's reporting

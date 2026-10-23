@@ -1,11 +1,11 @@
 ---
-name: implement
+name: pirl-implement
 description: Runs the Implement layer of the PIRL framework. Carries out exactly one Plan task in its target repository, or repairs it per a Review report for the same task, has separate verification roles conclude every quality gate by reasoning on the source, and writes the Implementation Record into the Plan file. Use only when the user's own words ask to implement a named Plan or to fix per a named Review report. Do not use to write a Plan, to review, for work outside a Plan or to edit the framework itself.
 metadata:
-  id: .skills/implement
+  id: .skills/pirl-implement
   kind: skill
   layer: implement
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Implement
@@ -26,8 +26,8 @@ section, that section decides.
 - The user's own words ask to implement a Plan task, or to fix per a Review
   report, per the router's
   [conditions for opening a layer](../../.agents/instructions/layered-task-execution.instructions.md#choosing-a-layer).
-- Not for writing a Plan ([`plan`](../plan/SKILL.md)), checking an
-  implementation ([`review`](../review/SKILL.md)), work assigned outside a
+- Not for writing a Plan ([`pirl-plan`](../pirl-plan/SKILL.md)), checking an
+  implementation ([`pirl-review`](../pirl-review/SKILL.md)), work assigned outside a
   Plan ([standalone task](../../.agents/instructions/layered-task-execution.instructions.md#standalone-tasks))
   or [framework maintenance](../../.agents/instructions/layered-task-execution.instructions.md#framework-maintenance).
 
@@ -74,7 +74,7 @@ Run the commands from the Hub root.
    Each capture run gets a new directory:
 
    ```powershell
-   python -B .skills/implement/scripts/new_layout_run.py --plan <Plan file>
+   python -B .skills/pirl-implement/scripts/new_layout_run.py --plan <Plan file>
    ```
 
 6. **Verify the quality gates by reasoning**
@@ -88,7 +88,7 @@ Run the commands from the Hub root.
    `status`; then validate and fix until it passes:
 
    ```powershell
-   python -B .skills/implement/scripts/add_implementation_record.py --plan <Plan file>
+   python -B .skills/pirl-implement/scripts/add_implementation_record.py --plan <Plan file>
    python -B .agents/evals/validate_layer_artifact.py --kind plan --path <Plan file>
    ```
 

@@ -1,6 +1,6 @@
 # Implementation Record format
 
-The `implement` skill owns how the Implementation Record is laid out and where
+The `pirl-implement` skill owns how the Implementation Record is laid out and where
 the layout captures are stored. What each field must hold, and what a repair
 run records, belongs to the
 [Recording results section](../../../.agents/instructions/implement.instructions.md#recording-results)

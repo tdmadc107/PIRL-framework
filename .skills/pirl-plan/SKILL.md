@@ -1,11 +1,11 @@
 ---
-name: plan
+name: pirl-plan
 description: Runs the Plan layer of the PIRL framework. Turns a product request into a Plan package for one target repository, one file per task, with REQs, the approach, implementation and verification roles, and quality gates that can be proven by reasoning on the source. Use only when the user's own words ask to create, write, split or adjust a Plan. Do not use to implement or review a Plan, to answer a question, for a standalone task or to edit the framework itself.
 metadata:
-  id: .skills/plan
+  id: .skills/pirl-plan
   kind: skill
   layer: plan
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Plan
@@ -23,8 +23,8 @@ decides.
 
 - The user's own words ask for a Plan, per the router's
   [conditions for opening a layer](../../.agents/instructions/layered-task-execution.instructions.md#choosing-a-layer).
-- Not for carrying out a Plan ([`implement`](../implement/SKILL.md)), checking
-  an implementation ([`review`](../review/SKILL.md)), a question that only needs
+- Not for carrying out a Plan ([`pirl-implement`](../pirl-implement/SKILL.md)), checking
+  an implementation ([`pirl-review`](../pirl-review/SKILL.md)), a question that only needs
   an explanation, a
   [standalone task](../../.agents/instructions/layered-task-execution.instructions.md#standalone-tasks)
   or [framework maintenance](../../.agents/instructions/layered-task-execution.instructions.md#framework-maintenance).
@@ -69,8 +69,8 @@ Run the commands from the Hub root.
    first task starts the package; each next task joins it:
 
    ```powershell
-   python -B .skills/plan/scripts/new_plan.py --request-slug <request-slug> --todo-slug <todo-slug> [--out-dir <dir>]
-   python -B .skills/plan/scripts/new_plan.py --plan-set <plan-set> --todo-slug <todo-slug> [--out-dir <dir>]
+   python -B .skills/pirl-plan/scripts/new_plan.py --request-slug <request-slug> --todo-slug <todo-slug> [--out-dir <dir>]
+   python -B .skills/pirl-plan/scripts/new_plan.py --plan-set <plan-set> --todo-slug <todo-slug> [--out-dir <dir>]
    ```
 
    Replace every `<...>` placeholder so the content is

@@ -218,13 +218,13 @@ class LayerRecordTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which("git"), "git is required")
     def test_start_pins_commit_and_changed_framework_files(self):
         self.assertEqual(self.append(IMPLEMENT)[0], 0)
-        skill = self.root / ".skills/plan/SKILL.md"
+        skill = self.root / ".skills/pirl-plan/SKILL.md"
         skill.parent.mkdir(parents=True)
         skill.write_text("---\nname: plan\n---\n", encoding="utf-8")
         ref = self.run_tool("start")[1]["framework_ref"]
         self.assertEqual(ref["commit"], "none")
         # Skills are framework files; records are local output, not framework content.
-        self.assertEqual(sorted(ref["files"]), [".skills/plan/SKILL.md", "AGENTS.md"])
+        self.assertEqual(sorted(ref["files"]), [".skills/pirl-plan/SKILL.md", "AGENTS.md"])
         git = ["git", "-C", str(self.root), "-c", "user.email=t@t", "-c", "user.name=t"]
         subprocess.run([*git, "init", "-q"], check=True)
         subprocess.run([*git, "add", "-A"], check=True)

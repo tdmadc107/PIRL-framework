@@ -1,6 +1,6 @@
 # Review report format
 
-The `review` skill owns how a Review report is laid out, named, stored and
+The `pirl-review` skill owns how a Review report is laid out, named, stored and
 presented. What each conclusion must prove, and when a new round opens, belongs
 to the [Review contract](../../../.agents/instructions/review.instructions.md).
 
