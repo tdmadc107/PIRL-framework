@@ -16,19 +16,23 @@ PLAN_SCHEMA = "pirl-plan/v1"
 REVIEW_SCHEMA = "pirl-review/v1"
 PLAN_HEADINGS = ("What to do", "How to do it", "Participating roles", "Required quality gates")
 REVIEW_HEADINGS = ("Business", "Evaluations")
-PLAN_STATUSES = ("planned", "awaiting_confirmation", "implemented", "blocked", "failed")
+# Value lists owned here and imported by layer_record.py, so the two tools cannot drift apart.
+IMPLEMENT_STATUSES = ("implemented", "awaiting_confirmation", "blocked", "failed")
+PLAN_STATUSES = ("planned", *IMPLEMENT_STATUSES)
+REVIEW_STATUSES = ("completed", "blocked")
+VERDICTS = ("PASS", "FAIL", "BLOCKED")
 TASK_PATTERN = re.compile(r"T\d{2,}")
 ROLE_USAGES = ("plan", "implement", "verify", "review", "audit")
-ROLE_SECTION = re.compile(r"(?ms)^# AI Agent roles\s*$(.*?)(?=^# |\Z)")
+CATALOG = ".agents/instructions/standalone-and-maintenance.instructions.md"
+ROLE_SECTION = re.compile(r"(?ms)^### Role catalog\s*$(.*?)(?=^#{1,3} |\Z)")
 ROLE_ROW = re.compile(r"^\|\s*`([a-z0-9]+(?:-[a-z0-9]+)*)`\s*\|(.*)\|\s*$")
-MANIFEST = ".repos/manifest.yaml"
 
 
 class LayerArtifactError(ValueError):
     pass
 
 
-# ---------- constrained YAML subset (frontmatter and manifest) ----------
+# ---------- constrained YAML subset (frontmatter) ----------
 
 
 def _scalar(raw: str, source: str, number: int) -> Any:
@@ -122,6 +126,12 @@ def parse_yaml_subset(text: str, source: str) -> dict[str, Any]:
     return parsed
 
 
+def read_frontmatter(path: Path) -> tuple[dict[str, Any], str]:
+    """Return the parsed frontmatter and the body of a Plan/Review Markdown file."""
+
+    return _frontmatter_and_body(path)
+
+
 def _frontmatter_and_body(path: Path) -> tuple[dict[str, Any], str]:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -133,19 +143,19 @@ def _frontmatter_and_body(path: Path) -> tuple[dict[str, Any], str]:
         raise LayerArtifactError(f"{path}: cannot read metadata: {exc}") from exc
 
 
-# ---------- registries read from AGENTS.md and .repos/manifest.yaml ----------
+# ---------- role catalog ----------
 
 
 def load_roles(root: Path) -> dict[str, set[str]]:
-    """Return role ID -> usages from the role table in AGENTS.md."""
+    """Return role ID -> usages from the role catalog table (CATALOG, section "Role catalog")."""
 
     try:
-        text = (root / "AGENTS.md").read_text(encoding="utf-8")
+        text = (root / CATALOG).read_text(encoding="utf-8")
     except (OSError, UnicodeError) as exc:
-        raise LayerArtifactError(f"AGENTS.md: cannot read role catalog: {exc}") from exc
+        raise LayerArtifactError(f"{CATALOG}: cannot read role catalog: {exc}") from exc
     section = ROLE_SECTION.search(text)
     if section is None:
-        raise LayerArtifactError("AGENTS.md: missing '# AI Agent roles' section")
+        raise LayerArtifactError(f"{CATALOG}: missing '### Role catalog' section")
     roles: dict[str, set[str]] = {}
     for line in section.group(1).splitlines():
         row = ROLE_ROW.match(line.strip())
@@ -153,43 +163,20 @@ def load_roles(root: Path) -> dict[str, set[str]]:
             continue
         usages = {item.strip() for item in row.group(2).rsplit("|", 1)[-1].split(",") if item.strip()}
         if not usages or not usages <= set(ROLE_USAGES):
-            raise LayerArtifactError(f"AGENTS.md: role {row.group(1)} has invalid usage {sorted(usages)}")
+            raise LayerArtifactError(f"{CATALOG}: role {row.group(1)} has invalid usage {sorted(usages)}")
         roles[row.group(1)] = usages
     if not roles:
-        raise LayerArtifactError("AGENTS.md: role catalog has no roles")
+        raise LayerArtifactError(f"{CATALOG}: role catalog has no roles")
     return roles
 
 
-def load_repo_paths(root: Path) -> set[str]:
-    """Return the registered repository paths from .repos/manifest.yaml."""
+def resolve_path(value: Any, root: Path) -> Path:
+    """Resolve a path written in a Plan, report or record: relative to the Hub root, or absolute."""
 
-    manifest = root / MANIFEST
-    try:
-        data = parse_yaml_subset(manifest.read_text(encoding="utf-8"), MANIFEST)
-    except (OSError, UnicodeError) as exc:
-        raise LayerArtifactError(f"{MANIFEST}: cannot read registry: {exc}") from exc
-    repos = data.get("repos", {})
-    if not isinstance(repos, dict):
-        raise LayerArtifactError(f"{MANIFEST}: repos must be a mapping")
-    paths: set[str] = set()
-    for repo_id, entry in repos.items():
-        path = entry.get("path") if isinstance(entry, dict) else None
-        if not isinstance(path, str) or not path.strip():
-            raise LayerArtifactError(f"{MANIFEST}: repos.{repo_id}.path is required")
-        paths.add(path.strip().rstrip("/"))
-    return paths
-
-
-def load_submodule_paths(root: Path) -> set[str]:
-    """Return the submodule paths declared in .gitmodules; a missing file declares none."""
-
-    try:
-        text = (root / ".gitmodules").read_text(encoding="utf-8")
-    except FileNotFoundError:
-        return set()
-    except (OSError, UnicodeError) as exc:
-        raise LayerArtifactError(f".gitmodules: cannot read submodules: {exc}") from exc
-    return {match.strip().replace("\\", "/").rstrip("/") for match in re.findall(r"(?m)^\s*path\s*=\s*(.+?)\s*$", text)}
+    if not isinstance(value, str) or not value.strip():
+        raise LayerArtifactError("expected a path relative to the Hub root or an absolute path")
+    path = Path(value.strip())
+    return (path if path.is_absolute() or PureWindowsPath(value.strip()).drive else root / path).resolve()
 
 
 # ---------- field helpers ----------
@@ -232,21 +219,18 @@ def _roles(
     return names
 
 
-def _reference_path(value: Any, root: Path, folder: str) -> Path:
-    if not isinstance(value, str) or not value.strip():
-        raise LayerArtifactError("reference must be a relative path")
-    path = (root / value).resolve()
-    if PureWindowsPath(value).drive or Path(value).is_absolute() or not path.is_relative_to((root / folder).resolve()):
-        raise LayerArtifactError(f"reference must stay inside {folder}")
+def _reference_path(value: Any, root: Path, label: str) -> Path:
+    path = resolve_path(value, root)
+    if not path.is_file():
+        raise LayerArtifactError(f"{label}: {value} is not an existing file")
     return path
 
 
 def _basic(path: Path, root: Path, kind: str) -> tuple[list[str], dict[str, Any], str]:
     errors: list[str] = []
     try:
-        folder = ".agents/plan" if kind == "plan" else ".agents/review"
-        if not path.resolve().is_relative_to((root / folder).resolve()) or path.suffix != ".md":
-            raise LayerArtifactError(f"expected a Markdown file inside {folder}")
+        if path.suffix != ".md":
+            raise LayerArtifactError("expected a Markdown file")
         metadata, body = _frontmatter_and_body(path)
     except LayerArtifactError as exc:
         return [str(exc)], {}, ""
@@ -279,20 +263,15 @@ def _plan_file(path: Path, root: Path) -> tuple[list[str], dict[str, Any]]:
         errors.append("plan_set must identify the containing package")
     if metadata.get("layer") != "implement" or metadata.get("status") not in PLAN_STATUSES:
         errors.append("invalid Plan layer/status")
+    # The target repository is any existing directory the user named (AGENTS.md, Target repository).
+    target = metadata.get("target_repo")
+    if isinstance(target, str) and target.strip() and not resolve_path(target, root).is_dir():
+        errors.append(f"target_repo: {target} is not an existing directory (relative to the Hub root or absolute)")
     try:
         catalog = load_roles(root)
-        repo_paths = load_repo_paths(root)
-        submodule_paths = load_submodule_paths(root)
     except LayerArtifactError as exc:
         errors.append(str(exc))
     else:
-        # A registered repository has both a manifest entry and a submodule at that path (AGENTS.md).
-        target = metadata.get("target_repo")
-        normalized = target.strip().rstrip("/") if isinstance(target, str) else ""
-        if normalized and normalized != "." and normalized not in repo_paths:
-            errors.append(f"target_repo: {target} is neither '.' nor a path registered in {MANIFEST}")
-        elif normalized and normalized != "." and normalized not in submodule_paths:
-            errors.append(f"target_repo: {target} is in {MANIFEST} but is not a submodule in .gitmodules")
         _roles(metadata.get("planning_roles"), "planning_roles", "plan", catalog, errors, True)
         implementers = _roles(metadata.get("implementation_roles"), "implementation_roles", "implement", catalog, errors, True)
         verifiers = _roles(metadata.get("verification_roles"), "verification_roles", "verify", catalog, errors, True)
@@ -352,8 +331,8 @@ def _dependencies(records: list[tuple[Path, dict[str, Any]]]) -> list[str]:
 
 def validate_plan_path(path: Path, root: Path) -> list[str]:
     path, root = path.resolve(), root.resolve()
-    if not path.exists() or not path.is_relative_to(root / ".agents/plan"):
-        return ["expected an existing Plan file or package inside .agents/plan"]
+    if not path.exists():
+        return ["expected an existing Plan file or package directory"]
     package = path.parent if path.is_file() else path
     selected = [path] if path.is_file() else sorted(path.glob("*.md"))
     if not selected:
@@ -379,22 +358,23 @@ def validate_review_file(path: Path, root: Path) -> list[str]:
     errors, metadata, _ = _basic(path, root, "review")
     if not metadata:
         return errors
-    if metadata.get("status") not in ("completed", "blocked"):
+    if metadata.get("status") not in REVIEW_STATUSES:
         errors.append("status must be completed or blocked")
-    if metadata.get("business_verdict") not in ("PASS", "FAIL", "BLOCKED") or metadata.get("verdict") != metadata.get("business_verdict"):
+    if metadata.get("business_verdict") not in VERDICTS or metadata.get("verdict") != metadata.get("business_verdict"):
         errors.append("verdict must match business_verdict: PASS, FAIL or BLOCKED")
     round_number = metadata.get("review_round")
     if type(round_number) is not int or round_number < 1:
         errors.append("review_round must be a positive integer")
     try:
-        plan = _reference_path(metadata.get("plan_file"), root, ".agents/plan")
+        plan = _reference_path(metadata.get("plan_file"), root, "plan_file")
         plan_metadata, _ = _frontmatter_and_body(plan)
         if plan_metadata.get("schema") != PLAN_SCHEMA or plan_metadata.get("task_id") != metadata.get("task_id"):
             errors.append("plan_file does not identify the reviewed Plan/task")
         prior = metadata.get("prior_review")
         if prior is not None:
-            previous, _ = _frontmatter_and_body(_reference_path(prior, root, ".agents/review"))
-            if previous.get("plan_file") != metadata.get("plan_file") or previous.get("task_id") != metadata.get("task_id"):
+            previous, _ = _frontmatter_and_body(_reference_path(prior, root, "prior_review"))
+            same_plan = resolve_path(previous.get("plan_file"), root) == plan if previous.get("plan_file") else False
+            if not same_plan or previous.get("task_id") != metadata.get("task_id"):
                 errors.append("prior_review belongs to another Plan/task")
             if type(round_number) is int and previous.get("review_round") != round_number - 1:
                 errors.append("prior_review must identify the preceding round")
@@ -409,7 +389,7 @@ def validate_review_file(path: Path, root: Path) -> list[str]:
 
 
 def repository_root() -> Path:
-    return Path(__file__).resolve().parents[3]
+    return Path(__file__).resolve().parents[2]
 
 
 def main() -> int:

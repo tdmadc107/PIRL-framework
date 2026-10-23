@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Start, append, check and query layer self-evaluation records.
 
-Records live in .agents/records/<layer>/<YYYY-MM-DD>.jsonl, one JSON object per line, append-only.
+Records live in .agents/evals/records/<layer>/<YYYY-MM-DD>.jsonl, one JSON object per line, append-only.
+That directory is ignored by Git: records stay on the local machine and are still read by `query` and `check`.
 The record contract (when to write, field meanings, causes, fix rules) is owned by the router,
 section "Self-evaluation and improvement"; this tool only enforces the structure of that contract.
 """
@@ -19,24 +20,31 @@ from pathlib import Path, PureWindowsPath
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from validate_layer_artifact import LayerArtifactError, load_roles  # noqa: E402
+from validate_layer_artifact import (  # noqa: E402
+    IMPLEMENT_STATUSES, REVIEW_STATUSES, VERDICTS, LayerArtifactError, load_roles, resolve_path,
+)
 
 # Every schema ever written stays readable; bump CURRENT when the record shape changes.
 CURRENT_SCHEMA = "pirl-record/v1"
 READABLE_SCHEMAS = ("pirl-record/v1",)
-RECORDS = ".agents/records"
+RECORDS = ".agents/evals/records"
 LAYERS = ("plan", "implement", "review")
 LAYER_USAGES = {"plan": {"plan", "audit"}, "implement": {"implement", "verify", "audit"}, "review": {"review", "audit"}}
 OUTCOMES = {
     "plan": ("ready", "draft", "blocked"),
-    "implement": ("implemented", "awaiting_confirmation", "blocked", "failed"),
-    "review": ("completed", "blocked"),
+    "implement": IMPLEMENT_STATUSES,
+    "review": REVIEW_STATUSES,
 }
 MODES = ("agent", "self")
 RESULTS = ("PASS", "FAIL", "BLOCKED")
 CAUSES = ("instruction", "ineffective_fix", "input", "execution")
-PENDING_REASONS = ("mode_self", "safety")
-FRAMEWORK_PATHS = ("AGENTS.md", "CONTEXT.md", ".agents/instructions", ".agents/roles", ".agents/llm-docs", ".repos/manifest.yaml")
+PENDING_REASONS = ("mode_self", "safety", "repository")
+FRAMEWORK_PATHS = ("AGENTS.md", "CONTEXT.md", ".agents/instructions", ".agents/roles", ".agents/evals", ".skills")
+# Tracked paths that are deliberately not framework content. Every tracked file sits under one of the two lists;
+# a test fails when a new path appears in neither, so adding one is a decision, not an accident.
+NOT_FRAMEWORK_TRACKED = (".gitignore", "LICENSE", "README.md")
+# Inside FRAMEWORK_PATHS but not framework content: the records themselves and Python caches.
+NOT_FRAMEWORK = (RECORDS + "/", "__pycache__/")
 TZ = timezone(timedelta(hours=7))
 KEBAB = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 TASK = re.compile(r"T\d{2,}")
@@ -133,9 +141,9 @@ def validate_record(record: dict[str, Any], others: list[dict[str, Any]], root: 
     if any(not isinstance(t, str) or not TASK.fullmatch(t) for t in ids):
         errors.append("task.task_ids: each entry must be a task ID such as T01")
     if layer == "review":
-        report = _relative(task.get("report_file"), "task.report_file", errors)
-        if report and not (root / report).is_file():
-            errors.append(f"task.report_file: {report} does not exist")
+        report = _text(task.get("report_file"), "task.report_file", errors)
+        if report and not resolve_path(report, root).is_file():
+            errors.append(f"task.report_file: {report} does not exist (relative to the Hub root or absolute)")
     _text(record.get("target_repo"), "target_repo", errors)
 
     outcome = record.get("outcome")
@@ -144,7 +152,7 @@ def validate_record(record: dict[str, Any], others: list[dict[str, Any]], root: 
         outcome = {}
     if layer and outcome.get("status") not in OUTCOMES[layer]:
         errors.append(f"outcome.status: expected one of {', '.join(OUTCOMES[layer])} for layer {layer}")
-    if layer == "review" and outcome.get("verdict") not in RESULTS:
+    if layer == "review" and outcome.get("verdict") not in VERDICTS:
         errors.append("outcome.verdict: expected PASS, FAIL or BLOCKED for a Review record")
     _text(outcome.get("summary"), "outcome.summary", errors)
 
@@ -248,7 +256,7 @@ def validate_record(record: dict[str, Any], others: list[dict[str, Any]], root: 
                 errors.append(f"{label}.status: a self-evaluation cannot apply fixes; use pending_user with reason mode_self")
         elif status == "pending_user":
             if reason not in PENDING_REASONS:
-                errors.append(f"{label}.reason: pending_user needs reason mode_self or safety")
+                errors.append(f"{label}.reason: pending_user needs reason {', '.join(PENDING_REASONS)}")
             elif reason == "mode_self" and audit.get("mode") != "self":
                 errors.append(f"{label}.reason: mode_self is only valid when audit.mode is self")
         else:
@@ -288,10 +296,15 @@ def framework_ref(root: Path) -> dict[str, Any]:
     commit = (_git(root, "rev-parse", "HEAD") or "").strip()
     if not commit:
         files = [p for base in FRAMEWORK_PATHS for p in ([root / base] if (root / base).is_file() else sorted((root / base).rglob("*")))]
-        return {"commit": "none", "files": {p.relative_to(root).as_posix(): _hash(p) for p in files if p.is_file()}}
+        paths = {p.relative_to(root).as_posix(): p for p in files if p.is_file()}
+        return {"commit": "none", "files": {rel: _hash(p) for rel, p in paths.items() if not _excluded(rel)}}
     status = _git(root, "-c", "core.quotepath=off", "status", "--porcelain", "--untracked-files=all", "--", *FRAMEWORK_PATHS) or ""
     changed = {line[3:].split(" -> ")[-1].strip('"') for line in status.splitlines() if len(line) > 3}
-    return {"commit": commit, "files": {path: _hash(root / path) for path in sorted(changed)}}
+    return {"commit": commit, "files": {path: _hash(root / path) for path in sorted(changed) if not _excluded(path)}}
+
+
+def _excluded(path: str) -> bool:
+    return any(path.startswith(prefix) or f"/{prefix}" in path for prefix in NOT_FRAMEWORK)
 
 
 def _read_input(path: str | None) -> dict[str, Any]:
@@ -375,7 +388,7 @@ def query(root: Path, args: argparse.Namespace) -> list[dict[str, Any]]:
 
 
 def repository_root() -> Path:
-    return Path(__file__).resolve().parents[3]
+    return Path(__file__).resolve().parents[2]
 
 
 def main() -> int:

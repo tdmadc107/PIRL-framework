@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/review.instructions.md"
 metadata:
   id: ".agents/instructions/review"
   kind: "instruction"
-  version: "1.4.0"
+  version: "2.0.3"
   status: "active"
 ---
 
@@ -15,15 +15,19 @@ Apply the Review process only when the request and the [router](layered-task-exe
 have selected this layer. Reading or updating a Plan/report file does not
 activate another layer.
 
-This is the source of the process, the report template and the exit
-conditions of a Review against a Plan. Review must distinguish a wrong product,
-insufficient evidence and instructions that led an agent to a wrong decision.
+This contract owns the decisions and the exit conditions of a Review against a
+Plan; the run is carried out through the
+[`pirl-review` skill](../../.skills/pirl-review/SKILL.md), which owns the run procedure,
+the report template, its presentation rules, its location and the helper
+script. Review must distinguish a wrong product, insufficient evidence and
+instructions that led an agent to a wrong decision.
 Use exactly the two sections `Business` and `Evaluations`; keep IDs, symbols,
 role names and paths verbatim, and explain in plain English.
 
 ## AI Agent roles at the Review layer
 
-The role catalog and assignment principles live in [AGENTS.md](../../AGENTS.md#ai-agent-roles);
+The role catalog lives in the [standalone and maintenance instructions](standalone-and-maintenance.instructions.md#role-catalog) and the
+assignment principles in the [router](layered-task-execution.instructions.md#assignment-principles);
 each role's expertise lives in the role file linked in the table.
 Review picks `review_roles` from the table below using the "Select when"
 column, in the table's order: the first four roles are the default, and
@@ -41,7 +45,7 @@ expertise to specific QGs/boundaries; do not force every role to find a defect.
 
 - Settle disagreements by the source and merge suspicions with the same cause;
   do not vote. Delegate each role in `review_roles` per the
-  [assignment principles](../../AGENTS.md#ai-agent-roles). The report records
+  [assignment principles](layered-task-execution.instructions.md#assignment-principles). The report records
   how each role was performed (a separate agent, or self-performed with the
   reason) and the actual level of independence when a role has read the run's
   drafts or conclusions or has consulted a reviewer outside the role team.
@@ -105,7 +109,7 @@ expertise to specific QGs/boundaries; do not force every role to find a defect.
    in the Implementation Record, as a baseline or PASS/FAIL evidence. When the
    diff changes the UI, read the `layout_verification` and screenshots that
    Implement captured per
-   [layout verification with mocks](layered-task-execution.instructions.md#layout-verification-with-mocks)
+   [layout verification with mocks](layout-verification.instructions.md)
    as a source for UI QGs, without capturing again. A green test does not prove
    the business logic is right, and a red test does not prove the product is
    wrong. A counterexample is an input and call path traceable on the source,
@@ -121,7 +125,7 @@ expertise to specific QGs/boundaries; do not force every role to find a defect.
    keep it. Missing tests, not having built/run, or red/green test results are
    not by themselves a FIND, RISK or BLOCK; do not ask for more tests, builds or
    releases. Conversely, tests in the diff that violate the
-   [FUT rule](../llm-docs/rules/test-verification.rule.md#fut-rule-functional-tests)
+   [FUT rule](layered-task-execution.instructions.md#functional-tests-fut-rule)
    (not traceable to a REQ/specification, outside the functionality under
    development and the affected functionality, redundant duplicates, assertions
    contrary to the specification or that block a correct result) are a
@@ -159,7 +163,7 @@ Review also knows the FINDs that the Implement run missed, so this evaluation
 has more evidence than Implement's own self-evaluation.
 
 1. Find the record of the reviewed Implement run with
-   `python -B .agents/llm-docs/evals/layer_record.py query --layer implement --plan-set <plan-set> --task <task-id>`.
+   `python -B .agents/evals/layer_record.py query --layer implement --plan-set <plan-set> --task <task-id>`.
    In the result, pick the latest record whose `roles` list contains the
    Implement roles to evaluate and write it into the Review record's `evaluates`.
    A record that only applies improvements or corrections (`supersedes` set,
@@ -183,12 +187,14 @@ has more evidence than Implement's own self-evaluation.
    verdict and do not block handing off a delivery that already qualifies; if
    the report itself is wrong, fix the report before settling it.
 
-## The single report template
+## Report and rounds
 
-Use a `pirl-review/v1` Review at
-`.agents/review/<plan-set>/<task-id-lower>-<todo-slug>/round-<NN>-review-<todo-slug>-<YYYYMMDD-HHmmss>.md`.
-The first round has `prior_review: null`; later rounds reference the report
-immediately before.
+Each Review round writes one `pirl-review/v1` report, built from the `review`
+skill's [template](../../.skills/pirl-review/assets/review-template.md) and saved
+where the user says, or by default under the Hub root, per the
+[report format](../../.skills/pirl-review/references/review-format.md). The first
+round has `prior_review: null`; later rounds reference the report immediately
+before.
 A request for additional phases or evidence for the same implementation run
 belongs to the current Review round: update that report and keep
 `review_round` and `prior_review`. Do not increment the round just because of
@@ -197,136 +203,11 @@ round when assigned to review the next implementation/repair run or when the
 user explicitly asks for an independent round. When editing a settled report,
 record the reason for the edit in the report and leave the other rounds intact.
 
-### Presentation rules
-
-Keep the two level-two sections `Business` and `Evaluations`; use level-three/
-four headings to divide the content inside. Present QGs as a three-column
-table; each FIND/RISK/BLOCK and EVAL has its own two-column `Field | Content`
-table under a heading containing its ID.
-The `Next` part uses a two-column table. Do not merge several fields into one
-long bullet or cram all fields of a finding/evaluation into one overly wide table.
-
-This is only presentation: keep all fields, IDs, conclusions, evidence and
-instructions; do not drop information to make a table shorter. In each cell,
-use `<br>` when you need to separate several sources or processing steps; keep
-paths, symbols and commands intact.
-Escape a `|` that belongs to cell content as `\|`, including inside inline
-code, so it does not create a column. This escape rule applies only to Markdown
-tables and does not change values in the frontmatter. Put a blank line
-before/after each table.
-
-### Markdown template
-
-````markdown
----
-schema: pirl-review/v1
-content_language: en
-plan_file: "<relative Plan path>"
-task_id: T01
-review_round: 1
-prior_review: null
-review_roles: [code-analyst, code-reviewer, business-analyst, solution-architect]
-repair_roles: []
-business_verdict: PASS
-verdict: PASS
-status: completed
-reviewed_at: "<ISO-8601 with +07:00>"
-implementation_target: "<diff/commit/paths reviewed>"
----
-
-# Review <NN>: <Task ID> — <Task name>
-
-## Business
-
-### Quality gates
-
-| QG | Result | Evidence |
-| --- | --- | --- |
-| QG-01 | <PASS / FAIL / BLOCKED> | <source/symbol, logic and the result of the check> |
-
-### Findings
-
-#### FIND-01
-
-| Field | Content |
-| --- | --- |
-| QG | QG-01 |
-| Impact | <realistic trigger and consequence> |
-| Source | <file/symbol or trusted contract> |
-| Cause | <the faulty mechanism> |
-| Challenge | <grounds that refute competing explanations> |
-| Roles | <role, ...> |
-| Target | `<file to handle>` |
-| Instructions | <concrete work for each role, in order> |
-| Disposition | <repair / replan> |
-
-### Risks
-
-#### RISK-01
-
-| Field | Content |
-| --- | --- |
-| QG | QG-02 |
-| Impact | <realistic exposure and limits> |
-| Source | <file/symbol> |
-| Cause | <the mechanism that creates the risk> |
-| Challenge | <why the risk stands while the QG still holds> |
-| Roles | <role, ...> |
-| Target | `<related file>` |
-| Instructions | <how to mitigate when assigned> |
-| Revisit when | <concrete condition> |
-
-### Blockers
-
-#### BLOCK-01
-
-| Field | Content |
-| --- | --- |
-| QG | QG-03 |
-| Missing | <mandatory input not yet available> |
-| Source | <evidence of what is missing> |
-| Cause | <the mechanism that blocks the conclusion> |
-| Owner | <role or provider of the input> |
-| Target | `<related file>` |
-| Instructions | <action to unblock> |
-| Disposition | <retry / escalate> |
-| Condition | <change needed before continuing> |
-
-### Next
-
-| Field | Content |
-| --- | --- |
-| Next | <owner/layer, input file and condition to continue> |
-
-## Evaluations
-
-### EVAL-01
-
-| Field | Content |
-| --- | --- |
-| Role | <Implement implementation or verification role> |
-| Result | <PASS / FAIL / BLOCKED> |
-| Issue | <the role's grounded wrong decision; or none> |
-| Cause | <instruction / ineffective_fix / input / execution with `issue_key`; or none> |
-| Improvement | <file and section edited, old → new version; or pending the user (safety); or not needed> |
-| Evidence | <Implementation Record, Implement record, sources/diff checked> |
-````
-
-Replace placeholders with actual content and choose one value for each status
-or disposition. Each QG has exactly one row in the Quality gates table. Record
-only FINDs/RISKs/BLOCKs that actually exist; a group with no items uses one
-short sentence under its heading, with no empty table or fake ID. Number each
-kind consecutively, keeping the order findings, risks, then blockers. EVALs
-cover the settled Implement team in the Implementation Record's order; do not
-add an inventory or a third level-two section that repeats the handoff.
-
 ## Finishing and next permissions
 
-Run the report validator and fix structural errors before the final response:
-
-```powershell
-python -B .agents/llm-docs/evals/validate_layer_artifact.py --kind review --path <report file>
-```
+Run the report validator (command in the
+[`pirl-review` skill's procedure](../../.skills/pirl-review/SKILL.md#procedure)) and fix
+structural errors before the final response.
 
 The coordinator and every Review role carry out the
 [temporary-resource cleanup](layered-task-execution.instructions.md#cleaning-up-temporary-resources-before-handoff)

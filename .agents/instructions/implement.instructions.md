@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/implement.instructions.md"
 metadata:
   id: ".agents/instructions/implement"
   kind: "instruction"
-  version: "1.7.0"
+  version: "2.2.0"
   status: "active"
 ---
 
@@ -14,16 +14,20 @@ metadata:
 Apply the Implement process only when the request and the [router](layered-task-execution.instructions.md)
 have selected this layer. Reading or updating a Plan/report file does not
 activate another layer. Work assigned directly outside a Plan follows the
-[router's standalone tasks](layered-task-execution.instructions.md#standalone-tasks);
+[standalone tasks](standalone-and-maintenance.instructions.md#standalone-tasks);
 do not borrow this layer's wait-for-Review rules for that work.
 
-This is the source of the Implement process and its results ledger. The goal
-is to carry out the settled product decisions exactly, keep enough evidence
-for handoff and recognize when those decisions no longer fit.
+This contract owns the decisions of the Implement layer and the content of its
+results ledger. The goal is to carry out the settled product decisions exactly,
+keep enough evidence for handoff and recognize when those decisions no longer
+fit. The run is carried out through the
+[`pirl-implement` skill](../../.skills/pirl-implement/SKILL.md), which owns the run
+procedure, the Implementation Record format and the helper scripts.
 
 ## AI Agent roles at the Implement layer
 
-The role catalog and assignment principles live in [AGENTS.md](../../AGENTS.md#ai-agent-roles);
+The role catalog lives in the [standalone and maintenance instructions](standalone-and-maintenance.instructions.md#role-catalog) and the
+assignment principles in the [router](layered-task-execution.instructions.md#assignment-principles);
 each role's expertise lives in the role file linked in the table.
 The Plan picks roles from the table below; a repair run uses the `repair_roles`
 of the Review report. The Implement coordinator gives each role its role file,
@@ -34,11 +38,11 @@ work, the sources and the related REQs/QGs, then merges the results by evidence.
 | Role | Type | Responsibility at Implement | Done when |
 | --- | --- | --- | --- |
 | [`backend-developer`](../roles/backend-developer.role.md) | implementation | Edit non-UI code, accompanying documentation and tests under FUT for that part, within the allowed paths; self-challenge its own work | As `technical-writer` for every sentence of accompanying documentation the role writes or changes, and source/docs/tests deliver all REQs of its part; self-challenge has no open doubts; no builds, typechecks, lint or verification scripts are run |
-| [`frontend-developer`](../roles/frontend-developer.role.md) | implementation | Edit the UI, UI strings per language, accompanying documentation and tests under FUT; capture layout with mocks when the diff changes the UI; self-challenge | As `backend-developer`, and `layout_verification` has a capture run that passes every check when the diff changes the UI (except failed checks the Plan excluded per the [router](layered-task-execution.instructions.md#layout-verification-with-mocks)); when the diff changes the size or number of elements in a row or frame of constrained width, the bounding-box measurements per the [router](layered-task-execution.instructions.md#layout-verification-with-mocks) are in `layout_verification` and protruding elements were fixed before handing over to the verification roles; general or negative claims in `layout_verification` and the handoff report have been checked against all sources per the bullet on out-of-scope findings below the table |
+| [`frontend-developer`](../roles/frontend-developer.role.md) | implementation | Edit the UI, UI strings per language, accompanying documentation and tests under FUT; capture layout with mocks when the diff changes the UI; self-challenge | As `backend-developer`, and `layout_verification` has a capture run that passes every check when the diff changes the UI (except failed checks the Plan excluded per the [layout verification instructions](layout-verification.instructions.md)); when the diff changes the size or number of elements in a row or frame of constrained width, the bounding-box measurements per the [layout verification instructions](layout-verification.instructions.md) are in `layout_verification` and protruding elements were fixed before handing over to the verification roles; general or negative claims in `layout_verification` and the handoff report have been checked against all sources per the bullet on out-of-scope findings below the table |
 | [`technical-writer`](../roles/technical-writer.role.md) | implementation | Create/update context documentation, contract documents, indexes and specification status tables for documentation-only tasks | Documentation matches the source and the REQs; every claim in each sentence written or changed, including clauses kept from the old version, has a source and has been checked per the [role's way of working](../roles/technical-writer.role.md#how-it-works): sentences stating a rule, scope or list, and the lead-in sentence or heading of a table or list, are checked element by element and at every place of use; quantities or formulas stated in words are recalculated from their definition in the source |
 | [`code-reviewer`](../roles/code-reviewer.role.md) | verification | Challenge the diff: bugs, regressions, permissions and security, data/state inconsistency, guards/validators/error handling, contract violations, tests that violate FUT | `PASS\|FAIL\|BLOCKED` for each assigned QG, with the path traced, counterexamples and sources; each evidence line is a readable source with reasoning per the [router](layered-task-execution.instructions.md#verification-by-reasoning), not a run result |
 | [`code-analyst`](../roles/code-analyst.role.md) | verification | Trace the flow from the entrypoint to the final state through every affected caller/consumer; build scenario tables for QGs with many branches/states/orderings; check documentation against the source | As `code-reviewer` |
-| [`ux-designer`](../roles/ux-designer.role.md) | verification | Check the screenshots and measurements of the layout checks per the router against the UI QGs and the display source | As `code-reviewer` |
+| [`ux-designer`](../roles/ux-designer.role.md) | verification | Check the screenshots and measurements of the layout checks per the layout verification instructions against the UI QGs and the display source | As `code-reviewer` |
 | [`process-auditor`](../roles/process-auditor.role.md) | self-evaluation | Self-evaluate the Implement run per the [router](layered-task-execution.instructions.md#self-evaluation-and-improvement); not recorded in the Plan's role lists | Record written; improvements applied or summarized for the user |
 
 - An implementation role does not verify its own work. A verification role
@@ -51,7 +55,7 @@ work, the sources and the related REQs/QGs, then merges the results by evidence.
   report belong to no QG, so no verification role receives them. The role
   states them only as observations after checking them against all sources that
   could refute them, per the
-  [Evidence rule](../llm-docs/rules/core-agent.rule.md#evidence). The coordinator
+  [Evidence rule](../../AGENTS.md#evidence). The coordinator
   checks them against the source again before putting them in `residual_risk`,
   the record's `summary` or a response to the user, or states that they are
   unchecked and what was not read.
@@ -64,7 +68,7 @@ work, the sources and the related REQs/QGs, then merges the results by evidence.
 ## Reading inputs and determining scope
 
 1. The user has asked for this layer per the
-   [router](layered-task-execution.instructions.md#choosing-a-layer). Identify
+   [conditions for opening a layer](../../AGENTS.md#choosing-a-layer). Identify
    exactly the Plan file that their words or the settled context name. Read the
    `pirl-plan/v1` Plan, the related source and the Implementation Record if any. Check that the tasks in `depends_on` have done the part this
    task needs; stop only the dependent part that is not ready. Do not require
@@ -121,11 +125,11 @@ work, the sources and the related REQs/QGs, then merges the results by evidence.
   functionality under development and of affected functionality that still
   assert the old behavior are updated to the new logic, and tests that only
   served a removed flow are deleted, all under the
-  [FUT rule](../llm-docs/rules/test-verification.rule.md#fut-rule-functional-tests);
+  [FUT rule](layered-task-execution.instructions.md#functional-tests-fut-rule);
   do not touch tests of unrelated functionality and do not build new harnesses
   or verification scripts, inside or outside the repository (the only exception
   is layout mock and capture scripts in `.tmp/` per the
-  [router](layered-task-execution.instructions.md#layout-verification-with-mocks)).
+  [layout verification instructions](layout-verification.instructions.md)).
   Points that need a product decision are recorded where the project keeps
   known gaps and in the residual risk, not decided by you. This sweep does not
   edit historical records (settled Plans, Review reports, original
@@ -163,7 +167,7 @@ work, the sources and the related REQs/QGs, then merges the results by evidence.
   reasoning and are not an evidence line
   ([sources of evidence](layered-task-execution.instructions.md#verification-by-reasoning)).
   A repair run that touches the UI captures the layout again per the
-  verification section below, into a new run directory.
+  [layout verification instructions](layout-verification.instructions.md), into a new run directory.
 
 ## Changes to the Plan confirmed by the user
 
@@ -200,9 +204,9 @@ application for acceptance, and only writes, updates and runs tests under FUT.
 Each QG evidence line comes from a source the router allows; scripts, probes,
 browsers forcing logic branches, static tools and test results are not evidence.
 When the diff changes the UI, `frontend-developer` (or the coordinator when
-performing that role itself) carries out [layout verification with mocks](layered-task-execution.instructions.md#layout-verification-with-mocks)
+performing that role itself) carries out [layout verification with mocks](layout-verification.instructions.md)
 after implementing and before handing over to the verification roles; the
-screenshots and measurements of the checks per the router are a source for the
+screenshots and measurements of the checks per the layout verification instructions are a source for the
 verification roles and do not replace their reasoning. When delegating, the
 coordinator states which files are the measurements of the checks and which are
 diagnostics that are not a source.
@@ -223,7 +227,7 @@ its assigned QGs:
    entrypoint through callers, guards and write/read operations to the outcome
    and state that the `Required logic` states, including the refusal/failure
    branches that must hold. For UI QGs, also look at the screenshots and
-   measurements of the checks per the router in the latest layout capture; if
+   measurements of the checks per the layout verification instructions in the latest layout capture; if
    they are missing when the diff changes the UI, return a FAIL to
    `frontend-developer`.
 2. Pick a counterexample that can occur within the QG's scope, look for guards
@@ -256,6 +260,23 @@ Implement run, applies framework improvements and writes the record per the
 Output defects that `process-auditor` finds are returned to the implementation
 role that owns that part, within the same two-repair limit above.
 
+## Layout verification with mocks
+
+In an Implement run of the Plan chain (first run and repair runs), when the
+diff creates or changes something the user sees, `frontend-developer` (or the
+coordinator when performing that role itself) sets up mocks and captures the
+layout after implementing, before the verification roles conclude the QGs.
+Standalone tasks and direct work outside a Plan do this only when the user asks.
+
+- **When:** the diff changes displayed markup/templates/components, styles
+  (CSS/SCSS, tokens used for layout), adds screens, dialogs or popups, or
+  changes display states (error, empty, loading, locked) or UI strings that can
+  change the layout. Does not apply when the diff is only in the backend, pure
+  domain code with no display change, tests or documentation.
+
+When this applies, read and follow the
+[layout verification instructions](layout-verification.instructions.md); otherwise that file is not needed.
+
 ## Recording results
 
 Update the Plan status and one `Implementation Record` section below the four
@@ -266,35 +287,11 @@ of that run itself. The Plan content changes only per the
 section; do not edit the Plan to legitimize a direction the agent changed on its
 own.
 
-```markdown
-## Implementation Record
-- status: awaiting_confirmation | implemented | blocked | failed
-- updated_at: "<ISO-8601 with +07:00>"
-- changed_paths: <relative paths or []>
-- role_work: <role=status/evidence, with commands and test scope under FUT if any; ...>
-- execution_mode: <separate agent per role | self-performed in turn, with the reason delegation was not possible; with each role's actual level of independence per the assignment principles in AGENTS.md: sources read beyond the assignment, reviewers outside the role team consulted>
-- checkpoint_evidence: <checkpoint, evidence and input to continue; or N/A>
-- quality_gate_results: <QG-01=PASS|FAIL|BLOCKED per the verification role's conclusion; ...>
-- quality_gate_evidence: <each QG -> verification role, file/symbol, path traced, counterexample and conclusion>
-- layout_verification: <N/A when the diff does not change the UI; or states captured, languages, viewports, the base used for comparison (base commit and uncommitted changes counted), number of screenshots, checks passed/failed (each failed check with its cause per the router) and the .tmp/layout-snapshots/... directory>
-- repair_closure_evidence: <each report item -> REQ/QG, cause, solution/disposition and matching before/after evidence; or exactly N/A for the first run>
-- root_cause_revalidation: <ITEM-ID=confirmed|contradicted|blocked/evidence before the fix; or exactly N/A for the first run>
-- review_item_disposition: <FIND-01=resolved|failed|blocked/evidence; RISK-01=deferred/owner and revisit condition; BLOCK-01=unblocked|blocked|escalated/evidence; or exactly N/A for the first run>
-- plan_amendments: <each Plan edit per the "Changes to the Plan confirmed by the user" section: Plan line, old -> new value, what the user confirmed and when; or exactly N/A>
-- role_challenge_results: <role=PASS|FAIL|BLOCKED/claim, challenge and evidence; ...>
-- residual_risk: <remaining risk and impact; or none>
-- review_handoff: <Plan file, implementation target, source report if any>
-- role_selection_source: plan | <relative path of the source report>
-- effective_implementation_roles: <list of roles in order, comma-separated>
-- Next allowed owner/layer: <owner/layer>
-- Authorization condition: <input or decision for the next step>
-1. <concrete action and related paths>
-```
-
-The validator reads the two fields `status` and `updated_at` verbatim: write
-them exactly as in the template, without backticks or a trailing period; the
-other fields are free text. After writing the Implementation Record, run
-`python -B .agents/llm-docs/evals/validate_layer_artifact.py --kind plan --path <Plan file>`
+The Implementation Record follows the
+[template](../../.skills/pirl-implement/assets/implementation-record-template.md) and
+the [format reference](../../.skills/pirl-implement/references/implementation-record-format.md)
+of the `pirl-implement` skill. After writing it, run the Plan validator (command in
+the [`pirl-implement` skill's procedure](../../.skills/pirl-implement/SKILL.md#procedure))
 and fix errors before handoff.
 
 `role_work` and `role_challenge_results` cover each implementation/repair role,
@@ -329,7 +326,7 @@ Record `implemented` only when the requirements and role responsibilities are
 met, the verification roles conclude every QG `PASS`, self-challenge has no
 open doubts and, when the diff changes the UI, `layout_verification` has a
 capture run that passes every check, except failed checks the Plan excluded per
-the [router](layered-task-execution.instructions.md#layout-verification-with-mocks).
+the [layout verification instructions](layout-verification.instructions.md).
 A repair run must also resolve the FINDs, record a disposition for every item
 and clear the necessary blockers. Do not claim a finding fixed when its cause
 was refuted.

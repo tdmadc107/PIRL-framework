@@ -12,8 +12,10 @@ from pathlib import Path
 
 EVALS = Path(__file__).resolve().parents[1]
 TOOL = EVALS / "layer_record.py"
+sys.path.insert(0, str(EVALS))
+from validate_layer_artifact import CATALOG  # noqa: E402
 
-AGENTS = """# AI Agent roles
+ROLES = """### Role catalog
 
 | ID | Expertise | Used in |
 | --- | --- | --- |
@@ -23,7 +25,7 @@ AGENTS = """# AI Agent roles
 | `code-reviewer` | Challenges the diff | verify, review |
 | `process-auditor` | Self-evaluation | audit |
 
-# Other section
+### Other section
 """
 # Records are stored as UTF-8 without escaping; this sample checks that non-ASCII text survives.
 NON_ASCII = "Không quét tài liệu ngoài đường dẫn Plan"
@@ -60,8 +62,11 @@ class LayerRecordTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
-        (self.root / "AGENTS.md").write_text(AGENTS, encoding="utf-8")
-        self.report = self.root / ".agents/review/sign-in_20261014-090000/t01-otp/round-01.md"
+        (self.root / "AGENTS.md").write_text("# Start here\n", encoding="utf-8")
+        (self.root / CATALOG).parent.mkdir(parents=True)
+        (self.root / CATALOG).write_text(ROLES, encoding="utf-8")
+        # Reports live wherever the user puts them; by default under the Hub root.
+        self.report = self.root / "sign-in_20261014-090000/t01-otp/round-01.md"
         self.report.parent.mkdir(parents=True)
         self.report.write_text("---\n---\n", encoding="utf-8")
 
@@ -74,7 +79,7 @@ class LayerRecordTests(unittest.TestCase):
         return self.run_tool("append", payload=payload)
 
     def stored(self):
-        return [json.loads(line) for path in sorted((self.root / ".agents/records").glob("*/*.jsonl"))
+        return [json.loads(line) for path in sorted((self.root / ".agents/evals/records").glob("*/*.jsonl"))
                 for line in path.read_text(encoding="utf-8").splitlines()]
 
     def test_append_stores_one_utf8_line_with_tool_fields(self):
@@ -83,7 +88,7 @@ class LayerRecordTests(unittest.TestCase):
         code, result = self.append(payload)
         self.assertEqual(code, 0, result)
         self.assertTrue(result["record_id"].startswith("implement-") and result["record_id"].endswith("-T01"))
-        self.assertTrue(result["path"].startswith(".agents/records/implement/"))
+        self.assertTrue(result["path"].startswith(".agents/evals/records/implement/"))
         [record] = self.stored()
         self.assertEqual(record["schema"], "pirl-record/v1")
         self.assertEqual(record["outcome"]["summary"], NON_ASCII)
@@ -135,6 +140,14 @@ class LayerRecordTests(unittest.TestCase):
         safety = copy.deepcopy(IMPLEMENT)
         safety["fixes"][0].update(status="pending_user", reason="safety")
         self.assertEqual(self.append(safety)[0], 0)
+        repository = copy.deepcopy(IMPLEMENT)
+        repository["issues"][0]["cause"] = "input"
+        repository["fixes"][0].update(status="pending_user", reason="repository",
+                                      files=[{"path": "sign-in_20261014-090000", "section": "Target repository context documentation"}])
+        self.assertEqual(self.append(repository)[0], 0)
+        unknown = copy.deepcopy(IMPLEMENT)
+        unknown["fixes"][0].update(status="pending_user", reason="later")
+        self.assertNotEqual(self.append(unknown)[0], 0)
 
     def test_ineffective_fix_and_review_link_earlier_records(self):
         _, first = self.append(IMPLEMENT)
@@ -155,13 +168,16 @@ class LayerRecordTests(unittest.TestCase):
                                    decision="Missed the expired OTP branch")
         code, result = self.append(review)
         self.assertEqual(code, 0, result)
+        absolute = copy.deepcopy(review)
+        absolute["task"]["report_file"] = str(self.report)
+        self.assertEqual(self.append(absolute)[0], 0)
         missing = copy.deepcopy(review)
         missing["evaluates"] = "implement-20000101-000000-T01"
         self.assertNotEqual(self.append(missing)[0], 0)
         found = self.run_tool("query", "--issue-key", "skip-consistency-sweep")[1]
-        self.assertEqual([r["layer"] for r in found], ["implement", "implement", "review"])
+        self.assertEqual([r["layer"] for r in found], ["implement", "implement", "review", "review"])
         self.assertEqual(found[0]["fixes"][0]["id"], "FIX-01")
-        self.assertEqual(len(self.run_tool("query", "--layer", "review", "--task", "T01")[1]), 1)
+        self.assertEqual(len(self.run_tool("query", "--layer", "review", "--task", "T01")[1]), 2)
 
     def test_check_resolves_references_by_time_not_by_layer_folder(self):
         _, first = self.append(IMPLEMENT)
@@ -195,7 +211,7 @@ class LayerRecordTests(unittest.TestCase):
     def test_check_reads_stored_v1_lines_and_reports_corruption(self):
         self.assertEqual(self.append(IMPLEMENT)[0], 0)
         self.assertEqual(self.run_tool("check")[0], 0)
-        [path] = (self.root / ".agents/records").glob("*/*.jsonl")
+        [path] = (self.root / ".agents/evals/records").glob("*/*.jsonl")
         with path.open("a", encoding="utf-8") as handle:
             handle.write("{broken\n")
         code, result = self.run_tool("check")
@@ -205,12 +221,19 @@ class LayerRecordTests(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which("git"), "git is required")
     def test_start_pins_commit_and_changed_framework_files(self):
-        self.assertEqual(self.run_tool("start")[1]["framework_ref"]["commit"], "none")
+        self.assertEqual(self.append(IMPLEMENT)[0], 0)
+        skill = self.root / ".skills/pirl-plan/SKILL.md"
+        skill.parent.mkdir(parents=True)
+        skill.write_text("---\nname: plan\n---\n", encoding="utf-8")
+        ref = self.run_tool("start")[1]["framework_ref"]
+        self.assertEqual(ref["commit"], "none")
+        # Skills are framework files; records are local output, not framework content.
+        self.assertEqual(sorted(ref["files"]), [CATALOG, ".skills/pirl-plan/SKILL.md", "AGENTS.md"])
         git = ["git", "-C", str(self.root), "-c", "user.email=t@t", "-c", "user.name=t"]
         subprocess.run([*git, "init", "-q"], check=True)
         subprocess.run([*git, "add", "-A"], check=True)
         subprocess.run([*git, "commit", "-qm", "init"], check=True)
-        (self.root / "AGENTS.md").write_text(AGENTS + "\nchanged\n", encoding="utf-8")
+        (self.root / "AGENTS.md").write_text("# Start here\nchanged\n", encoding="utf-8")
         ref = self.run_tool("start")[1]["framework_ref"]
         self.assertRegex(ref["commit"], r"^[0-9a-f]{40}$")
         self.assertEqual(list(ref["files"]), ["AGENTS.md"])

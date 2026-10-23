@@ -10,11 +10,12 @@ import unittest
 from pathlib import Path
 
 EVALS = Path(__file__).resolve().parents[1]
-REPO = EVALS.parents[2]
+REPO = EVALS.parents[1]
 sys.path.insert(0, str(EVALS))
-from validate_layer_artifact import load_roles  # noqa: E402
+from layer_record import LAYER_USAGES  # noqa: E402
+from validate_layer_artifact import CATALOG, load_roles  # noqa: E402
 
-AGENTS = """# AI Agent roles
+ROLES = """### Role catalog
 
 | ID | Expertise | Used in |
 | --- | --- | --- |
@@ -24,13 +25,7 @@ AGENTS = """# AI Agent roles
 | `code-reviewer` | Challenges the diff | verify, review |
 | `process-auditor` | Self-evaluation | audit |
 
-# Other section
-"""
-MANIFEST = """schema: "pirl-repos/v1"
-repos:
-  demo:
-    path: ".repos/demo"
-    product: "Demo"
+### Other section
 """
 PLAN = """---
 schema: pirl-plan/v1
@@ -61,7 +56,7 @@ The caller receives the requested data.
 REVIEW = """---
 schema: pirl-review/v1
 content_language: en
-plan_file: ".agents/plan/request_20260909-090000/task.md"
+plan_file: "request_20260909-090000/task.md"
 task_id: T01
 review_round: 1
 prior_review: null
@@ -84,10 +79,10 @@ class HandoffIOTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
-        (self.root / "AGENTS.md").write_text(AGENTS, encoding="utf-8")
-        (self.root / ".repos").mkdir()
-        (self.root / ".repos/manifest.yaml").write_text(MANIFEST, encoding="utf-8")
-        self.plan = self.root / ".agents/plan/request_20260909-090000/task.md"
+        (self.root / CATALOG).parent.mkdir(parents=True)
+        (self.root / CATALOG).write_text(ROLES, encoding="utf-8")
+        # With no location named by the user, Plan packages and reports sit under the Hub root.
+        self.plan = self.root / "request_20260909-090000/task.md"
         self.plan.parent.mkdir(parents=True)
         self.plan.write_text(PLAN, encoding="utf-8")
 
@@ -106,7 +101,7 @@ class HandoffIOTests(unittest.TestCase):
     def test_plan_and_review_accept_complete_handoffs_without_scoring_prose(self):
         code, result = self.check("plan", self.plan)
         self.assertEqual(code, 0, result)
-        report = self.root / ".agents/review/request_20260909-090000/t01-api/round-01.md"
+        report = self.root / "request_20260909-090000/t01-api/round-01.md"
         report.parent.mkdir(parents=True)
         report.write_text(REVIEW, encoding="utf-8")
         code, result = self.check("review", report)
@@ -138,17 +133,16 @@ class HandoffIOTests(unittest.TestCase):
                 self.assertNotEqual(code, 0)
                 self.assertTrue(any(field in error for error in result["errors"]), result)
 
-    def test_target_repo_must_be_hub_or_registered_path(self):
-        target = PLAN.replace("target_repo: .", 'target_repo: ".repos/demo"')
-        (self.root / ".gitmodules").write_text('[submodule ".repos/demo"]\n\tpath = .repos/demo\n', encoding="utf-8")
-        self.assertEqual(self.write_plan(target)[0], 0)
-        code, result = self.write_plan(PLAN.replace("target_repo: .", 'target_repo: ".repos/other"'))
+    def test_target_repo_must_be_an_existing_directory(self):
+        outside = tempfile.TemporaryDirectory()
+        self.addCleanup(outside.cleanup)
+        (self.root / "shop-web").mkdir()
+        for target in ("shop-web", outside.name):
+            with self.subTest(target=target):
+                self.assertEqual(self.write_plan(PLAN.replace("target_repo: .", f'target_repo: "{target}"'))[0], 0)
+        code, result = self.write_plan(PLAN.replace("target_repo: .", 'target_repo: "missing-repo"'))
         self.assertNotEqual(code, 0)
         self.assertTrue(any("target_repo" in error for error in result["errors"]), result)
-        (self.root / ".gitmodules").unlink()
-        code, result = self.write_plan(target)
-        self.assertNotEqual(code, 0)
-        self.assertTrue(any("not a submodule" in error for error in result["errors"]), result)
 
     def test_status_beyond_planned_requires_a_matching_implementation_record(self):
         implemented = PLAN.replace("status: planned", "status: implemented")
@@ -169,19 +163,14 @@ class HandoffIOTests(unittest.TestCase):
 
 
 class RoleCatalogTests(unittest.TestCase):
-    """Layer role tables must use IDs that AGENTS.md registers for that layer."""
+    """Layer role tables must use IDs that the role catalog registers for that layer."""
 
-    LAYER_USAGES = {
-        "plan": {"plan", "audit"},
-        "implement": {"implement", "verify", "audit"},
-        "review": {"review", "audit"},
-    }
     # A table row starts with the role ID, plain or linked to its role file.
     ROW = re.compile(r"(?m)^\| (?:\[`([a-z0-9-]+)`\]\(([^)]+)\)|`([a-z0-9-]+)`) \|")
 
     def test_layer_role_tables_match_the_agents_catalog(self):
         catalog = load_roles(REPO)
-        for layer, usages in self.LAYER_USAGES.items():
+        for layer, usages in LAYER_USAGES.items():
             path = REPO / f".agents/instructions/{layer}.instructions.md"
             section = re.search(rf"(?ms)^## AI Agent roles at the {layer.capitalize()} layer\s*$(.*?)(?=^## )", path.read_text(encoding="utf-8"))
             self.assertIsNotNone(section, layer)

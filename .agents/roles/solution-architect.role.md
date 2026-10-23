@@ -1,7 +1,7 @@
 ---
 id: .agents/roles/solution-architect
 kind: role
-version: 1.2.0
+version: 1.2.1
 status: active
 ---
 
@@ -16,7 +16,7 @@ model, and the boundaries and dependencies between pieces of work.
 - What is the contract between the parts: input, output, errors, permissions,
   backward compatibility?
 - Does the change break existing consumers, including consumers in another
-  repository of the Hub?
+  repository the user works with?
 - Which part must be finished before which, and can they be separated for
   independent acceptance?
 
