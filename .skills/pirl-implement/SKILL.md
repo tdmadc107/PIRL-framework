@@ -5,7 +5,7 @@ metadata:
   id: .skills/pirl-implement
   kind: skill
   layer: implement
-  version: 1.1.0
+  version: 1.1.1
 ---
 
 # Implement
@@ -13,19 +13,18 @@ metadata:
 Carries out one Implement layer run: a first run of a Plan task, or a repair run
 per a Review report. The
 [Implement contract](../../.agents/instructions/implement.instructions.md) owns
-the decisions and exit conditions; the
+the decisions, layout verification with mocks and the exit conditions; the
 [router](../../.agents/instructions/layered-task-execution.instructions.md) owns
-the shared contracts (verification by reasoning, functional tests, layout
-verification with mocks); [AGENTS.md](../../AGENTS.md) owns the core rules,
-roles and target repository. This skill owns the order of the steps, the
+the shared contracts (verification by reasoning, functional tests);
+[AGENTS.md](../../AGENTS.md) owns the core rules, roles and target repository. This skill owns the order of the steps, the
 Implementation Record format and the helper scripts. Where a step names a
 section, that section decides.
 
 ## When to use
 
 - The user's own words ask to implement a Plan task, or to fix per a Review
-  report, per the router's
-  [conditions for opening a layer](../../.agents/instructions/layered-task-execution.instructions.md#choosing-a-layer).
+  report, per the
+  [conditions for opening a layer](../../AGENTS.md#choosing-a-layer).
 - Not for writing a Plan ([`pirl-plan`](../pirl-plan/SKILL.md)), checking an
   implementation ([`pirl-review`](../pirl-review/SKILL.md)), work assigned outside a
   Plan ([standalone task](../../.agents/instructions/layered-task-execution.instructions.md#standalone-tasks))
@@ -60,7 +59,7 @@ Run the commands from the Hub root.
    for a repair run), then the Plan's `verification_roles`
    ([AI Agent roles at the Implement layer](../../.agents/instructions/implement.instructions.md#ai-agent-roles-at-the-implement-layer)).
    Delegate each role to a separate agent per the
-   [assignment principles](../../AGENTS.md#ai-agent-roles), with its role file,
+   [assignment principles](../../.agents/instructions/layered-task-execution.instructions.md#assignment-principles), with its role file,
    its table row and the rows that row refers to.
 4. **Implement or repair**
    ([contract](../../.agents/instructions/implement.instructions.md#implementing-and-repairing-per-review)),
@@ -70,7 +69,7 @@ Run the commands from the Hub root.
    confirms follows
    [Changes to the Plan confirmed by the user](../../.agents/instructions/implement.instructions.md#changes-to-the-plan-confirmed-by-the-user).
 5. **Capture the layout** when the diff changes the UI, before verification
-   ([Layout verification with mocks](../../.agents/instructions/layered-task-execution.instructions.md#layout-verification-with-mocks)).
+   ([Layout verification with mocks](../../.agents/instructions/implement.instructions.md#layout-verification-with-mocks)).
    Each capture run gets a new directory:
 
    ```powershell

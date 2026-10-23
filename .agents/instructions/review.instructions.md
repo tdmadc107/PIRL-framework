@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/review.instructions.md"
 metadata:
   id: ".agents/instructions/review"
   kind: "instruction"
-  version: "2.0.1"
+  version: "2.0.2"
   status: "active"
 ---
 
@@ -26,7 +26,8 @@ role names and paths verbatim, and explain in plain English.
 
 ## AI Agent roles at the Review layer
 
-The role catalog and assignment principles live in [AGENTS.md](../../AGENTS.md#ai-agent-roles);
+The role catalog lives in [AGENTS.md](../../AGENTS.md#ai-agent-roles) and the
+assignment principles in the [router](layered-task-execution.instructions.md#assignment-principles);
 each role's expertise lives in the role file linked in the table.
 Review picks `review_roles` from the table below using the "Select when"
 column, in the table's order: the first four roles are the default, and
@@ -44,7 +45,7 @@ expertise to specific QGs/boundaries; do not force every role to find a defect.
 
 - Settle disagreements by the source and merge suspicions with the same cause;
   do not vote. Delegate each role in `review_roles` per the
-  [assignment principles](../../AGENTS.md#ai-agent-roles). The report records
+  [assignment principles](layered-task-execution.instructions.md#assignment-principles). The report records
   how each role was performed (a separate agent, or self-performed with the
   reason) and the actual level of independence when a role has read the run's
   drafts or conclusions or has consulted a reviewer outside the role team.
@@ -108,7 +109,7 @@ expertise to specific QGs/boundaries; do not force every role to find a defect.
    in the Implementation Record, as a baseline or PASS/FAIL evidence. When the
    diff changes the UI, read the `layout_verification` and screenshots that
    Implement captured per
-   [layout verification with mocks](layered-task-execution.instructions.md#layout-verification-with-mocks)
+   [layout verification with mocks](implement.instructions.md#layout-verification-with-mocks)
    as a source for UI QGs, without capturing again. A green test does not prove
    the business logic is right, and a red test does not prove the product is
    wrong. A counterexample is an input and call path traceable on the source,

@@ -5,7 +5,7 @@ metadata:
   id: .skills/pirl-review
   kind: skill
   layer: review
-  version: 1.1.0
+  version: 1.1.1
 ---
 
 # Review
@@ -22,8 +22,7 @@ decides.
 ## When to use
 
 - The user's own words ask for a Review of an implementation run, per the
-  router's
-  [conditions for opening a layer](../../.agents/instructions/layered-task-execution.instructions.md#choosing-a-layer).
+  [conditions for opening a layer](../../AGENTS.md#choosing-a-layer).
 - Not for writing a Plan ([`pirl-plan`](../pirl-plan/SKILL.md)), implementing or
   repairing ([`pirl-implement`](../pirl-implement/SKILL.md)), a code review that no Plan
   covers
@@ -68,7 +67,7 @@ Run the commands from the Hub root.
 4. **Team.** Pick `review_roles` by the "Select when" column
    ([AI Agent roles at the Review layer](../../.agents/instructions/review.instructions.md#ai-agent-roles-at-the-review-layer));
    delegate each role to a separate agent per the
-   [assignment principles](../../AGENTS.md#ai-agent-roles).
+   [assignment principles](../../.agents/instructions/layered-task-execution.instructions.md#assignment-principles).
 5. **Business**
    ([contract](../../.agents/instructions/review.instructions.md#business-prove-or-refute-each-suspicion)):
    conclude each QG, keep only grounded FINDs, RISKs and BLOCKs, and write the

@@ -1,11 +1,11 @@
 ---
 name: "Layered Task Execution Instructions"
-description: "Routes Plan, Implement and Review, defines the boundaries between layers and the shared contracts: verification by reasoning, functional tests, layout verification, shared snapshots and older records, self-evaluation and improvement, temporary-resource cleanup."
+description: "Defines the boundaries between Plan, Implement, Review and other kinds of work, the roles and assignment principles, framework maintenance, and the shared contracts: verification by reasoning, functional tests, shared snapshots and older records, self-evaluation and improvement, temporary-resource cleanup."
 applyTo: ".agents/instructions/**/*,.skills/**/*"
 metadata:
   id: ".agents/instructions/layered-task-execution"
   kind: "instruction"
-  version: "2.0.2"
+  version: "2.1.0"
   status: "active"
 ---
 
@@ -18,9 +18,11 @@ and holds their shared rules. The current request and the permissions the
 user has granted decide the scope; AI Agent roles supply expertise and do not
 add product goals or a new approval round on their own.
 
-[AGENTS.md](../../AGENTS.md) owns the core rules, the structure, the role
-catalog and how the target repository is chosen; role files own each role's
-expertise; the router owns layer selection and the shared contracts; layer
+[AGENTS.md](../../AGENTS.md) owns the core rules, the structure, how the kind
+of work is chosen, the role catalog with the delegation rules and how the target
+repository is chosen; role files own each role's expertise; the router owns the
+boundaries between kinds of work, the assignment principles and the shared
+contracts; layer
 contracts own the roles' responsibilities at the layer, the decisions and the
 content of the output; each layer's skill in `.skills/` owns the run
 procedure, the output format and the helper scripts.
@@ -32,50 +34,9 @@ schemas.
 
 ## Choosing a layer
 
-1. Infer the goal from the user's words and the context already established,
-   not from keywords. When the user names roles, keep the list and its order;
-   do not ask again about what is already given.
-2. Investigate the sources to resolve information that can be found,
-   including what the user has already said: the decisions they made
-   (confirmations, delegated choices, refusals) live in Plans, Implementation
-   Records, records and reports; the host's session history is only a fallback
-   source when the host keeps it. Ask only about missing decisions that change
-   the result, the scope or the permission to act, and do not ask again about
-   something already answered; stop the part that depends on that decision and
-   continue the independent parts that have enough basis. A run that acts on the
-   user's answer quotes that answer in its own output (the record's `summary`,
-   the Implementation Record) so later runs can find it without the session
-   history.
-3. If the user only asks for an explanation or an investigation, return a
-   conclusion within that scope; do not turn the question into a handoff
-   package. When the request is product delivery, choose the right layer
-   below; do not switch layers just because the current part is done.
-4. A layer opens only when the user's own words ask for the work that layer
-   produces (creating a Plan, implementing a Plan, a review). Agreeing to,
-   choosing or confirming an answer to a question the Agent wrote opens only the
-   layer named in the user's words, or the layer the question asked about on its
-   own (one confirmation point asks one decision, and a point about opening a
-   layer names one layer). An approved proposal covering several layers settles
-   the direction: a layer that appears only in the Agent's text is not opened,
-   and if the user's words name no layer, ask one question about the first
-   layer. When the requested layer is done, stop and ask separately about the
-   next layer.
-
-No slash command, activation token or exact keyword is needed.
-"Create a Plan for this request" is the Plan layer; "Implement Plan T01" is the
-Implement layer; "Review the implementation of Plan T01" is the Review layer.
-
-| Layer | Result and owning contract |
-| --- | --- |
-| Plan | Write/adjust a Plan from the request and the source; [Plan contract](plan.instructions.md), run through the [`pirl-plan` skill](../../.skills/pirl-plan/SKILL.md). |
-| Implement | Carry out one selected Plan, or repair it per a report for the same task; [Implement contract](implement.instructions.md), run through the [`pirl-implement` skill](../../.skills/pirl-implement/SKILL.md). |
-| Review | Check an implementation run against the Plan; [Review contract](review.instructions.md), run through the [`pirl-review` skill](../../.skills/pirl-review/SKILL.md). |
-| Standalone task | Work assigned directly, outside a Plan's chain; [Standalone tasks section](#standalone-tasks). |
-| Framework maintenance | Edit `AGENTS.md`, instructions, roles, skills or framework tools themselves; [Framework maintenance section](#framework-maintenance). |
-
-Load only the documents relevant to the current decision: the skill and the
-contract of the selected layer, and the context documentation of the target
-repository. Do not load every file in `.agents/` or `.skills/`.
+The kind of work is chosen per [Choosing a layer](../../AGENTS.md#choosing-a-layer)
+in `AGENTS.md`, which every host loads; this router holds the boundaries and
+shared contracts that apply once the kind of work is chosen.
 
 ## Standalone tasks
 
@@ -84,7 +45,8 @@ same run, outside the Plan → Implement → Review chain: writing or updating
 documentation on request, an investigation with durable output, a small fix
 the user specifies. Carrying out a Plan task is still Implement, even with a
 single role. A question that only needs an explanation and creates no durable
-output is answered directly (step 3 of Choosing a layer).
+output is answered directly (step 3 of
+[Choosing a layer](../../AGENTS.md#choosing-a-layer)).
 
 No Review is scheduled, so the person doing the work closes the loop within the session:
 
@@ -165,8 +127,91 @@ also framework maintenance, allowed by that section without a separate request.
   tests or validators that grade wording by headings, keywords, counts or
   format.
 - After editing, run the matching commands in the
-  [Framework checks](../../AGENTS.md#framework-checks) section of `AGENTS.md`.
+  [Framework checks](#framework-checks) section below.
   The checks only confirm structure; they do not prove the quality of the wording.
+
+### Framework checks
+
+Pick the checks that match the change. They only validate handoff inputs and
+outputs and do not grade the wording; instruction content is re-read against
+the scenario that caused the problem.
+
+```powershell
+python -B .agents/evals/validate_layer_artifact.py --kind <plan|review> --path <file or directory>
+python -B .agents/evals/layer_record.py <start|append|check|query> ...
+python -B -m unittest discover -s .agents/evals/tests -p "test_*.py"
+```
+
+The first command checks Plan/Review files (schema, required fields, roles,
+dependencies, time zone) and runs when they are handed off. The second writes
+and checks self-evaluation records as the router describes; `check` runs after
+each write or when the tool itself is edited. The last command runs the tests
+of the two tools above, of the role catalog, of the skills (structure, helper
+scripts) and of the links between framework files; run it when editing the
+tools, the role catalog, a layer's role table, a role file, a skill or the
+headings that other framework files link to.
+
+## AI Agent roles and assignment
+
+The role catalog and the delegation rules live in
+[AGENTS.md](#assignment-principles); this section holds the rest.
+
+### Constraints that keep roles separate from skills
+
+Constraints that keep roles separate from skills:
+
+- Closed catalog: only the IDs in this table. Adding, merging or removing a role
+  means editing this table together with the role file, the layer file tables
+  and the framework checks, in one change.
+- Layers pick roles themselves following the layer file's guidance: Plan and
+  Review by the "Select when" column; the Implement team for implementation and
+  verification is chosen by the Plan. The user does not need to name roles, but
+  when they do, keep exactly that list.
+- A role file contains only shared expertise: the questions the role answers,
+  how it works, warning signs, boundaries with other roles. It does not contain
+  a layer's sequence, output templates, commands or completion conditions; those
+  belong to the layer contract and the layer's skill.
+- Roles have no artifacts, tools, skills or evaluation mechanism of their own;
+  a role is evaluated through the layer's record.
+- Knowledge specific to one repository lives in that repository's context
+  documentation, not in role files or skills. Roles do not rely on a host's
+  skill mechanism or custom agent configuration: the layer skills are plain
+  files the coordinator reads and passes on.
+
+### Assignment principles
+
+For all three layers, together with the delegation rules in AGENTS.md:
+
+- The coordinator (the Agent receiving the request from the user) is
+  responsible for the final result: it assigns work and merges results by
+  evidence, not by how many roles agree.
+- Roles that do not need each other's results run in parallel; a role that
+  needs another role's result runs after that role (`process-auditor` runs after
+  the layer's output is settled). The coordinator does not do the delegated
+  work itself.
+- When delegating, pass the role file, the role's row in the layer file's table
+  (plus every row that row refers to for its completion condition), sources,
+  constraints, the settled direction and the part to examine; do not hide the
+  solution and do not impose the conclusion.
+- Self-perform (`mode: self`) only when the host has no mechanism to create
+  agents in the session or the call to create an agent fails. The coordinator
+  then takes on each role in turn in the layer's order and records the concrete
+  reason in the record's `summary` and in the layer's output. Lack of
+  delegation does not block the work.
+- A role description does not prove an independent agent. To keep a role
+  independent of drafts or existing conclusions of the same run (written by the
+  coordinator or another role), leave them out of the assignment and state that
+  the paths holding them must not be read, or place them outside the area the
+  agent can read. Until that is ensured, record each role's actual level of
+  independence in the output. Self-checking is recorded as self-checking; do
+  not claim independent challenge or verification that did not happen.
+- A reviewer outside the run's role team (another host tool or agent, not in
+  the role catalog) that a role consulted while working is part of that role's
+  actual level of independence, even when independence from drafts was
+  ensured. The assignment asks the role to report every consultation; the
+  coordinator records each role that consulted one in the run's output. That
+  opinion is not a source of evidence and does not replace the role's reasoning
+  on the sources the router allows.
 
 ## Runtime Neutrality
 
@@ -176,7 +221,7 @@ installed or a new operating system supported. Only conditions needed for the
 assigned result can block that part. A host without a mechanism to create
 agents does not block the work: the coordinator performs the roles and states
 the reason, per the
-[assignment principles](../../AGENTS.md#ai-agent-roles).
+[assignment principles](#assignment-principles).
 
 ## Verification by reasoning
 
@@ -191,7 +236,7 @@ releasing belong to the user's build/test/release stage, outside the task
 lifecycle: that stage produces no evidence for the framework and hands no
 results back to the task. Defects the user sees there are sent as an
 independent fix request, which is a new task. The only exception is
-[layout verification with mocks](#layout-verification-with-mocks) during an
+[layout verification with mocks](implement.instructions.md#layout-verification-with-mocks) during an
 Implement run.
 
 Verifying an implementation result is the agent's reasoning: read the diff
@@ -209,7 +254,7 @@ Sources of evidence for a QG, for every role in all three layers:
 
 - Allowed: file contents, diffs, git history, search results over the source
   and documentation; for UI QGs, also the screenshots and measurements of
-  [layout verification with mocks](#layout-verification-with-mocks) (bounding
+  [layout verification with mocks](implement.instructions.md#layout-verification-with-mocks) (bounding
   boxes, computed styles, scroll-area sizes of rendered elements in each state).
 - Not evidence, whether run inside or outside the repository: scripts,
   harnesses or probes written to verify (bulk value comparisons, counting
@@ -233,7 +278,7 @@ Per layer:
   root-cause investigation (paragraph below).
 - Implement does not build, typecheck or lint and does not run the application
   for acceptance; it only writes, updates and runs tests under FUT, and when the
-  diff changes the UI it verifies layout with mocks per the section below. Do not record
+  diff changes the UI it verifies layout with mocks per the [layout verification section](implement.instructions.md#layout-verification-with-mocks). Do not record
   work of the user's stage as `BLOCKED` or as remaining risk of the task; only
   list briefly what moves to that stage.
 - Review does not build and does not create or run tests or mocks; it does not
@@ -241,14 +286,14 @@ Per layer:
   red/green tests. Each conclusion is proven or refuted by reasoning on the
   source; tests in the diff that violate FUT are a defect to fix under the
   Review contract. For a diff that changes the UI, Review reads Implement's
-  screenshots and layout verification summary per the section below.
+  screenshots and layout verification summary per the [layout verification section](implement.instructions.md#layout-verification-with-mocks).
 - No layer asks the user for build/test/release results, measurements,
   screenshots or operational data for a task to be `implemented`, PASS or
   closed. Do not put them in `Authorization condition`, `Next allowed owner/layer`,
   a confirmation checkpoint, `awaiting_confirmation` or the task's open-items
   list; do not hold a task or report waiting for them. A task ends when its own
   QGs have been concluded by reasoning. Layout screenshots produced by the
-  Implement run itself per the section below are not data supplied by the user.
+  Implement run itself per the [layout verification section](implement.instructions.md#layout-verification-with-mocks) are not data supplied by the user.
 
 Commands the user requests run in every layer: when the user explicitly asks
 for a command or check, run exactly the requested part in that run and report
@@ -269,109 +314,6 @@ that work directly (including as a standalone task) or asks for a root-cause
 investigation; instructions to write/run tests apply within the limits of FUT;
 instructions to capture layout apply per the layout verification with mocks
 section; outside those cases, use the same mechanism of reasoning on the source.
-
-### Layout verification with mocks
-
-In an Implement run of the Plan chain (first run and repair runs), when the
-diff creates or changes something the user sees, `frontend-developer` (or the
-coordinator when performing that role itself) sets up mocks and captures the
-layout after implementing, before the verification roles conclude the QGs.
-Standalone tasks and direct work outside a Plan do this only when the user asks.
-
-- **When:** the diff changes displayed markup/templates/components, styles
-  (CSS/SCSS, tokens used for layout), adds screens, dialogs or popups, or
-  changes display states (error, empty, loading, locked) or UI strings that can
-  change the layout. Does not apply when the diff is only in the backend, pure
-  domain code with no display change, tests or documentation.
-- **What:** run the frontend in development mode and answer every API call with
-  mocks right in the browser; no backend, database, build or typecheck. Drive
-  to each state the diff creates or changes, including error branches and
-  input validation errors, then capture each state in every UI language, at
-  the desktop and mobile viewports that the target repository's context
-  documentation ([AGENTS.md](../../AGENTS.md#target-repository)) specifies. If the documentation
-  does not specify them, take the languages from the i18n configuration and the
-  viewports from the repository's CSS breakpoints, and record the set of
-  viewports/languages used. When the diff changes the size or number of
-  elements in a row or frame of constrained width (navigation bar, toolbar, row
-  of cards), add viewports on both sides of every breakpoint threshold that
-  affects that row or frame (per the context documentation or the CSS), and
-  measure in the browser the bounding boxes of the frame and of each child
-  element: children stay inside the frame and do not overlap, compared with the
-  same measurements in the state without the diff; screenshots at the main
-  viewports are not enough to conclude that. Also check what screenshots cannot
-  show: text in the right language, elements inside the viewport, no horizontal
-  scrolling, focus and the Esc key when dialogs stack, the page scrolls after
-  closing. This approach is for web UIs served by a dev server; for other UIs
-  (extensions, native apps) the layout part is `BLOCKED` with an owner, without
-  improvising a means. Tools, how to run a stable server and known environment
-  obstacles belong in the tooling notes of the target repository's context
-  documentation ([AGENTS.md](../../AGENTS.md#target-repository)), not in the
-  framework.
-- **State without the diff:** the post-diff capture of the preceding task in
-  the same package, when that capture covered exactly the screens and
-  viewports to compare. Otherwise, build and capture separately the source
-  right before the task's changes: the base commit plus every uncommitted
-  change that does not belong to the task (from other runs, recorded or not).
-  If the working tree has no such uncommitted changes, export the base commit
-  into the run's temporary directory (for example `git archive <revision>` into
-  `.tmp/`); if it has them, exporting the commit is not enough, so copy the
-  working tree intact (except `.git`) into a temporary directory before the task
-  edits it, or export the base commit and reapply exactly those changes. Do not
-  use stash, checkout or reset on the working repository
-  ([safety rules](../../AGENTS.md#safety)). Record in
-  `layout_verification` the base commit and the uncommitted changes counted in
-  the base; the Plan does not describe how to build this base.
-- **Where:** mock scripts, screenshots and the results table go in
-  `.tmp/layout-snapshots/<plan-set>/<task-id>/<YYYYMMDD-HHmmss>/` at the Hub root
-  (ignored by Git), whatever directory holds the Plan; the `pirl-implement` skill's
-  helper script creates it. Each run gets a new directory; do not delete or
-  overwrite earlier runs. This directory is handoff output and is kept; dev servers,
-  browsers and temporary profiles are still stopped or deleted per the cleanup
-  section.
-- **Role as evidence:** the screenshots and measurements of the checks in the
-  What section are mandatory evidence for the layout part; they accompany, and
-  do not replace, QG reasoning on the source. This run does not extend to
-  builds, typechecks, tests outside FUT, a real backend, real devices or
-  releases; those still belong to the user's stage. The verification role treats the screenshots as a source when
-  concluding UI QGs and does not run anything itself. Each failed check is
-  compared with the same scenario in the state without the diff (an unchanged
-  screen or route); only defects caused by the diff are FAIL. A wrong layout
-  caused by the diff (overflow, overlap, wrong language, missing state) is a
-  FAIL returned to `frontend-developer`, under the same two-repair limit of
-  Implement; pre-existing defects are recorded where the project keeps known
-  gaps and in the summary, and do not block the task. A failed check caused by
-  the diff that the Plan excluded from scope with a REQ naming exactly that
-  behavior and the viewport range, together with a known-gaps entry, is not a
-  FAIL of the task but is still a failed check: `layout_verification` lists it
-  with the REQ and its cause (the diff), and `residual_risk` states the impact;
-  if the Plan did not exclude it, it is a FAIL. When no usable browser engine is
-  available, the layout part is `BLOCKED` with an owner. A diff that changes the
-  UI without this result cannot be recorded as `implemented`.
-- **Differences outside the checks:** a difference between the base and the
-  post-diff state where bounding boxes, computed styles and scroll areas are all
-  unchanged (for example a few differing pixels, a page height that varies
-  between loads) is not a wrong layout caused by the diff. Capture the base
-  state repeatedly to learn its own variation, record every value seen in the
-  summary, then stop. Looking for the cause of such a difference or of a
-  pre-existing defect, and measuring a behavior the checks do not require (for
-  example hiding an element and measuring again, forcing a viewport change while
-  a state is open, building a separate probe script), is a root-cause
-  investigation that runs only when the user asks for it
-  ([Verification by reasoning](#verification-by-reasoning)); missing handling
-  visible from the source is recorded by reasoning on the source. Pixel counts
-  and repeated base captures, if any, are recorded apart from the checks and
-  marked as not QG evidence.
-- **Record:** summarize in the `layout_verification` field of the
-  Implementation Record: states captured, languages, viewports (including the
-  threshold-adjacent viewports measured), the base used for comparison (commit
-  and uncommitted changes counted), number of screenshots, checks passed/failed
-  (each failed check with its cause: pre-existing, or caused by the diff and
-  excluded by a Plan REQ) and the directory path. `.tmp/` does not go with
-  commits, so the summary is the evidence and the path is for lookup only.
-- **Review:** reads Implement's summary and screenshots and does not rerun
-  them. A diff that changes the UI while the Record lacks this result, or
-  screenshots showing a layout that violates a QG, is a `repair` FIND for
-  `frontend-developer`.
 
 ## Functional tests (FUT rule)
 
@@ -463,7 +405,7 @@ not apply this section.
   re-evaluates the roles of the reviewed Implement run per the
   [Evaluations section](review.instructions.md#evaluations-assessing-implement-roles).
 - Delegate `process-auditor` to a separate agent per the
-  [assignment principles](../../AGENTS.md#ai-agent-roles) and record
+  [assignment principles](#assignment-principles) and record
   `mode: agent`. Only when the host has no tool to create sub-agents or the call
   fails does the coordinator self-evaluate, record `mode: self` and state that
   reason in `summary`.
@@ -510,7 +452,7 @@ off-limits areas and no waiting for proposals:
 4. Bump the `version` of files that have one.
 5. Re-read the edited part against the three scenarios of the
    [Framework maintenance section](#framework-maintenance).
-6. Run the commands in [Framework checks](../../AGENTS.md#framework-checks)
+6. Run the commands in [Framework checks](#framework-checks)
    that match what was edited.
 
 Mandatory exception: never loosen the
@@ -604,7 +546,7 @@ needed must be cleaned up before handing off the corresponding result.
   `node_modules/`, build directories) and locations outside the repository are
   not committed and are not part of the cleanup duty; they may be kept for a
   later run. The `.tmp/layout-snapshots/` directory of
-  [layout verification with mocks](#layout-verification-with-mocks) is handoff
+  [layout verification with mocks](implement.instructions.md#layout-verification-with-mocks) is handoff
   output and is always kept.
 - When creating temporary files, directories or sessions in the committable
   area, keep their paths/owners in the working context; do not create extra

@@ -5,7 +5,7 @@ metadata:
   id: .skills/pirl-plan
   kind: skill
   layer: plan
-  version: 1.1.0
+  version: 1.1.1
 ---
 
 # Plan
@@ -21,8 +21,8 @@ decides.
 
 ## When to use
 
-- The user's own words ask for a Plan, per the router's
-  [conditions for opening a layer](../../.agents/instructions/layered-task-execution.instructions.md#choosing-a-layer).
+- The user's own words ask for a Plan, per the
+  [conditions for opening a layer](../../AGENTS.md#choosing-a-layer).
 - Not for carrying out a Plan ([`pirl-implement`](../pirl-implement/SKILL.md)), checking
   an implementation ([`pirl-review`](../pirl-review/SKILL.md)), a question that only needs
   an explanation, a
@@ -55,7 +55,7 @@ Run the commands from the Hub root.
    exactly the roles the user named
    ([AI Agent roles at the Plan layer](../../.agents/instructions/plan.instructions.md#ai-agent-roles-at-the-plan-layer)).
    Delegate each role to a separate agent per the
-   [assignment principles](../../AGENTS.md#ai-agent-roles).
+   [assignment principles](../../.agents/instructions/layered-task-execution.instructions.md#assignment-principles).
 4. **Investigate and settle decisions**
    ([contract](../../.agents/instructions/plan.instructions.md#investigating-and-settling-decisions)).
    Ask only about missing decisions that change the result; continue the

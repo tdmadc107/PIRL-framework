@@ -153,7 +153,7 @@ python -B -m unittest discover -s .agents/evals/tests -p "test_*.py"
 ```
 
 Pick the check commands that match what you edited: see
-[Framework checks](AGENTS.md#framework-checks).
+[Framework checks](.agents/instructions/layered-task-execution.instructions.md#framework-checks).
 
 ## Directory structure
 

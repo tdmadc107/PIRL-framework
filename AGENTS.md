@@ -22,7 +22,7 @@ AGENTS.md                         root: core rules, structure, flow, Agent roles
 CONTEXT.md                        how responses to the user are presented
 .agents/
   instructions/
-    layered-task-execution.instructions.md   router: layer selection, shared contracts
+    layered-task-execution.instructions.md   router: layer boundaries, assignment, shared contracts
     plan.instructions.md                     Plan layer contract
     implement.instructions.md                Implement layer contract
     review.instructions.md                   Review layer contract
@@ -43,10 +43,10 @@ CONTEXT.md                        how responses to the user are presented
 
 | Source | Owns |
 | --- | --- |
-| `AGENTS.md` | Core rules, structure, flow, role catalog, target repository, check commands, Git |
+| `AGENTS.md` | Core rules, structure, flow, choosing the kind of work, role catalog and delegation, target repository, Git |
 | `CONTEXT.md` | How answers, summaries, reports, proposals and syntheses sent to the user are presented |
-| Router | How to choose a layer, layer boundaries, shared contracts (verification by reasoning, functional tests, layout, shared snapshots and older records, self-evaluation and improvement, cleanup) |
-| Layer instruction | Each role's responsibilities at the layer, the decisions the layer settles, the content its output must hold and its exit conditions |
+| Router | Boundaries between kinds of work, roles and assignment principles, framework maintenance and its check commands, shared contracts (verification by reasoning, functional tests, shared snapshots and older records, self-evaluation and improvement, cleanup) |
+| Layer instruction | Each role's responsibilities at the layer, the decisions the layer settles, the content its output must hold and its exit conditions; the Implement contract also holds layout verification with mocks, which Review reads |
 | Skill | How one layer run is carried out: when the skill applies, the ordered procedure linking each step to the contract that owns it, the output format and template, helper scripts |
 | Role file | Shared expertise of one role, identical in every layer |
 | Evals | Checking handoff artifacts, writing and checking records, the tests of the framework tools and skills |
@@ -156,8 +156,8 @@ When recording evidence:
 
 Plan → Implement → Review. Each layer runs only when the user's own words ask
 for that layer, per the
-[router's conditions for opening a layer](.agents/instructions/layered-task-execution.instructions.md#choosing-a-layer);
-no layer opens the next one on its own.
+[conditions for opening a layer](#choosing-a-layer); no layer opens the next
+one on its own.
 
 | Layer | Skill | Result | Contract |
 | --- | --- | --- | --- |
@@ -182,12 +182,61 @@ confirm; the procedure lives in the
 This authorization covers only improvements that touch no safety rule;
 improvements that touch a safety rule still need the user's approval.
 
+## Choosing a layer
+
+1. Infer the goal from the user's words and the context already established,
+   not from keywords. When the user names roles, keep the list and its order;
+   do not ask again about what is already given.
+2. Investigate the sources to resolve information that can be found,
+   including what the user has already said: the decisions they made
+   (confirmations, delegated choices, refusals) live in Plans, Implementation
+   Records, records and reports; the host's session history is only a fallback
+   source when the host keeps it. Ask only about missing decisions that change
+   the result, the scope or the permission to act, and do not ask again about
+   something already answered; stop the part that depends on that decision and
+   continue the independent parts that have enough basis. A run that acts on the
+   user's answer quotes that answer in its own output (the record's `summary`,
+   the Implementation Record) so later runs can find it without the session
+   history.
+3. If the user only asks for an explanation or an investigation, return a
+   conclusion within that scope; do not turn the question into a handoff
+   package. When the request is product delivery, choose the right layer
+   below; do not switch layers just because the current part is done.
+4. A layer opens only when the user's own words ask for the work that layer
+   produces (creating a Plan, implementing a Plan, a review). Agreeing to,
+   choosing or confirming an answer to a question the Agent wrote opens only the
+   layer named in the user's words, or the layer the question asked about on its
+   own (one confirmation point asks one decision, and a point about opening a
+   layer names one layer). An approved proposal covering several layers settles
+   the direction: a layer that appears only in the Agent's text is not opened,
+   and if the user's words name no layer, ask one question about the first
+   layer. When the requested layer is done, stop and ask separately about the
+   next layer.
+
+No slash command, activation token or exact keyword is needed.
+"Create a Plan for this request" is the Plan layer; "Implement Plan T01" is the
+Implement layer; "Review the implementation of Plan T01" is the Review layer.
+
+| Layer | Result and owning contract |
+| --- | --- |
+| Plan | Write/adjust a Plan from the request and the source; [Plan contract](.agents/instructions/plan.instructions.md), run through the [`pirl-plan` skill](.skills/pirl-plan/SKILL.md). |
+| Implement | Carry out one selected Plan, or repair it per a report for the same task; [Implement contract](.agents/instructions/implement.instructions.md), run through the [`pirl-implement` skill](.skills/pirl-implement/SKILL.md). |
+| Review | Check an implementation run against the Plan; [Review contract](.agents/instructions/review.instructions.md), run through the [`pirl-review` skill](.skills/pirl-review/SKILL.md). |
+| Standalone task | Work assigned directly, outside a Plan's chain; [Standalone tasks section](.agents/instructions/layered-task-execution.instructions.md#standalone-tasks). |
+| Framework maintenance | Edit `AGENTS.md`, instructions, roles, skills or framework tools themselves; [Framework maintenance section](.agents/instructions/layered-task-execution.instructions.md#framework-maintenance). |
+
+Load only the documents relevant to the current decision: the skill and the
+contract of the selected layer, and the context documentation of the target
+repository. Do not load every file in `.agents/` or `.skills/`.
+
 Loading order:
 
-1. Read the [router](.agents/instructions/layered-task-execution.instructions.md);
-   the router owns how to identify the kind of work and the boundaries between kinds.
-2. Depending on the kind of work the router identifies:
-   - Plan, Implement or Review: run that layer's skill (`.skills/pirl-<layer>/SKILL.md`);
+1. Identify the kind of work per [Choosing a layer](#choosing-a-layer).
+2. Depending on the kind of work:
+   - Plan, Implement or Review: read the
+     [router](.agents/instructions/layered-task-execution.instructions.md),
+     which holds the boundaries between kinds of work and the shared contracts,
+     then run that layer's skill (`.skills/pirl-<layer>/SKILL.md`);
      the skill loads exactly the layer contract and the resources each step
      needs. A host that loads skills on its own reaches the same file; a host
      that does not reads it like any other file.
@@ -197,7 +246,12 @@ Loading order:
      edit `AGENTS.md`, `CONTEXT.md`, instructions, roles, skills or tools
      themselves, within the scope the user assigns.
    - A question that only needs an explanation and creates no durable output:
-     answer within its scope, create no files.
+     answer within its scope, create no files. The router is not needed,
+     unless the answer draws a conclusion about a Plan, an Implementation
+     Record, a report or a record (then apply the router's
+     [Shared snapshots and older records](.agents/instructions/layered-task-execution.instructions.md#shared-snapshots-and-older-records)
+     section), or it is unclear whether the request is only such a question
+     (then read the router before answering).
 3. For work that touches a product repository, identify the
    [target repository](#target-repository), then read its context
    documentation.
@@ -233,65 +287,20 @@ selected: `plan`, `implement`, `verify` (QG verification at Implement),
 | `code-reviewer` | Challenging the diff: bugs, regressions, permissions and security, data/state consistency, guards/validators/error handling | verify, review |
 | `process-auditor` | Self-evaluating a layer run, finding root causes, improving the framework, writing records | audit |
 
-Constraints that keep roles separate from skills:
+Delegation, for all three layers. These points override a host's defaults, so
+they stay in this file, which every host loads:
 
-- Closed catalog: only the IDs in this table. Adding, merging or removing a role
-  means editing this table together with the role file, the layer file tables
-  and the framework checks, in one change.
-- Layers pick roles themselves following the layer file's guidance: Plan and
-  Review by the "Select when" column; the Implement team for implementation and
-  verification is chosen by the Plan. The user does not need to name roles, but
-  when they do, keep exactly that list.
-- A role file contains only shared expertise: the questions the role answers,
-  how it works, warning signs, boundaries with other roles. It does not contain
-  a layer's sequence, output templates, commands or completion conditions; those
-  belong to the layer contract and the layer's skill.
-- Roles have no artifacts, tools, skills or evaluation mechanism of their own;
-  a role is evaluated through the layer's record.
-- Knowledge specific to one repository lives in that repository's context
-  documentation, not in role files or skills. Roles do not rely on a host's
-  skill mechanism or custom agent configuration: the layer skills are plain
-  files the coordinator reads and passes on.
-
-Assignment principles, for all three layers:
-
-- The coordinator (the Agent receiving the request from the user) is
-  responsible for the final result: it assigns work and merges results by
-  evidence, not by how many roles agree.
 - This framework runs layers with AI agents: every selected role of a layer
   run, including `process-auditor`, runs in a separate agent (a host
   sub-agent). A request to run a layer is an explicit request to delegate work
   to agents; a host's default instruction that the user must ask before agents
   are created is satisfied by this rule, without the user repeating it in each
   run.
-- Roles that do not need each other's results run in parallel; a role that
-  needs another role's result runs after that role (`process-auditor` runs after
-  the layer's output is settled). The coordinator does not do the delegated
-  work itself.
-- When delegating, pass the role file, the role's row in the layer file's table
-  (plus every row that row refers to for its completion condition), sources,
-  constraints, the settled direction and the part to examine; do not hide the
-  solution and do not impose the conclusion.
-- Self-perform (`mode: self`) only when the host has no mechanism to create
-  agents in the session or the call to create an agent fails. The coordinator
-  then takes on each role in turn in the layer's order and records the concrete
-  reason in the record's `summary` and in the layer's output. Lack of
-  delegation does not block the work.
-- A role description does not prove an independent agent. To keep a role
-  independent of drafts or existing conclusions of the same run (written by the
-  coordinator or another role), leave them out of the assignment and state that
-  the paths holding them must not be read, or place them outside the area the
-  agent can read. Until that is ensured, record each role's actual level of
-  independence in the output. Self-checking is recorded as self-checking; do
-  not claim independent challenge or verification that did not happen.
-- A reviewer outside the run's role team (another host tool or agent, not in
-  the role catalog) that a role consulted while working is part of that role's
-  actual level of independence, even when independence from drafts was
-  ensured. The assignment asks the role to report every consultation; the
-  coordinator records each role that consulted one in the run's output. That
-  opinion is not a source of evidence and does not replace the role's reasoning
-  on the sources the router allows.
 - A role does not verify its own output.
+
+The constraints that keep roles separate from skills and the other
+[assignment principles](.agents/instructions/layered-task-execution.instructions.md#assignment-principles)
+live in the router.
 
 # Target repository
 
@@ -329,27 +338,6 @@ Choosing the target repository:
 4. Do not apply one repository's rules or assumptions to another, even when both
    use the same stack: commands, directory layout and conventions must be read
    again from the target repository.
-
-# Framework checks
-
-Pick the checks that match the change. They only validate handoff inputs and
-outputs and do not grade the wording; instruction content is re-read against
-the scenario that caused the problem.
-
-```powershell
-python -B .agents/evals/validate_layer_artifact.py --kind <plan|review> --path <file or directory>
-python -B .agents/evals/layer_record.py <start|append|check|query> ...
-python -B -m unittest discover -s .agents/evals/tests -p "test_*.py"
-```
-
-The first command checks Plan/Review files (schema, required fields, roles,
-dependencies, time zone) and runs when they are handed off. The second writes
-and checks self-evaluation records as the router describes; `check` runs after
-each write or when the tool itself is edited. The last command runs the tests
-of the two tools above, of the role catalog, of the skills (structure, helper
-scripts) and of the links between framework files; run it when editing the
-tools, the role catalog, a layer's role table, a role file, a skill or the
-headings that other framework files link to.
 
 # Git
 

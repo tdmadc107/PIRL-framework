@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/plan.instructions.md"
 metadata:
   id: ".agents/instructions/plan"
   kind: "instruction"
-  version: "2.0.1"
+  version: "2.0.2"
   status: "active"
 ---
 
@@ -26,7 +26,8 @@ behavior themselves.
 
 ## AI Agent roles at the Plan layer
 
-The role catalog and assignment principles live in [AGENTS.md](../../AGENTS.md#ai-agent-roles);
+The role catalog lives in [AGENTS.md](../../AGENTS.md#ai-agent-roles) and the
+assignment principles in the [router](layered-task-execution.instructions.md#assignment-principles);
 each role's expertise lives in the role file linked in the table.
 Plan picks the smallest team with enough expertise for the request using the
 "Select when" column and records it in `planning_roles`. When the user names
@@ -127,15 +128,15 @@ when a REQ/specification needs them.
 - Never create a task, a `How to do it` step, a REQ, a QG, a `Done when` or
   `Allowed paths` for building, running the application/database/browser for
   acceptance, measuring performance, new harnesses or verification scripts,
-  deploying or releasing. [Layout verification with mocks](layered-task-execution.instructions.md#layout-verification-with-mocks)
+  deploying or releasing. [Layout verification with mocks](implement.instructions.md#layout-verification-with-mocks)
   is something Implement does on its own when the diff changes the UI: the
   Plan creates no task, step or QG for it, including a numbered step assigning
   the implementation role to capture layout. UI QGs are still written as
-  layout/state logic. What needs to be captured or measured beyond the router
-  (viewports the user asked for, thresholds computable from the source, computed
-  properties to record) goes in the logic of the UI QGs and in the
+  layout/state logic. What needs to be captured or measured beyond that
+  section (viewports the user asked for, thresholds computable from the source,
+  computed properties to record) goes in the logic of the UI QGs and in the
   implementation role's `Done when`; how to build the state without the diff
-  belongs to the router.
+  belongs to that section.
 - When a task has tests, state the REQ/behavior under test, the affected
   functionality with its grounds (call path, contract or shared data that is
   changed), the test files allowed to be edited and exactly which tests run.
@@ -260,7 +261,7 @@ owns what those sections must settle.
      a fake of a browser API the test environment lacks).
    - No step of `How to do it` assigns the implementation role to capture
      layout, measure or run the application, not even a short step like
-     "capture layout per the router": the extra viewports, states and properties
+     "capture layout per the layout verification section": the extra viewports, states and properties
      to capture go in the UI QGs and in the implementation role's `Done when`.
      The UI verification role's step only says it runs after the implementation
      role captures.
