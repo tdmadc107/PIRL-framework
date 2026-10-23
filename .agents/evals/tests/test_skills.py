@@ -106,7 +106,7 @@ class PrivateOutputTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, review)
                 produced += [plan["path"], review["path"]]
         produced.append(f"{RECORDS}/plan/2026-10-23.jsonl")
-        for path in produced + [".repos/shop-web/README.md", ".tools/dashboard/dashboard.js"]:
+        for path in produced:
             with self.subTest(path=path):
                 self.assertTrue(self.ignored(path))
 

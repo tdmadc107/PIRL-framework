@@ -133,12 +133,6 @@ python -B .agents/evals/layer_record.py query --layer review --plan-set <package
 python -B .agents/evals/layer_record.py check
 ```
 
-## Local tools
-
-`.tools/` is reserved for external tools you keep on your own machine, for
-example a dashboard or session schedulers. Git ignores it and the framework
-does not depend on it.
-
 ## Checks after editing the framework
 
 ```powershell
@@ -155,7 +149,6 @@ AGENTS.md        root: core rules, flow, choosing the kind of work, delegation, 
 CONTEXT.md       how responses to the user are presented
 .agents/         layer instructions, roles, evals (validator, record tool, tests, local records)
 .skills/         the pirl-plan, pirl-implement and pirl-review skills
-.tools/          external local tools, not in git
 .tmp/            temporary output, not in git
 ```
 

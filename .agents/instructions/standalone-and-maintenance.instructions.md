@@ -5,7 +5,7 @@ applyTo: ".agents/**/*,.skills/**/*,AGENTS.md,CONTEXT.md"
 metadata:
   id: ".agents/instructions/standalone-and-maintenance"
   kind: "instruction"
-  version: "1.0.1"
+  version: "1.0.2"
   status: "active"
 ---
 
@@ -139,7 +139,6 @@ CONTEXT.md                        how responses to the user are presented
   pirl-plan/      Plan skill: SKILL.md, assets/, references/, scripts/
   pirl-implement/ Implement skill: same layout
   pirl-review/    Review skill: same layout
-.tools/           external local tools, ignored by Git, not part of the framework
 .tmp/             temporary output, ignored by Git (layout snapshots, tool logs)
 <plan-set>/       Plan package and its Review reports, created at the Hub root unless the user names another directory (ignored by Git)
 ```
