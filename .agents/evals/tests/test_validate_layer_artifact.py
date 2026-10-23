@@ -12,9 +12,9 @@ from pathlib import Path
 EVALS = Path(__file__).resolve().parents[1]
 REPO = EVALS.parents[1]
 sys.path.insert(0, str(EVALS))
-from validate_layer_artifact import load_roles  # noqa: E402
+from layer_record import LAYER_USAGES  # noqa: E402
+from validate_layer_artifact import CATALOG, load_roles  # noqa: E402
 
-CATALOG = ".agents/instructions/standalone-and-maintenance.instructions.md"
 ROLES = """### Role catalog
 
 | ID | Expertise | Used in |
@@ -165,17 +165,12 @@ class HandoffIOTests(unittest.TestCase):
 class RoleCatalogTests(unittest.TestCase):
     """Layer role tables must use IDs that the role catalog registers for that layer."""
 
-    LAYER_USAGES = {
-        "plan": {"plan", "audit"},
-        "implement": {"implement", "verify", "audit"},
-        "review": {"review", "audit"},
-    }
     # A table row starts with the role ID, plain or linked to its role file.
     ROW = re.compile(r"(?m)^\| (?:\[`([a-z0-9-]+)`\]\(([^)]+)\)|`([a-z0-9-]+)`) \|")
 
     def test_layer_role_tables_match_the_agents_catalog(self):
         catalog = load_roles(REPO)
-        for layer, usages in self.LAYER_USAGES.items():
+        for layer, usages in LAYER_USAGES.items():
             path = REPO / f".agents/instructions/{layer}.instructions.md"
             section = re.search(rf"(?ms)^## AI Agent roles at the {layer.capitalize()} layer\s*$(.*?)(?=^## )", path.read_text(encoding="utf-8"))
             self.assertIsNotNone(section, layer)

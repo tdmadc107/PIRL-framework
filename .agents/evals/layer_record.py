@@ -20,7 +20,9 @@ from pathlib import Path, PureWindowsPath
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from validate_layer_artifact import LayerArtifactError, load_roles, resolve_path  # noqa: E402
+from validate_layer_artifact import (  # noqa: E402
+    IMPLEMENT_STATUSES, REVIEW_STATUSES, VERDICTS, LayerArtifactError, load_roles, resolve_path,
+)
 
 # Every schema ever written stays readable; bump CURRENT when the record shape changes.
 CURRENT_SCHEMA = "pirl-record/v1"
@@ -30,14 +32,17 @@ LAYERS = ("plan", "implement", "review")
 LAYER_USAGES = {"plan": {"plan", "audit"}, "implement": {"implement", "verify", "audit"}, "review": {"review", "audit"}}
 OUTCOMES = {
     "plan": ("ready", "draft", "blocked"),
-    "implement": ("implemented", "awaiting_confirmation", "blocked", "failed"),
-    "review": ("completed", "blocked"),
+    "implement": IMPLEMENT_STATUSES,
+    "review": REVIEW_STATUSES,
 }
 MODES = ("agent", "self")
 RESULTS = ("PASS", "FAIL", "BLOCKED")
 CAUSES = ("instruction", "ineffective_fix", "input", "execution")
 PENDING_REASONS = ("mode_self", "safety", "repository")
 FRAMEWORK_PATHS = ("AGENTS.md", "CONTEXT.md", ".agents/instructions", ".agents/roles", ".agents/evals", ".skills")
+# Tracked paths that are deliberately not framework content. Every tracked file sits under one of the two lists;
+# a test fails when a new path appears in neither, so adding one is a decision, not an accident.
+NOT_FRAMEWORK_TRACKED = (".gitignore", "LICENSE", "README.md")
 # Inside FRAMEWORK_PATHS but not framework content: the records themselves and Python caches.
 NOT_FRAMEWORK = (RECORDS + "/", "__pycache__/")
 TZ = timezone(timedelta(hours=7))
@@ -147,7 +152,7 @@ def validate_record(record: dict[str, Any], others: list[dict[str, Any]], root: 
         outcome = {}
     if layer and outcome.get("status") not in OUTCOMES[layer]:
         errors.append(f"outcome.status: expected one of {', '.join(OUTCOMES[layer])} for layer {layer}")
-    if layer == "review" and outcome.get("verdict") not in RESULTS:
+    if layer == "review" and outcome.get("verdict") not in VERDICTS:
         errors.append("outcome.verdict: expected PASS, FAIL or BLOCKED for a Review record")
     _text(outcome.get("summary"), "outcome.summary", errors)
 

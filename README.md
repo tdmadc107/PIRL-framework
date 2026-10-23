@@ -35,10 +35,7 @@ with mocks when the UI changes.
   example Claude Code. If the host loads `AGENTS.md` automatically, it works
   right away; if not, ask the Agent to read `AGENTS.md` before assigning work.
 - Git.
-- Python 3.9 or later, for the validator and the record tool.
-- Node.js (20 or later recommended), if you use the dashboard.
-- PowerShell 7 (`pwsh`) on Windows, if you use `claude-resume` or
-  `claude-schedule`.
+- Python 3.9 or later, for the validator, the record tool and the skills' scripts.
 
 ## Quick start
 
@@ -138,13 +135,9 @@ python -B .agents/evals/layer_record.py check
 
 ## Local tools
 
-- **Dashboard:** monitors Claude Code sessions, quota, Plan/Review progress, file
-  and git changes in the Hub and in the Git repositories found inside it. Run `.tools\dashboard\dashboard.bat` or
-  `node .tools/dashboard/dashboard.js`.
-- **claude-resume, claude-schedule:** resume a session after the quota resets,
-  and schedule a task with Windows Task Scheduler.
-
-Details and options: [`.tools/README.md`](.tools/README.md).
+`.tools/` is reserved for external tools you keep on your own machine, for
+example a dashboard or session schedulers. Git ignores it and the framework
+does not depend on it.
 
 ## Checks after editing the framework
 
@@ -162,7 +155,7 @@ AGENTS.md        root: core rules, flow, choosing the kind of work, delegation, 
 CONTEXT.md       how responses to the user are presented
 .agents/         layer instructions, roles, evals (validator, record tool, tests, local records)
 .skills/         the pirl-plan, pirl-implement and pirl-review skills
-.tools/          dashboard, claude-resume, claude-schedule
+.tools/          external local tools, not in git
 .tmp/            temporary output, not in git
 ```
 
@@ -178,7 +171,6 @@ Full tree: [framework structure](.agents/instructions/standalone-and-maintenance
 | Each layer's decisions | [Plan](.agents/instructions/plan.instructions.md), [Implement](.agents/instructions/implement.instructions.md), [Review](.agents/instructions/review.instructions.md) |
 | Running each layer, file formats, templates | [`pirl-plan`](.skills/pirl-plan/SKILL.md), [`pirl-implement`](.skills/pirl-implement/SKILL.md), [`pirl-review`](.skills/pirl-review/SKILL.md) |
 | Each role's expertise | [`.agents/roles/`](.agents/roles/) |
-| Local tools | [`.tools/README.md`](.tools/README.md) |
 
 ## License
 

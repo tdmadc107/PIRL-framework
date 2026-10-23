@@ -13,18 +13,25 @@ from pathlib import Path
 EVALS = Path(__file__).resolve().parents[1]
 REPO = EVALS.parents[1]
 SKILLS = REPO / ".skills"
-LAYERS = ("plan", "implement", "review")
 sys.path.insert(0, str(EVALS))
-from validate_layer_artifact import parse_yaml_subset  # noqa: E402
+from layer_record import FRAMEWORK_PATHS, LAYERS, NOT_FRAMEWORK, NOT_FRAMEWORK_TRACKED, RECORDS  # noqa: E402
+from validate_layer_artifact import CATALOG, parse_yaml_subset  # noqa: E402
 
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 FENCE = re.compile(r"(?ms)^(`{3,})[^\n]*\n.*?^\1\s*$")
 
 
-def framework_markdown() -> list[Path]:
-    files = [REPO / name for name in ("AGENTS.md", "CONTEXT.md", "README.md", ".tools/README.md")]
-    files += sorted((REPO / ".agents").rglob("*.md")) + sorted(SKILLS.rglob("*.md"))
-    return [path for path in files if path.is_file() and "records" not in path.relative_to(REPO).parts]
+def git(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", "-C", str(REPO), "-c", "core.quotepath=off", *args], capture_output=True, text=True)
+
+
+def repository_files(pattern: str = "*") -> list[str]:
+    """Every file Git tracks or would track (ignored outputs excluded), so no hand-kept list decides what is checked."""
+
+    return sorted(set(git("ls-files", "--cached", "--others", "--exclude-standard", "--", pattern).stdout.splitlines()))
+
+
+HAS_GIT = shutil.which("git") is not None and git("rev-parse", "--git-dir").returncode == 0
 
 
 def anchors(path: Path) -> set[str]:
@@ -53,9 +60,10 @@ class SkillPackageTests(unittest.TestCase):
                 self.assertEqual(set(SKILLS.iterdir()), {SKILLS / f"pirl-{name}" for name in LAYERS})
 
 
+@unittest.skipUnless(HAS_GIT, "a git checkout is required")
 class FrameworkLinkTests(unittest.TestCase):
     def test_relative_links_and_anchors_resolve(self):
-        for source in framework_markdown():
+        for source in (REPO / name for name in repository_files("*.md")):
             text = FENCE.sub("", source.read_text(encoding="utf-8"))
             for target in LINK.findall(text):
                 if re.match(r"[a-z]+:", target):
@@ -68,23 +76,53 @@ class FrameworkLinkTests(unittest.TestCase):
                         self.assertIn(anchor, anchors(resolved))
 
 
+@unittest.skipUnless(HAS_GIT, "a git checkout is required")
 class PrivateOutputTests(unittest.TestCase):
-    """Plan packages, their reports and records describe the user's projects and must stay out of Git."""
+    """Plan packages, their reports and records describe the user's projects and must stay out of Git.
 
-    @unittest.skipUnless(shutil.which("git"), "git is required")
-    def test_default_outputs_are_ignored_and_framework_files_are_not(self):
-        def ignored(path):
-            return subprocess.run(["git", "-C", str(REPO), "check-ignore", "--no-index", "-q", path]).returncode == 0
+    The paths come from the scripts and constants that produce them, so a change in how outputs are named is
+    checked against .gitignore instead of a hand-written sample that would keep passing.
+    """
 
-        for path in ("order-email_20261023-101010/01-plan-send-email-20261023-101010.md",
-                     "order-email_20261023-101010/t01-send-email/round-01-review-send-email-20261023-111111.md",
-                     "plans/order-email_20261023-101010/01-plan-send-email-20261023-101010.md",
-                     ".agents/evals/records/plan/2026-10-23.jsonl", ".repos/shop-web/README.md"):
+    def ignored(self, path):
+        return git("check-ignore", "--no-index", "-q", path).returncode == 0
+
+    def test_produced_outputs_are_ignored(self):
+        new_plan = SKILLS / "pirl-plan/scripts/new_plan.py"
+        new_review = SKILLS / "pirl-review/scripts/new_review.py"
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            produced = []
+            for extra in ([], ["--out-dir", "plans"]):
+                result = subprocess.run([sys.executable, "-X", "utf8", "-B", str(new_plan), "--root", str(root),
+                                         "--request-slug", "order-email", "--todo-slug", "send-email", *extra],
+                                        capture_output=True, text=True, encoding="utf-8")
+                plan = json.loads(result.stdout)
+                self.assertEqual(result.returncode, 0, plan)
+                result = subprocess.run([sys.executable, "-X", "utf8", "-B", str(new_review), "--root", str(root),
+                                         "--plan", plan["path"], "--todo-slug", "send-email", *extra],
+                                        capture_output=True, text=True, encoding="utf-8")
+                review = json.loads(result.stdout)
+                self.assertEqual(result.returncode, 0, review)
+                produced += [plan["path"], review["path"]]
+        produced.append(f"{RECORDS}/plan/2026-10-23.jsonl")
+        for path in produced + [".repos/shop-web/README.md", ".tools/dashboard/dashboard.js"]:
             with self.subTest(path=path):
-                self.assertTrue(ignored(path))
-        for path in ("AGENTS.md", ".skills/pirl-plan/SKILL.md", ".agents/evals/layer_record.py", ".agents/roles/code-analyst.role.md"):
+                self.assertTrue(self.ignored(path))
+
+    def test_no_tracked_file_is_ignored(self):
+        self.assertEqual(git("ls-files", "--cached", "--ignored", "--exclude-standard").stdout.splitlines(), [])
+
+    def test_every_tracked_file_is_classified(self):
+        def framework(path):
+            return any(path == base or path.startswith(base + "/") for base in FRAMEWORK_PATHS)
+
+        for path in repository_files():
+            if any(prefix in path for prefix in NOT_FRAMEWORK):
+                continue
             with self.subTest(path=path):
-                self.assertFalse(ignored(path))
+                self.assertTrue(framework(path) or path in NOT_FRAMEWORK_TRACKED,
+                                "add the path to FRAMEWORK_PATHS or NOT_FRAMEWORK_TRACKED in layer_record.py")
 
 
 class SkillScriptTests(unittest.TestCase):
@@ -94,9 +132,8 @@ class SkillScriptTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
-        catalog = ".agents/instructions/standalone-and-maintenance.instructions.md"
-        (self.root / catalog).parent.mkdir(parents=True)
-        shutil.copy(REPO / catalog, self.root / catalog)
+        (self.root / CATALOG).parent.mkdir(parents=True)
+        shutil.copy(REPO / CATALOG, self.root / CATALOG)
 
     def run_script(self, script, *args):
         result = subprocess.run([sys.executable, "-X", "utf8", "-B", str(script), "--root", str(self.root), *args],

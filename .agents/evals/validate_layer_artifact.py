@@ -16,7 +16,11 @@ PLAN_SCHEMA = "pirl-plan/v1"
 REVIEW_SCHEMA = "pirl-review/v1"
 PLAN_HEADINGS = ("What to do", "How to do it", "Participating roles", "Required quality gates")
 REVIEW_HEADINGS = ("Business", "Evaluations")
-PLAN_STATUSES = ("planned", "awaiting_confirmation", "implemented", "blocked", "failed")
+# Value lists owned here and imported by layer_record.py, so the two tools cannot drift apart.
+IMPLEMENT_STATUSES = ("implemented", "awaiting_confirmation", "blocked", "failed")
+PLAN_STATUSES = ("planned", *IMPLEMENT_STATUSES)
+REVIEW_STATUSES = ("completed", "blocked")
+VERDICTS = ("PASS", "FAIL", "BLOCKED")
 TASK_PATTERN = re.compile(r"T\d{2,}")
 ROLE_USAGES = ("plan", "implement", "verify", "review", "audit")
 CATALOG = ".agents/instructions/standalone-and-maintenance.instructions.md"
@@ -354,9 +358,9 @@ def validate_review_file(path: Path, root: Path) -> list[str]:
     errors, metadata, _ = _basic(path, root, "review")
     if not metadata:
         return errors
-    if metadata.get("status") not in ("completed", "blocked"):
+    if metadata.get("status") not in REVIEW_STATUSES:
         errors.append("status must be completed or blocked")
-    if metadata.get("business_verdict") not in ("PASS", "FAIL", "BLOCKED") or metadata.get("verdict") != metadata.get("business_verdict"):
+    if metadata.get("business_verdict") not in VERDICTS or metadata.get("verdict") != metadata.get("business_verdict"):
         errors.append("verdict must match business_verdict: PASS, FAIL or BLOCKED")
     round_number = metadata.get("review_round")
     if type(round_number) is not int or round_number < 1:

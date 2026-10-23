@@ -2,6 +2,9 @@
 __pycache__/
 *.stackdump
 
+# External local tools: kept on the local machine, not part of the framework.
+.tools/
+
 # Private data about the user's projects: kept on the local machine, never committed.
 .agents/evals/records/
 .repos/

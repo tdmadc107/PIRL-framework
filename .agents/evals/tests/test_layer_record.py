@@ -12,8 +12,9 @@ from pathlib import Path
 
 EVALS = Path(__file__).resolve().parents[1]
 TOOL = EVALS / "layer_record.py"
+sys.path.insert(0, str(EVALS))
+from validate_layer_artifact import CATALOG  # noqa: E402
 
-CATALOG = ".agents/instructions/standalone-and-maintenance.instructions.md"
 ROLES = """### Role catalog
 
 | ID | Expertise | Used in |

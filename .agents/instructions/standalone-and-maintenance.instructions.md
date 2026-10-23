@@ -5,7 +5,7 @@ applyTo: ".agents/**/*,.skills/**/*,AGENTS.md,CONTEXT.md"
 metadata:
   id: ".agents/instructions/standalone-and-maintenance"
   kind: "instruction"
-  version: "1.0.0"
+  version: "1.0.1"
   status: "active"
 ---
 
@@ -77,7 +77,8 @@ three layers verify per the
 ## Framework maintenance
 
 A request to edit `AGENTS.md`, `CONTEXT.md`, instructions, roles, skills or
-the tools in `.agents/evals/` and `.tools/` directly is framework maintenance within the scope the user assigns. Do not force a product Plan or
+the tools in `.agents/evals/` directly is framework maintenance within the scope
+the user assigns. Do not force a product Plan or
 report before editing. Improvements that `process-auditor` applies during a
 layer run under the
 [Self-evaluation and improvement section](layered-task-execution.instructions.md#self-evaluation-and-improvement) are
@@ -138,7 +139,7 @@ CONTEXT.md                        how responses to the user are presented
   pirl-plan/      Plan skill: SKILL.md, assets/, references/, scripts/
   pirl-implement/ Implement skill: same layout
   pirl-review/    Review skill: same layout
-.tools/           local tools (dashboard, claude-resume, claude-schedule)
+.tools/           external local tools, ignored by Git, not part of the framework
 .tmp/             temporary output, ignored by Git (layout snapshots, tool logs)
 <plan-set>/       Plan package and its Review reports, created at the Hub root unless the user names another directory (ignored by Git)
 ```
@@ -220,6 +221,8 @@ dependencies, time zone) and runs when they are handed off. The second writes
 and checks self-evaluation records as the router describes; `check` runs after
 each write or when the tool itself is edited. The last command runs the tests
 of the two tools above, of the role catalog, of the skills (structure, helper
-scripts) and of the links between framework files; run it when editing the
-tools, the role catalog, a layer's role table, a role file, a skill or the
-headings that other framework files link to.
+scripts), of the links between framework files, that private outputs stay out
+of Git and that every tracked file is either framework content or listed as not
+framework; run it when editing the tools, the role catalog, a layer's role
+table, a role file, a skill, `.gitignore`, the headings that other framework
+files link to, or when adding a top-level path.
