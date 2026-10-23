@@ -5,7 +5,7 @@ metadata:
   id: .skills/pirl-plan
   kind: skill
   layer: plan
-  version: 1.1.1
+  version: 1.1.2
 ---
 
 # Plan
@@ -26,8 +26,8 @@ decides.
 - Not for carrying out a Plan ([`pirl-implement`](../pirl-implement/SKILL.md)), checking
   an implementation ([`pirl-review`](../pirl-review/SKILL.md)), a question that only needs
   an explanation, a
-  [standalone task](../../.agents/instructions/layered-task-execution.instructions.md#standalone-tasks)
-  or [framework maintenance](../../.agents/instructions/layered-task-execution.instructions.md#framework-maintenance).
+  [standalone task](../../.agents/instructions/standalone-and-maintenance.instructions.md#standalone-tasks)
+  or [framework maintenance](../../.agents/instructions/standalone-and-maintenance.instructions.md#framework-maintenance).
 
 ## Resources
 

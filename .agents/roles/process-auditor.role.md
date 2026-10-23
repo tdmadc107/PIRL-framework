@@ -1,7 +1,7 @@
 ---
 id: .agents/roles/process-auditor
 kind: role
-version: 1.3.0
+version: 1.3.1
 status: active
 ---
 
@@ -36,7 +36,7 @@ made and the record belong to the
 - When rewriting a rule: fix it where it is owned, replace the wrong passage
   instead of piling on reminders, and write concrete conditions and actions in
   the general form described in the
-  [router's Framework maintenance section](../instructions/layered-task-execution.instructions.md#framework-maintenance).
+  [Framework maintenance section](../instructions/standalone-and-maintenance.instructions.md#framework-maintenance).
   Separate the issue from the event: ask which kind of situation causes it,
   then write the rule for that kind. Sweep other files that reference that rule.
 

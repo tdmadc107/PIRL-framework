@@ -19,7 +19,8 @@ REVIEW_HEADINGS = ("Business", "Evaluations")
 PLAN_STATUSES = ("planned", "awaiting_confirmation", "implemented", "blocked", "failed")
 TASK_PATTERN = re.compile(r"T\d{2,}")
 ROLE_USAGES = ("plan", "implement", "verify", "review", "audit")
-ROLE_SECTION = re.compile(r"(?ms)^# AI Agent roles\s*$(.*?)(?=^# |\Z)")
+CATALOG = ".agents/instructions/standalone-and-maintenance.instructions.md"
+ROLE_SECTION = re.compile(r"(?ms)^### Role catalog\s*$(.*?)(?=^#{1,3} |\Z)")
 ROLE_ROW = re.compile(r"^\|\s*`([a-z0-9]+(?:-[a-z0-9]+)*)`\s*\|(.*)\|\s*$")
 
 
@@ -138,19 +139,19 @@ def _frontmatter_and_body(path: Path) -> tuple[dict[str, Any], str]:
         raise LayerArtifactError(f"{path}: cannot read metadata: {exc}") from exc
 
 
-# ---------- registry read from AGENTS.md ----------
+# ---------- role catalog ----------
 
 
 def load_roles(root: Path) -> dict[str, set[str]]:
-    """Return role ID -> usages from the role table in AGENTS.md."""
+    """Return role ID -> usages from the role catalog table (CATALOG, section "Role catalog")."""
 
     try:
-        text = (root / "AGENTS.md").read_text(encoding="utf-8")
+        text = (root / CATALOG).read_text(encoding="utf-8")
     except (OSError, UnicodeError) as exc:
-        raise LayerArtifactError(f"AGENTS.md: cannot read role catalog: {exc}") from exc
+        raise LayerArtifactError(f"{CATALOG}: cannot read role catalog: {exc}") from exc
     section = ROLE_SECTION.search(text)
     if section is None:
-        raise LayerArtifactError("AGENTS.md: missing '# AI Agent roles' section")
+        raise LayerArtifactError(f"{CATALOG}: missing '### Role catalog' section")
     roles: dict[str, set[str]] = {}
     for line in section.group(1).splitlines():
         row = ROLE_ROW.match(line.strip())
@@ -158,10 +159,10 @@ def load_roles(root: Path) -> dict[str, set[str]]:
             continue
         usages = {item.strip() for item in row.group(2).rsplit("|", 1)[-1].split(",") if item.strip()}
         if not usages or not usages <= set(ROLE_USAGES):
-            raise LayerArtifactError(f"AGENTS.md: role {row.group(1)} has invalid usage {sorted(usages)}")
+            raise LayerArtifactError(f"{CATALOG}: role {row.group(1)} has invalid usage {sorted(usages)}")
         roles[row.group(1)] = usages
     if not roles:
-        raise LayerArtifactError("AGENTS.md: role catalog has no roles")
+        raise LayerArtifactError(f"{CATALOG}: role catalog has no roles")
     return roles
 
 

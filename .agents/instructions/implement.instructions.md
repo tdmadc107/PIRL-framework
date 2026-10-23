@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/implement.instructions.md"
 metadata:
   id: ".agents/instructions/implement"
   kind: "instruction"
-  version: "2.1.0"
+  version: "2.2.0"
   status: "active"
 ---
 
@@ -14,7 +14,7 @@ metadata:
 Apply the Implement process only when the request and the [router](layered-task-execution.instructions.md)
 have selected this layer. Reading or updating a Plan/report file does not
 activate another layer. Work assigned directly outside a Plan follows the
-[router's standalone tasks](layered-task-execution.instructions.md#standalone-tasks);
+[standalone tasks](standalone-and-maintenance.instructions.md#standalone-tasks);
 do not borrow this layer's wait-for-Review rules for that work.
 
 This contract owns the decisions of the Implement layer and the content of its
@@ -26,7 +26,7 @@ procedure, the Implementation Record format and the helper scripts.
 
 ## AI Agent roles at the Implement layer
 
-The role catalog lives in [AGENTS.md](../../AGENTS.md#ai-agent-roles) and the
+The role catalog lives in the [standalone and maintenance instructions](standalone-and-maintenance.instructions.md#role-catalog) and the
 assignment principles in the [router](layered-task-execution.instructions.md#assignment-principles);
 each role's expertise lives in the role file linked in the table.
 The Plan picks roles from the table below; a repair run uses the `repair_roles`
@@ -38,11 +38,11 @@ work, the sources and the related REQs/QGs, then merges the results by evidence.
 | Role | Type | Responsibility at Implement | Done when |
 | --- | --- | --- | --- |
 | [`backend-developer`](../roles/backend-developer.role.md) | implementation | Edit non-UI code, accompanying documentation and tests under FUT for that part, within the allowed paths; self-challenge its own work | As `technical-writer` for every sentence of accompanying documentation the role writes or changes, and source/docs/tests deliver all REQs of its part; self-challenge has no open doubts; no builds, typechecks, lint or verification scripts are run |
-| [`frontend-developer`](../roles/frontend-developer.role.md) | implementation | Edit the UI, UI strings per language, accompanying documentation and tests under FUT; capture layout with mocks when the diff changes the UI; self-challenge | As `backend-developer`, and `layout_verification` has a capture run that passes every check when the diff changes the UI (except failed checks the Plan excluded per the [layout verification section](#layout-verification-with-mocks)); when the diff changes the size or number of elements in a row or frame of constrained width, the bounding-box measurements per the [layout verification section](#layout-verification-with-mocks) are in `layout_verification` and protruding elements were fixed before handing over to the verification roles; general or negative claims in `layout_verification` and the handoff report have been checked against all sources per the bullet on out-of-scope findings below the table |
+| [`frontend-developer`](../roles/frontend-developer.role.md) | implementation | Edit the UI, UI strings per language, accompanying documentation and tests under FUT; capture layout with mocks when the diff changes the UI; self-challenge | As `backend-developer`, and `layout_verification` has a capture run that passes every check when the diff changes the UI (except failed checks the Plan excluded per the [layout verification instructions](layout-verification.instructions.md)); when the diff changes the size or number of elements in a row or frame of constrained width, the bounding-box measurements per the [layout verification instructions](layout-verification.instructions.md) are in `layout_verification` and protruding elements were fixed before handing over to the verification roles; general or negative claims in `layout_verification` and the handoff report have been checked against all sources per the bullet on out-of-scope findings below the table |
 | [`technical-writer`](../roles/technical-writer.role.md) | implementation | Create/update context documentation, contract documents, indexes and specification status tables for documentation-only tasks | Documentation matches the source and the REQs; every claim in each sentence written or changed, including clauses kept from the old version, has a source and has been checked per the [role's way of working](../roles/technical-writer.role.md#how-it-works): sentences stating a rule, scope or list, and the lead-in sentence or heading of a table or list, are checked element by element and at every place of use; quantities or formulas stated in words are recalculated from their definition in the source |
 | [`code-reviewer`](../roles/code-reviewer.role.md) | verification | Challenge the diff: bugs, regressions, permissions and security, data/state inconsistency, guards/validators/error handling, contract violations, tests that violate FUT | `PASS\|FAIL\|BLOCKED` for each assigned QG, with the path traced, counterexamples and sources; each evidence line is a readable source with reasoning per the [router](layered-task-execution.instructions.md#verification-by-reasoning), not a run result |
 | [`code-analyst`](../roles/code-analyst.role.md) | verification | Trace the flow from the entrypoint to the final state through every affected caller/consumer; build scenario tables for QGs with many branches/states/orderings; check documentation against the source | As `code-reviewer` |
-| [`ux-designer`](../roles/ux-designer.role.md) | verification | Check the screenshots and measurements of the layout checks per the layout verification section against the UI QGs and the display source | As `code-reviewer` |
+| [`ux-designer`](../roles/ux-designer.role.md) | verification | Check the screenshots and measurements of the layout checks per the layout verification instructions against the UI QGs and the display source | As `code-reviewer` |
 | [`process-auditor`](../roles/process-auditor.role.md) | self-evaluation | Self-evaluate the Implement run per the [router](layered-task-execution.instructions.md#self-evaluation-and-improvement); not recorded in the Plan's role lists | Record written; improvements applied or summarized for the user |
 
 - An implementation role does not verify its own work. A verification role
@@ -129,7 +129,7 @@ work, the sources and the related REQs/QGs, then merges the results by evidence.
   do not touch tests of unrelated functionality and do not build new harnesses
   or verification scripts, inside or outside the repository (the only exception
   is layout mock and capture scripts in `.tmp/` per the
-  [layout verification section](#layout-verification-with-mocks)).
+  [layout verification instructions](layout-verification.instructions.md)).
   Points that need a product decision are recorded where the project keeps
   known gaps and in the residual risk, not decided by you. This sweep does not
   edit historical records (settled Plans, Review reports, original
@@ -167,7 +167,7 @@ work, the sources and the related REQs/QGs, then merges the results by evidence.
   reasoning and are not an evidence line
   ([sources of evidence](layered-task-execution.instructions.md#verification-by-reasoning)).
   A repair run that touches the UI captures the layout again per the
-  [layout verification section](#layout-verification-with-mocks), into a new run directory.
+  [layout verification instructions](layout-verification.instructions.md), into a new run directory.
 
 ## Changes to the Plan confirmed by the user
 
@@ -204,9 +204,9 @@ application for acceptance, and only writes, updates and runs tests under FUT.
 Each QG evidence line comes from a source the router allows; scripts, probes,
 browsers forcing logic branches, static tools and test results are not evidence.
 When the diff changes the UI, `frontend-developer` (or the coordinator when
-performing that role itself) carries out [layout verification with mocks](#layout-verification-with-mocks)
+performing that role itself) carries out [layout verification with mocks](layout-verification.instructions.md)
 after implementing and before handing over to the verification roles; the
-screenshots and measurements of the checks per the layout verification section are a source for the
+screenshots and measurements of the checks per the layout verification instructions are a source for the
 verification roles and do not replace their reasoning. When delegating, the
 coordinator states which files are the measurements of the checks and which are
 diagnostics that are not a source.
@@ -227,7 +227,7 @@ its assigned QGs:
    entrypoint through callers, guards and write/read operations to the outcome
    and state that the `Required logic` states, including the refusal/failure
    branches that must hold. For UI QGs, also look at the screenshots and
-   measurements of the checks per the layout verification section in the latest layout capture; if
+   measurements of the checks per the layout verification instructions in the latest layout capture; if
    they are missing when the diff changes the UI, return a FAIL to
    `frontend-developer`.
 2. Pick a counterexample that can occur within the QG's scope, look for guards
@@ -273,95 +273,9 @@ Standalone tasks and direct work outside a Plan do this only when the user asks.
   changes display states (error, empty, loading, locked) or UI strings that can
   change the layout. Does not apply when the diff is only in the backend, pure
   domain code with no display change, tests or documentation.
-- **What:** run the frontend in development mode and answer every API call with
-  mocks right in the browser; no backend, database, build or typecheck. Drive
-  to each state the diff creates or changes, including error branches and
-  input validation errors, then capture each state in every UI language, at
-  the desktop and mobile viewports that the target repository's context
-  documentation ([AGENTS.md](../../AGENTS.md#target-repository)) specifies. If the documentation
-  does not specify them, take the languages from the i18n configuration and the
-  viewports from the repository's CSS breakpoints, and record the set of
-  viewports/languages used. When the diff changes the size or number of
-  elements in a row or frame of constrained width (navigation bar, toolbar, row
-  of cards), add viewports on both sides of every breakpoint threshold that
-  affects that row or frame (per the context documentation or the CSS), and
-  measure in the browser the bounding boxes of the frame and of each child
-  element: children stay inside the frame and do not overlap, compared with the
-  same measurements in the state without the diff; screenshots at the main
-  viewports are not enough to conclude that. Also check what screenshots cannot
-  show: text in the right language, elements inside the viewport, no horizontal
-  scrolling, focus and the Esc key when dialogs stack, the page scrolls after
-  closing. This approach is for web UIs served by a dev server; for other UIs
-  (extensions, native apps) the layout part is `BLOCKED` with an owner, without
-  improvising a means. Tools, how to run a stable server and known environment
-  obstacles belong in the tooling notes of the target repository's context
-  documentation ([AGENTS.md](../../AGENTS.md#target-repository)), not in the
-  framework.
-- **State without the diff:** the post-diff capture of the preceding task in
-  the same package, when that capture covered exactly the screens and
-  viewports to compare. Otherwise, build and capture separately the source
-  right before the task's changes: the base commit plus every uncommitted
-  change that does not belong to the task (from other runs, recorded or not).
-  If the working tree has no such uncommitted changes, export the base commit
-  into the run's temporary directory (for example `git archive <revision>` into
-  `.tmp/`); if it has them, exporting the commit is not enough, so copy the
-  working tree intact (except `.git`) into a temporary directory before the task
-  edits it, or export the base commit and reapply exactly those changes. Do not
-  use stash, checkout or reset on the working repository
-  ([safety rules](../../AGENTS.md#safety)). Record in
-  `layout_verification` the base commit and the uncommitted changes counted in
-  the base; the Plan does not describe how to build this base.
-- **Where:** mock scripts, screenshots and the results table go in
-  `.tmp/layout-snapshots/<plan-set>/<task-id>/<YYYYMMDD-HHmmss>/` at the Hub root
-  (ignored by Git), whatever directory holds the Plan; the `pirl-implement` skill's
-  helper script creates it. Each run gets a new directory; do not delete or
-  overwrite earlier runs. This directory is handoff output and is kept; dev servers,
-  browsers and temporary profiles are still stopped or deleted per the [cleanup
-  section](layered-task-execution.instructions.md#cleaning-up-temporary-resources-before-handoff).
-- **Role as evidence:** the screenshots and measurements of the checks in the
-  What section are mandatory evidence for the layout part; they accompany, and
-  do not replace, QG reasoning on the source. This run does not extend to
-  builds, typechecks, tests outside FUT, a real backend, real devices or
-  releases; those still belong to the user's stage. The verification role treats the screenshots as a source when
-  concluding UI QGs and does not run anything itself. Each failed check is
-  compared with the same scenario in the state without the diff (an unchanged
-  screen or route); only defects caused by the diff are FAIL. A wrong layout
-  caused by the diff (overflow, overlap, wrong language, missing state) is a
-  FAIL returned to `frontend-developer`, under the same two-repair limit of
-  Implement; pre-existing defects are recorded where the project keeps known
-  gaps and in the summary, and do not block the task. A failed check caused by
-  the diff that the Plan excluded from scope with a REQ naming exactly that
-  behavior and the viewport range, together with a known-gaps entry, is not a
-  FAIL of the task but is still a failed check: `layout_verification` lists it
-  with the REQ and its cause (the diff), and `residual_risk` states the impact;
-  if the Plan did not exclude it, it is a FAIL. When no usable browser engine is
-  available, the layout part is `BLOCKED` with an owner. A diff that changes the
-  UI without this result cannot be recorded as `implemented`.
-- **Differences outside the checks:** a difference between the base and the
-  post-diff state where bounding boxes, computed styles and scroll areas are all
-  unchanged (for example a few differing pixels, a page height that varies
-  between loads) is not a wrong layout caused by the diff. Capture the base
-  state repeatedly to learn its own variation, record every value seen in the
-  summary, then stop. Looking for the cause of such a difference or of a
-  pre-existing defect, and measuring a behavior the checks do not require (for
-  example hiding an element and measuring again, forcing a viewport change while
-  a state is open, building a separate probe script), is a root-cause
-  investigation that runs only when the user asks for it
-  ([Verification by reasoning](layered-task-execution.instructions.md#verification-by-reasoning)); missing handling
-  visible from the source is recorded by reasoning on the source. Pixel counts
-  and repeated base captures, if any, are recorded apart from the checks and
-  marked as not QG evidence.
-- **Record:** summarize in the `layout_verification` field of the
-  Implementation Record: states captured, languages, viewports (including the
-  threshold-adjacent viewports measured), the base used for comparison (commit
-  and uncommitted changes counted), number of screenshots, checks passed/failed
-  (each failed check with its cause: pre-existing, or caused by the diff and
-  excluded by a Plan REQ) and the directory path. `.tmp/` does not go with
-  commits, so the summary is the evidence and the path is for lookup only.
-- **Review:** reads Implement's summary and screenshots and does not rerun
-  them. A diff that changes the UI while the Record lacks this result, or
-  screenshots showing a layout that violates a QG, is a `repair` FIND for
-  `frontend-developer`.
+
+When this applies, read and follow the
+[layout verification instructions](layout-verification.instructions.md); otherwise that file is not needed.
 
 ## Recording results
 
@@ -412,7 +326,7 @@ Record `implemented` only when the requirements and role responsibilities are
 met, the verification roles conclude every QG `PASS`, self-challenge has no
 open doubts and, when the diff changes the UI, `layout_verification` has a
 capture run that passes every check, except failed checks the Plan excluded per
-the [layout verification section](#layout-verification-with-mocks).
+the [layout verification instructions](layout-verification.instructions.md).
 A repair run must also resolve the FINDs, record a disposition for every item
 and clear the necessary blockers. Do not claim a finding fixed when its cause
 was refuted.

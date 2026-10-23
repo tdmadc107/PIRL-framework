@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/review.instructions.md"
 metadata:
   id: ".agents/instructions/review"
   kind: "instruction"
-  version: "2.0.2"
+  version: "2.0.3"
   status: "active"
 ---
 
@@ -26,7 +26,7 @@ role names and paths verbatim, and explain in plain English.
 
 ## AI Agent roles at the Review layer
 
-The role catalog lives in [AGENTS.md](../../AGENTS.md#ai-agent-roles) and the
+The role catalog lives in the [standalone and maintenance instructions](standalone-and-maintenance.instructions.md#role-catalog) and the
 assignment principles in the [router](layered-task-execution.instructions.md#assignment-principles);
 each role's expertise lives in the role file linked in the table.
 Review picks `review_roles` from the table below using the "Select when"
@@ -109,7 +109,7 @@ expertise to specific QGs/boundaries; do not force every role to find a defect.
    in the Implementation Record, as a baseline or PASS/FAIL evidence. When the
    diff changes the UI, read the `layout_verification` and screenshots that
    Implement captured per
-   [layout verification with mocks](implement.instructions.md#layout-verification-with-mocks)
+   [layout verification with mocks](layout-verification.instructions.md)
    as a source for UI QGs, without capturing again. A green test does not prove
    the business logic is right, and a red test does not prove the product is
    wrong. A counterexample is an input and call path traceable on the source,

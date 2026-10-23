@@ -13,7 +13,8 @@ from pathlib import Path
 EVALS = Path(__file__).resolve().parents[1]
 TOOL = EVALS / "layer_record.py"
 
-AGENTS = """# AI Agent roles
+CATALOG = ".agents/instructions/standalone-and-maintenance.instructions.md"
+ROLES = """### Role catalog
 
 | ID | Expertise | Used in |
 | --- | --- | --- |
@@ -23,7 +24,7 @@ AGENTS = """# AI Agent roles
 | `code-reviewer` | Challenges the diff | verify, review |
 | `process-auditor` | Self-evaluation | audit |
 
-# Other section
+### Other section
 """
 # Records are stored as UTF-8 without escaping; this sample checks that non-ASCII text survives.
 NON_ASCII = "Không quét tài liệu ngoài đường dẫn Plan"
@@ -60,7 +61,9 @@ class LayerRecordTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
-        (self.root / "AGENTS.md").write_text(AGENTS, encoding="utf-8")
+        (self.root / "AGENTS.md").write_text("# Start here\n", encoding="utf-8")
+        (self.root / CATALOG).parent.mkdir(parents=True)
+        (self.root / CATALOG).write_text(ROLES, encoding="utf-8")
         # Reports live wherever the user puts them; by default under the Hub root.
         self.report = self.root / "sign-in_20261014-090000/t01-otp/round-01.md"
         self.report.parent.mkdir(parents=True)
@@ -224,12 +227,12 @@ class LayerRecordTests(unittest.TestCase):
         ref = self.run_tool("start")[1]["framework_ref"]
         self.assertEqual(ref["commit"], "none")
         # Skills are framework files; records are local output, not framework content.
-        self.assertEqual(sorted(ref["files"]), [".skills/pirl-plan/SKILL.md", "AGENTS.md"])
+        self.assertEqual(sorted(ref["files"]), [CATALOG, ".skills/pirl-plan/SKILL.md", "AGENTS.md"])
         git = ["git", "-C", str(self.root), "-c", "user.email=t@t", "-c", "user.name=t"]
         subprocess.run([*git, "init", "-q"], check=True)
         subprocess.run([*git, "add", "-A"], check=True)
         subprocess.run([*git, "commit", "-qm", "init"], check=True)
-        (self.root / "AGENTS.md").write_text(AGENTS + "\nchanged\n", encoding="utf-8")
+        (self.root / "AGENTS.md").write_text("# Start here\nchanged\n", encoding="utf-8")
         ref = self.run_tool("start")[1]["framework_ref"]
         self.assertRegex(ref["commit"], r"^[0-9a-f]{40}$")
         self.assertEqual(list(ref["files"]), ["AGENTS.md"])

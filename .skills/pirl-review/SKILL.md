@@ -5,7 +5,7 @@ metadata:
   id: .skills/pirl-review
   kind: skill
   layer: review
-  version: 1.1.1
+  version: 1.1.2
 ---
 
 # Review
@@ -26,8 +26,8 @@ decides.
 - Not for writing a Plan ([`pirl-plan`](../pirl-plan/SKILL.md)), implementing or
   repairing ([`pirl-implement`](../pirl-implement/SKILL.md)), a code review that no Plan
   covers
-  ([standalone task](../../.agents/instructions/layered-task-execution.instructions.md#standalone-tasks))
-  or [framework maintenance](../../.agents/instructions/layered-task-execution.instructions.md#framework-maintenance).
+  ([standalone task](../../.agents/instructions/standalone-and-maintenance.instructions.md#standalone-tasks))
+  or [framework maintenance](../../.agents/instructions/standalone-and-maintenance.instructions.md#framework-maintenance).
 
 ## Resources
 

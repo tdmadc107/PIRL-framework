@@ -14,7 +14,8 @@ REPO = EVALS.parents[1]
 sys.path.insert(0, str(EVALS))
 from validate_layer_artifact import load_roles  # noqa: E402
 
-AGENTS = """# AI Agent roles
+CATALOG = ".agents/instructions/standalone-and-maintenance.instructions.md"
+ROLES = """### Role catalog
 
 | ID | Expertise | Used in |
 | --- | --- | --- |
@@ -24,7 +25,7 @@ AGENTS = """# AI Agent roles
 | `code-reviewer` | Challenges the diff | verify, review |
 | `process-auditor` | Self-evaluation | audit |
 
-# Other section
+### Other section
 """
 PLAN = """---
 schema: pirl-plan/v1
@@ -78,7 +79,8 @@ class HandoffIOTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
-        (self.root / "AGENTS.md").write_text(AGENTS, encoding="utf-8")
+        (self.root / CATALOG).parent.mkdir(parents=True)
+        (self.root / CATALOG).write_text(ROLES, encoding="utf-8")
         # With no location named by the user, Plan packages and reports sit under the Hub root.
         self.plan = self.root / "request_20260909-090000/task.md"
         self.plan.parent.mkdir(parents=True)
@@ -161,7 +163,7 @@ class HandoffIOTests(unittest.TestCase):
 
 
 class RoleCatalogTests(unittest.TestCase):
-    """Layer role tables must use IDs that AGENTS.md registers for that layer."""
+    """Layer role tables must use IDs that the role catalog registers for that layer."""
 
     LAYER_USAGES = {
         "plan": {"plan", "audit"},

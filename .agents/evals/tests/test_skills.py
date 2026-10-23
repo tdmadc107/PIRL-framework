@@ -94,7 +94,9 @@ class SkillScriptTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
-        shutil.copy(REPO / "AGENTS.md", self.root / "AGENTS.md")
+        catalog = ".agents/instructions/standalone-and-maintenance.instructions.md"
+        (self.root / catalog).parent.mkdir(parents=True)
+        shutil.copy(REPO / catalog, self.root / catalog)
 
     def run_script(self, script, *args):
         result = subprocess.run([sys.executable, "-X", "utf8", "-B", str(script), "--root", str(self.root), *args],

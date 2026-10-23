@@ -8,52 +8,16 @@ skill in `.skills/`. The product repositories the Agent works on are not part of
 the Hub; the user names the target repository of each request, as described in
 [Target repository](#target-repository).
 
+The file structure, the owner of each rule and the role catalog are described
+in the [standalone and maintenance instructions](.agents/instructions/standalone-and-maintenance.instructions.md#framework-structure),
+read when the framework itself is maintained.
+
 Always apply the [core rules](#core-rules) on safety, scope and evidence, even
 when no layer is opened.
 
 Read [CONTEXT.md](CONTEXT.md) before the first answer of each session and apply
 it to every answer, summary, report and proposal sent to the user, even when no
 layer is opened.
-
-# Structure
-
-```text
-AGENTS.md                         root: core rules, structure, flow, Agent roles, target repository
-CONTEXT.md                        how responses to the user are presented
-.agents/
-  instructions/
-    layered-task-execution.instructions.md   router: layer boundaries, assignment, shared contracts
-    plan.instructions.md                     Plan layer contract
-    implement.instructions.md                Implement layer contract
-    review.instructions.md                   Review layer contract
-  roles/          expertise of each role: <role-id>.role.md
-  evals/
-    validate_layer_artifact.py   Plan/Review validator
-    layer_record.py              self-evaluation record tool
-    tests/                       tests of the tools, the role catalog and the skills
-    records/                     self-evaluation records: <layer>/<YYYY-MM-DD>.jsonl (local, ignored by Git)
-.skills/
-  pirl-plan/      Plan skill: SKILL.md, assets/, references/, scripts/
-  pirl-implement/ Implement skill: same layout
-  pirl-review/    Review skill: same layout
-.tools/           local tools (dashboard, claude-resume, claude-schedule)
-.tmp/             temporary output, ignored by Git (layout snapshots, tool logs)
-<plan-set>/       Plan package and its Review reports, created at the Hub root unless the user names another directory (ignored by Git)
-```
-
-| Source | Owns |
-| --- | --- |
-| `AGENTS.md` | Core rules, structure, flow, choosing the kind of work, role catalog and delegation, target repository, Git |
-| `CONTEXT.md` | How answers, summaries, reports, proposals and syntheses sent to the user are presented |
-| Router | Boundaries between kinds of work, roles and assignment principles, framework maintenance and its check commands, shared contracts (verification by reasoning, functional tests, shared snapshots and older records, self-evaluation and improvement, cleanup) |
-| Layer instruction | Each role's responsibilities at the layer, the decisions the layer settles, the content its output must hold and its exit conditions; the Implement contract also holds layout verification with mocks, which Review reads |
-| Skill | How one layer run is carried out: when the skill applies, the ordered procedure linking each step to the contract that owns it, the output format and template, helper scripts |
-| Role file | Shared expertise of one role, identical in every layer |
-| Evals | Checking handoff artifacts, writing and checking records, the tests of the framework tools and skills |
-| Record | History of self-evaluation and improvement for each layer run; appended only through the tool and kept on the local machine |
-
-Each rule lives in exactly one owner; other files point to it instead of
-copying it.
 
 # Core rules
 
@@ -222,8 +186,8 @@ Implement layer; "Review the implementation of Plan T01" is the Review layer.
 | Plan | Write/adjust a Plan from the request and the source; [Plan contract](.agents/instructions/plan.instructions.md), run through the [`pirl-plan` skill](.skills/pirl-plan/SKILL.md). |
 | Implement | Carry out one selected Plan, or repair it per a report for the same task; [Implement contract](.agents/instructions/implement.instructions.md), run through the [`pirl-implement` skill](.skills/pirl-implement/SKILL.md). |
 | Review | Check an implementation run against the Plan; [Review contract](.agents/instructions/review.instructions.md), run through the [`pirl-review` skill](.skills/pirl-review/SKILL.md). |
-| Standalone task | Work assigned directly, outside a Plan's chain; [Standalone tasks section](.agents/instructions/layered-task-execution.instructions.md#standalone-tasks). |
-| Framework maintenance | Edit `AGENTS.md`, instructions, roles, skills or framework tools themselves; [Framework maintenance section](.agents/instructions/layered-task-execution.instructions.md#framework-maintenance). |
+| Standalone task | Work assigned directly, outside a Plan's chain; [Standalone tasks section](.agents/instructions/standalone-and-maintenance.instructions.md#standalone-tasks). |
+| Framework maintenance | Edit `AGENTS.md`, instructions, roles, skills or framework tools themselves; [Framework maintenance section](.agents/instructions/standalone-and-maintenance.instructions.md#framework-maintenance). |
 
 Load only the documents relevant to the current decision: the skill and the
 contract of the selected layer, and the context documentation of the target
@@ -240,10 +204,12 @@ Loading order:
      the skill loads exactly the layer contract and the resources each step
      needs. A host that loads skills on its own reaches the same file; a host
      that does not reads it like any other file.
-   - [Standalone task](.agents/instructions/layered-task-execution.instructions.md#standalone-tasks),
-     meaning work assigned directly outside a Plan's chain: no layer is activated.
-   - [Framework maintenance](.agents/instructions/layered-task-execution.instructions.md#framework-maintenance):
-     edit `AGENTS.md`, `CONTEXT.md`, instructions, roles, skills or tools
+   - Standalone task, meaning work assigned directly outside a Plan's chain:
+     read the [Standalone tasks](.agents/instructions/standalone-and-maintenance.instructions.md#standalone-tasks) section of the
+     standalone and maintenance instructions; no layer is activated.
+   - Framework maintenance: read the
+     [standalone and maintenance instructions](.agents/instructions/standalone-and-maintenance.instructions.md) in full, then edit
+     `AGENTS.md`, `CONTEXT.md`, instructions, roles, skills or tools
      themselves, within the scope the user assigns.
    - A question that only needs an explanation and creates no durable output:
      answer within its scope, create no files. The router is not needed,
@@ -267,25 +233,10 @@ before handoff, including standalone work and framework maintenance.
 
 # AI Agent roles
 
-Each layer assigns work to AI Agents by role, matching the expertise the work
-needs. This table is the only catalog of role IDs. A role's expertise lives in
-`.agents/roles/<ID>.role.md`; its concrete responsibilities at each layer (what
-it is assigned, its inputs, when it is done) live in the role table of the
-corresponding layer file. The `Used in` column says where a role can be
-selected: `plan`, `implement`, `verify` (QG verification at Implement),
-`review`, or `audit` (self-evaluation at the end of each layer).
-
-| ID | Expertise | Used in |
-| --- | --- | --- |
-| `business-analyst` | Business logic, REQs, QGs, missing product decisions | plan, review |
-| `solution-architect` | API/data contracts, ownership, permission model, boundaries and dependencies between tasks | plan, review |
-| `code-analyst` | Tracing data/control flow, callers/consumers, impact on documentation, scenario tables for multi-branch flows | plan, verify, review |
-| `ux-designer` | Screens, display states, interaction flows, UI strings per language, layout per viewport | plan, verify, review |
-| `backend-developer` | Non-UI code: API, domain, data, jobs, CLI, scripts, tools; accompanying docs and tests under FUT | implement |
-| `frontend-developer` | UI code, i18n strings, layout snapshots with mocks; accompanying docs and tests under FUT | implement |
-| `technical-writer` | Documentation that must match the source: context docs, contracts, indexes, status tables | implement |
-| `code-reviewer` | Challenging the diff: bugs, regressions, permissions and security, data/state consistency, guards/validators/error handling | verify, review |
-| `process-auditor` | Self-evaluating a layer run, finding root causes, improving the framework, writing records | audit |
+Each layer assigns work to AI Agents by role. The
+[role catalog](.agents/instructions/standalone-and-maintenance.instructions.md#role-catalog) lists every role ID
+and where it can be used; the role table of each layer contract says which
+roles that layer selects.
 
 Delegation, for all three layers. These points override a host's defaults, so
 they stay in this file, which every host loads:
@@ -298,9 +249,10 @@ they stay in this file, which every host loads:
   run.
 - A role does not verify its own output.
 
-The constraints that keep roles separate from skills and the other
+The [constraints that keep roles separate from skills](.agents/instructions/standalone-and-maintenance.instructions.md#constraints-that-keep-roles-separate-from-skills)
+live in the standalone and maintenance instructions, the other
 [assignment principles](.agents/instructions/layered-task-execution.instructions.md#assignment-principles)
-live in the router.
+in the router.
 
 # Target repository
 

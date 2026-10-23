@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Create the directory of one layout capture run for a Plan task: .tmp/layout-snapshots/<plan-set>/<task-id>/<timestamp>/.
 
-When to capture and what to record belong to the Implement contract's layout verification section; this script only
+When to capture and what to record belong to .agents/instructions/layout-verification.instructions.md; this script only
 creates a new, empty run directory under the Hub root and never reuses an earlier one.
 """
 

@@ -5,7 +5,7 @@ metadata:
   id: .skills/pirl-implement
   kind: skill
   layer: implement
-  version: 1.1.1
+  version: 1.1.2
 ---
 
 # Implement
@@ -13,11 +13,15 @@ metadata:
 Carries out one Implement layer run: a first run of a Plan task, or a repair run
 per a Review report. The
 [Implement contract](../../.agents/instructions/implement.instructions.md) owns
-the decisions, layout verification with mocks and the exit conditions; the
+the decisions, when layout verification with mocks applies, and the exit
+conditions; the
+[layout verification instructions](../../.agents/instructions/layout-verification.instructions.md)
+own how it is done; the
 [router](../../.agents/instructions/layered-task-execution.instructions.md) owns
 the shared contracts (verification by reasoning, functional tests);
-[AGENTS.md](../../AGENTS.md) owns the core rules, roles and target repository. This skill owns the order of the steps, the
-Implementation Record format and the helper scripts. Where a step names a
+[AGENTS.md](../../AGENTS.md) owns the core rules, roles and target repository.
+This skill owns the order of the steps, the Implementation Record format and
+the helper scripts. Where a step names a
 section, that section decides.
 
 ## When to use
@@ -27,8 +31,8 @@ section, that section decides.
   [conditions for opening a layer](../../AGENTS.md#choosing-a-layer).
 - Not for writing a Plan ([`pirl-plan`](../pirl-plan/SKILL.md)), checking an
   implementation ([`pirl-review`](../pirl-review/SKILL.md)), work assigned outside a
-  Plan ([standalone task](../../.agents/instructions/layered-task-execution.instructions.md#standalone-tasks))
-  or [framework maintenance](../../.agents/instructions/layered-task-execution.instructions.md#framework-maintenance).
+  Plan ([standalone task](../../.agents/instructions/standalone-and-maintenance.instructions.md#standalone-tasks))
+  or [framework maintenance](../../.agents/instructions/standalone-and-maintenance.instructions.md#framework-maintenance).
 
 ## Resources
 

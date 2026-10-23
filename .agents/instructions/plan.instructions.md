@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/plan.instructions.md"
 metadata:
   id: ".agents/instructions/plan"
   kind: "instruction"
-  version: "2.0.2"
+  version: "2.0.3"
   status: "active"
 ---
 
@@ -26,7 +26,7 @@ behavior themselves.
 
 ## AI Agent roles at the Plan layer
 
-The role catalog lives in [AGENTS.md](../../AGENTS.md#ai-agent-roles) and the
+The role catalog lives in the [standalone and maintenance instructions](standalone-and-maintenance.instructions.md#role-catalog) and the
 assignment principles in the [router](layered-task-execution.instructions.md#assignment-principles);
 each role's expertise lives in the role file linked in the table.
 Plan picks the smallest team with enough expertise for the request using the
@@ -261,7 +261,7 @@ owns what those sections must settle.
      a fake of a browser API the test environment lacks).
    - No step of `How to do it` assigns the implementation role to capture
      layout, measure or run the application, not even a short step like
-     "capture layout per the layout verification section": the extra viewports, states and properties
+     "capture layout per the layout verification instructions": the extra viewports, states and properties
      to capture go in the UI QGs and in the implementation role's `Done when`.
      The UI verification role's step only says it runs after the implementation
      role captures.

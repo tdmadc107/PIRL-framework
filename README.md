@@ -77,7 +77,7 @@ No special commands or keywords are needed; just say it:
 Each layer runs only when you ask for it; the Agent does not move on to the next
 layer by itself. The Agent picks the smallest team of roles with enough
 expertise. To choose the team yourself, name the roles in your request; the role
-catalog is in [`AGENTS.md`](AGENTS.md#ai-agent-roles).
+catalog is in the [standalone and maintenance instructions](.agents/instructions/standalone-and-maintenance.instructions.md#role-catalog).
 
 Plans and reports go where you say. If you name no location, they are created
 under the Hub root. Inside the Hub, Git ignores Plan packages and their reports
@@ -153,12 +153,12 @@ python -B -m unittest discover -s .agents/evals/tests -p "test_*.py"
 ```
 
 Pick the check commands that match what you edited: see
-[Framework checks](.agents/instructions/layered-task-execution.instructions.md#framework-checks).
+[Framework checks](.agents/instructions/standalone-and-maintenance.instructions.md#framework-checks).
 
 ## Directory structure
 
 ```text
-AGENTS.md        root: core rules, structure, flow, roles, target repository
+AGENTS.md        root: core rules, flow, choosing the kind of work, delegation, target repository
 CONTEXT.md       how responses to the user are presented
 .agents/         layer instructions, roles, evals (validator, record tool, tests, local records)
 .skills/         the pirl-plan, pirl-implement and pirl-review skills
@@ -166,13 +166,13 @@ CONTEXT.md       how responses to the user are presented
 .tmp/            temporary output, not in git
 ```
 
-Full tree: [`AGENTS.md`](AGENTS.md#structure).
+Full tree: [framework structure](.agents/instructions/standalone-and-maintenance.instructions.md#framework-structure).
 
 ## Reference documentation
 
 | To learn about | Read |
 | --- | --- |
-| Core rules, structure, flow, roles, target repository | [`AGENTS.md`](AGENTS.md) |
+| Core rules, flow, delegation, target repository | [`AGENTS.md`](AGENTS.md) |
 | How the Agent presents answers, summaries, proposals | [`CONTEXT.md`](CONTEXT.md) |
 | Choosing a layer, shared contracts, functional tests, self-improvement | [Router](.agents/instructions/layered-task-execution.instructions.md) |
 | Each layer's decisions | [Plan](.agents/instructions/plan.instructions.md), [Implement](.agents/instructions/implement.instructions.md), [Review](.agents/instructions/review.instructions.md) |

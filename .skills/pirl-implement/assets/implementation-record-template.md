@@ -7,7 +7,7 @@
 - checkpoint_evidence: <checkpoint, evidence and input to continue; or N/A>
 - quality_gate_results: <QG-01=PASS|FAIL|BLOCKED per the verification role's conclusion; ...>
 - quality_gate_evidence: <each QG -> verification role, file/symbol, path traced, counterexample and conclusion>
-- layout_verification: <N/A when the diff does not change the UI; or states captured, languages, viewports, the base used for comparison (base commit and uncommitted changes counted), number of screenshots, checks passed/failed (each failed check with its cause per the layout verification section of the Implement contract) and the .tmp/layout-snapshots/... directory>
+- layout_verification: <N/A when the diff does not change the UI; or states captured, languages, viewports, the base used for comparison (base commit and uncommitted changes counted), number of screenshots, checks passed/failed (each failed check with its cause per the layout verification instructions) and the .tmp/layout-snapshots/... directory>
 - repair_closure_evidence: <each report item -> REQ/QG, cause, solution/disposition and matching before/after evidence; or exactly N/A for the first run>
 - root_cause_revalidation: <ITEM-ID=confirmed|contradicted|blocked/evidence before the fix; or exactly N/A for the first run>
 - review_item_disposition: <FIND-01=resolved|failed|blocked/evidence; RISK-01=deferred/owner and revisit condition; BLOCK-01=unblocked|blocked|escalated/evidence; or exactly N/A for the first run>
