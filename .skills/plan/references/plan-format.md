@@ -18,6 +18,9 @@ section must settle belongs to the
 - Task IDs start at `T01` and are consecutive within the package.
 - Never overwrite an existing file. Review reports of the package are placed
   per the [report format](../../review/references/review-format.md#location-and-naming).
+- Git ignores package directories anywhere in the Hub, by their name pattern
+  ([AGENTS.md](../../../AGENTS.md#git)); a package the user places outside the
+  Hub follows the Git rules of that location.
 
 ## Frontmatter
 

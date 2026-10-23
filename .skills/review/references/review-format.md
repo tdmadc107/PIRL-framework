@@ -12,7 +12,8 @@ to the [Review contract](../../../.agents/instructions/review.instructions.md).
   `<output directory>/<plan-set>/<task-id-lower>-<todo-slug>/round-<NN>-review-<todo-slug>-<YYYYMMDD-HHmmss>.md`,
   where `NN` is the two-digit round number. When the Plan package also sits
   under the Hub root, the report lands inside the package directory, next to
-  the Plan it reviews.
+  the Plan it reviews. Inside the Hub, the `<plan-set>/` directory is ignored by
+  Git like the Plan package ([AGENTS.md](../../../AGENTS.md#git)).
 - Slugs are ASCII kebab-case; timestamps use the `+07:00` time zone.
 - Every round has its own file; never overwrite or delete another round.
 

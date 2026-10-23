@@ -80,7 +80,9 @@ expertise. To choose the team yourself, name the roles in your request; the role
 catalog is in [`AGENTS.md`](AGENTS.md#ai-agent-roles).
 
 Plans and reports go where you say. If you name no location, they are created
-under the Hub root.
+under the Hub root. Inside the Hub, Git ignores Plan packages and their reports
+(directories named `<request-slug>_<YYYYMMDD-HHmmss>/`), because they describe
+your projects.
 
 ## A full working cycle
 
@@ -103,8 +105,8 @@ under the Hub root.
    round.
 5. **Commit.** The Agent commits or pushes only when you ask. Changes in the
    target repository are committed in that repository; a Hub commit carries the
-   framework improvements of the same run, and the Plan and report when they
-   live in the Hub.
+   framework improvements of the same run. Plans, reports and records stay on
+   your machine.
 
 ## Reading the self-improvement part after each run
 

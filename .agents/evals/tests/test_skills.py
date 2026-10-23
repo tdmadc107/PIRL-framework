@@ -68,6 +68,25 @@ class FrameworkLinkTests(unittest.TestCase):
                         self.assertIn(anchor, anchors(resolved))
 
 
+class PrivateOutputTests(unittest.TestCase):
+    """Plan packages, their reports and records describe the user's projects and must stay out of Git."""
+
+    @unittest.skipUnless(shutil.which("git"), "git is required")
+    def test_default_outputs_are_ignored_and_framework_files_are_not(self):
+        def ignored(path):
+            return subprocess.run(["git", "-C", str(REPO), "check-ignore", "--no-index", "-q", path]).returncode == 0
+
+        for path in ("order-email_20261023-101010/01-plan-send-email-20261023-101010.md",
+                     "order-email_20261023-101010/t01-send-email/round-01-review-send-email-20261023-111111.md",
+                     "plans/order-email_20261023-101010/01-plan-send-email-20261023-101010.md",
+                     ".agents/evals/records/plan/2026-10-23.jsonl", ".repos/shop-web/README.md"):
+            with self.subTest(path=path):
+                self.assertTrue(ignored(path))
+        for path in ("AGENTS.md", ".skills/plan/SKILL.md", ".agents/evals/layer_record.py", ".agents/roles/code-analyst.role.md"):
+            with self.subTest(path=path):
+                self.assertFalse(ignored(path))
+
+
 class SkillScriptTests(unittest.TestCase):
     """Run the helper scripts against a temporary Hub and check their output with the real validator."""
 

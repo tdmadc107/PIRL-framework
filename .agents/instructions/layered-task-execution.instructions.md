@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/**/*,.skills/**/*"
 metadata:
   id: ".agents/instructions/layered-task-execution"
   kind: "instruction"
-  version: "2.0.0"
+  version: "2.0.1"
   status: "active"
 ---
 
@@ -622,8 +622,10 @@ needed must be cleaned up before handing off the corresponding result.
   output; do not use possible reuse as an excuse to keep clutter. Do not leave
   required references pointing to temporary files about to be deleted, to paths
   ignored by Git or to locations outside the repository, because they do not go
-  with commits. Self-evaluation records are the exception: they are local by
-  design and are referenced by `record_id`.
+  with commits. Plan packages with their Review reports and self-evaluation
+  records are the exception: they are local by design, ignored by Git
+  ([AGENTS.md](../../AGENTS.md#git)), and refer to each other by path or
+  `record_id`.
 - Verify ownership and the absolute path before deleting, using specific
   targets. Do not delete the whole TEMP, run a broad `git clean`, or treat every
   untracked file as clutter. For resources with an unclear owner, verify first;

@@ -38,7 +38,7 @@ CONTEXT.md                        how responses to the user are presented
   review/         Review skill: same layout
 .tools/           local tools (dashboard, claude-resume, claude-schedule)
 .tmp/             temporary output, ignored by Git (layout snapshots, tool logs)
-<plan-set>/       Plan package and its Review reports, created at the Hub root unless the user names another directory
+<plan-set>/       Plan package and its Review reports, created at the Hub root unless the user names another directory (ignored by Git)
 ```
 
 | Source | Owns |
@@ -355,7 +355,8 @@ headings that other framework files link to.
 
 Commit or push only when the user asks. Changes in a target repository are
 committed in that repository first; then the Hub commit carries the framework
-improvements of the same run and the Plan/report of that run when they live in
-the Hub. When the target repository is a submodule of the Hub, the Hub commit
-also updates its pointer. Self-evaluation records in `.agents/evals/records/`
-are ignored by Git and are never committed.
+improvements of the same run. When the target repository is a submodule of the
+Hub, the Hub commit also updates its pointer. Plan packages
+(`<request-slug>_<YYYYMMDD-HHmmss>/`, anywhere in the Hub) with the Review
+reports inside them, and self-evaluation records in `.agents/evals/records/`,
+describe the user's projects: they are ignored by Git and are never committed.

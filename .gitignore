@@ -5,3 +5,5 @@ __pycache__/
 # Private data about the user's projects: kept on the local machine, never committed.
 .agents/evals/records/
 .repos/
+# Plan packages <request-slug>_<YYYYMMDD-HHmmss>/ and the Review reports inside them, anywhere in the Hub.
+*_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]/
