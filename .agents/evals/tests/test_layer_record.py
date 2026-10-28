@@ -315,7 +315,8 @@ class LayerRecordTests(unittest.TestCase):
         workspace = Path(temporary.name)
         hub = workspace / ".pirl"
         shutil.copytree(self.root, hub)
-        files = {name: hashlib.sha256((hub / name).read_bytes()).hexdigest() for name in ("AGENTS.md", CATALOG)}
+        # Hashed with LF line endings, as the installer writes them; Windows writes these test files with CRLF.
+        files = {name: hashlib.sha256((hub / name).read_bytes().replace(b"\r\n", b"\n")).hexdigest() for name in ("AGENTS.md", CATALOG)}
         (hub / "manifest.json").write_text(json.dumps({"package": "pirl-framework", "version": "1.2.3", "files": files}), encoding="utf-8")
         git = ["git", "-C", str(workspace), "-c", "user.email=t@t", "-c", "user.name=t"]
         subprocess.run([*git, "init", "-q"], check=True)

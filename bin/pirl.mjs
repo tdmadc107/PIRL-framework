@@ -248,9 +248,10 @@ async function checkWorkspace(ws, opts) {
   if (!fs.existsSync(ws) || !fs.statSync(ws).isDirectory()) fail(`${ws} is not a folder`);
   if (posix(ws).split("/").includes(DIR)) fail(`${ws} is inside a ${DIR}/ folder; run the command in the folder that holds ${DIR}/`);
   const top = git(ws, "rev-parse", "--show-toplevel");
+  // The native realpath expands Windows short names (C:\Users\NAME~1) and letter case, since Git reports the long form.
   if (top === null) {
     console.warn(`warning: ${ws} is not a Git repository; hosts usually load their instruction files from the repository root.`);
-  } else if (fs.realpathSync(top) !== fs.realpathSync(ws)) {
+  } else if (fs.realpathSync.native(top) !== fs.realpathSync.native(ws)) {
     const message = `${ws} is inside the Git repository ${top} but is not its root, so hosts opened at the root may not load the adapters.`;
     if (!(await confirm(`${message}\nInstall here anyway?`, opts))) fail(`${message}\nRun the command at the repository root, or pass --yes to install here.`);
   }
