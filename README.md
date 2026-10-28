@@ -53,12 +53,13 @@ Each host you choose gets its full set of adapter files, in that host's own fold
 | --- | --- | --- |
 | Claude Code (`claude`) | `.claude/rules/pirl.md` | `.claude/skills/pirl-*/` |
 | GitHub Copilot (`copilot`) | `.github/instructions/pirl.instructions.md` | `.github/skills/pirl-*/` |
-| Codex CLI (`codex`) | A marked block in `AGENTS.md` that points to `.pirl/AGENTS.md` | `.agents/skills/pirl-*/` |
+| Codex CLI (`codex`) | A marked block in `AGENTS.md`: `.pirl/AGENTS.md` itself, or a pointer to it (see below) | `.agents/skills/pirl-*/` |
 | Cursor (`cursor`) | `.cursor/rules/pirl.mdc` | `.cursor/skills/pirl-*/` |
 | Gemini CLI (`gemini`) | A marked block in `GEMINI.md` | `.gemini/skills/pirl-*/` |
 
 The instructions hold `.pirl/AGENTS.md` and `.pirl/CONTEXT.md`, so the core rules apply from the first answer of every session.
-Codex CLI stops reading its instruction files past 32 KiB by default, which the full text would exceed, so its block only points to `.pirl/AGENTS.md`, and the Agent reads that file at the start of the session.
+Codex CLI stops reading its instruction files past 32 KiB by default, which the full text would exceed, so its block holds `.pirl/AGENTS.md` without `CONTEXT.md`.
+Once your `AGENTS.md` also holds your own content, `sync` turns the block into a pointer to `.pirl/AGENTS.md`, which the Agent reads at the start of the session, so your content and PIRL's together stay under that limit.
 Each skill entry points to its skill in `.pirl/.skills/`.
 In a file you own, such as your `AGENTS.md`, PIRL only writes between `<!-- pirl:begin -->` and `<!-- pirl:end -->`; the rest stays your repository's own documentation.
 When the repository has no such file yet, the installer creates it with only the PIRL block, and removing the host deletes it again.

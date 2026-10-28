@@ -90,6 +90,24 @@ class InstallerTests(unittest.TestCase):
             with self.subTest(private=private):
                 self.assertEqual(subprocess.run(["git", "-C", str(self.ws), "check-ignore", "-q", "--no-index", private]).returncode, 0)
 
+    def test_size_capped_host_gets_the_rules_alone_until_the_file_holds_the_users_content(self):
+        (self.ws / "AGENTS.md").unlink()
+        self.assertEqual(self.run_cli("init", "--host", "codex")[0], 0)
+        agents = (self.ws / ".pirl/AGENTS.md").read_text(encoding="utf-8").strip()
+        context = (self.ws / ".pirl/CONTEXT.md").read_text(encoding="utf-8").strip()
+        text = (self.ws / "AGENTS.md").read_text(encoding="utf-8")
+        self.assertIn(agents, text)
+        self.assertNotIn(context, text)
+        (self.ws / "AGENTS.md").write_text("# Shop\n\n" + text, encoding="utf-8")
+        self.assertNotEqual(self.run_cli("check")[0], 0)
+        self.assertEqual(self.run_cli("sync")[0], 0)
+        text = (self.ws / "AGENTS.md").read_text(encoding="utf-8")
+        self.assertTrue(text.startswith("# Shop\n"))
+        self.assertIn("read `.pirl/AGENTS.md`", text)
+        self.assertNotIn(agents, text)
+        self.assertEqual(self.run_cli("remove", "--host", "codex")[0], 0)
+        self.assertEqual((self.ws / "AGENTS.md").read_text(encoding="utf-8"), "# Shop\n")
+
     def test_install_restores_the_gitignore_that_npm_renames(self):
         # npm unpacks a published .gitignore as .npmignore; the Hub still needs it as .gitignore.
         (self.package / ".gitignore").rename(self.package / ".npmignore")

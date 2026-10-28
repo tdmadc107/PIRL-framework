@@ -8,7 +8,9 @@ Each layer is run through its skill in `.skills/`, and so are the other kinds of
 The product repositories the Agent works on are not part of the Hub, even when an installed Hub sits inside one of them; the user names the target repository of each request, as described in [Target repository](#target-repository).
 
 When PIRL is installed into a workspace, the installer ([`bin/pirl.mjs`](bin/pirl.mjs)) also writes adapter files next to `.pirl/`: for each host the user chose, the instruction file that host loads in every session and an entry for each skill in that host's skill folder.
-The instruction file holds this file and `CONTEXT.md`, except for a host that stops reading its instruction files past a size the full text would exceed: there it only points to this file, and this file's rule to read `CONTEXT.md` applies.
+The instruction file holds this file and `CONTEXT.md`, except for a host that stops reading its instruction files past a size the full text would exceed.
+For such a host, the instruction file holds this file alone while it has no other content and this file fits under that size; once it also holds the workspace's own content, or this file no longer fits, it only points to this file.
+This file's rule to read `CONTEXT.md` applies in both cases.
 The adapter files are generated from the Hub's files; the [Framework checks](.agents/instructions/standalone-and-maintenance.instructions.md#framework-checks) say when they are regenerated.
 
 The file structure, the owner of each rule and the role catalog are described in the [standalone and maintenance instructions](.agents/instructions/standalone-and-maintenance.instructions.md#framework-structure), read when the framework itself is maintained.
