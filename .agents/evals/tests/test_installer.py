@@ -69,8 +69,13 @@ class InstallerTests(unittest.TestCase):
         for host, (instructions, skill_dir) in HOST_FILES.items():
             with self.subTest(host=host):
                 text = (self.ws / instructions).read_text(encoding="utf-8")
-                self.assertIn(agents, text)
-                self.assertIn((self.ws / ".pirl/CONTEXT.md").read_text(encoding="utf-8").strip(), text)
+                if host == "codex":
+                    # This host caps the size of its instruction files, so its block only points to the Hub.
+                    self.assertIn("read `.pirl/AGENTS.md`", text)
+                    self.assertNotIn(agents, text)
+                else:
+                    self.assertIn(agents, text)
+                    self.assertIn((self.ws / ".pirl/CONTEXT.md").read_text(encoding="utf-8").strip(), text)
                 self.assertEqual(sorted(p.name for p in (self.ws / skill_dir).iterdir()), skills)
                 for skill in skills:
                     self.assertIn(f".pirl/.skills/{skill}/SKILL.md", (self.ws / skill_dir / skill / "SKILL.md").read_text(encoding="utf-8"))

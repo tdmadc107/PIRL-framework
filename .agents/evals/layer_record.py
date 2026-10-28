@@ -318,7 +318,9 @@ def framework_ref(root: Path) -> dict[str, Any]:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         recorded = manifest.get("files", {})
         current = _framework_files(root)
-        changed = sorted({rel for rel, path in current.items() if hashlib.sha256(path.read_bytes()).hexdigest() != recorded.get(rel)}
+        # Compared with LF line endings, like the installer: a CRLF checkout on Windows is no change of content.
+        changed = sorted({rel for rel, path in current.items()
+                          if hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest() != recorded.get(rel)}
                          | {rel for rel in recorded if rel not in current and _is_framework(rel)})
         return {"commit": "none", "version": str(manifest.get("version", "")),
                 "files": {rel: _hash(root / rel) for rel in changed}}

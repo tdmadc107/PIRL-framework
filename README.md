@@ -53,13 +53,16 @@ Each host you choose gets its full set of adapter files, in that host's own fold
 | --- | --- | --- |
 | Claude Code (`claude`) | `.claude/rules/pirl.md` | `.claude/skills/pirl-*/` |
 | GitHub Copilot (`copilot`) | `.github/instructions/pirl.instructions.md` | `.github/skills/pirl-*/` |
-| Codex CLI (`codex`) | A marked block in `AGENTS.md` | `.agents/skills/pirl-*/` |
+| Codex CLI (`codex`) | A marked block in `AGENTS.md` that points to `.pirl/AGENTS.md` | `.agents/skills/pirl-*/` |
 | Cursor (`cursor`) | `.cursor/rules/pirl.mdc` | `.cursor/skills/pirl-*/` |
 | Gemini CLI (`gemini`) | A marked block in `GEMINI.md` | `.gemini/skills/pirl-*/` |
 
 The instructions hold `.pirl/AGENTS.md` and `.pirl/CONTEXT.md`, so the core rules apply from the first answer of every session.
+Codex CLI stops reading its instruction files past 32 KiB by default, which the full text would exceed, so its block only points to `.pirl/AGENTS.md`, and the Agent reads that file at the start of the session.
 Each skill entry points to its skill in `.pirl/.skills/`.
 In a file you own, such as your `AGENTS.md`, PIRL only writes between `<!-- pirl:begin -->` and `<!-- pirl:end -->`; the rest stays your repository's own documentation.
+When the repository has no such file yet, the installer creates it with only the PIRL block, and removing the host deletes it again.
+PIRL never writes to `CLAUDE.md`: the Claude Code instructions are a separate rule file, which Claude Code loads whether or not the repository has a `CLAUDE.md`.
 When you use several hosts, a host that also reads another host's folders may see PIRL twice.
 
 Commit `.pirl/` and the adapter files with your repository, so the whole team shares the same rules and reviews the framework's improvements in pull requests.
