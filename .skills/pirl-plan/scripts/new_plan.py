@@ -12,7 +12,7 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 
 SKILL = Path(__file__).resolve().parents[1]
@@ -21,7 +21,6 @@ sys.path.insert(0, str(HUB / ".agents" / "evals"))
 from validate_layer_artifact import LayerArtifactError, read_frontmatter, resolve_path  # noqa: E402
 
 TEMPLATE = SKILL / "assets" / "plan-template.md"
-TZ = timezone(timedelta(hours=7))
 SLUG = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 PLAN_SET = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*_(\d{8}-\d{6})")
 TASK = re.compile(r"T(\d{2,})")
@@ -37,7 +36,7 @@ def create(root: Path, todo_slug: str, request_slug: str | None, plan_set: str |
     if not SLUG.fullmatch(todo_slug):
         raise LayerArtifactError("--todo-slug must be ASCII kebab-case")
     base = resolve_path(out_dir, root) if out_dir else root
-    now = datetime.now(TZ)
+    now = datetime.now().astimezone()
     if request_slug is not None:
         if not SLUG.fullmatch(request_slug):
             raise LayerArtifactError("--request-slug must be ASCII kebab-case")

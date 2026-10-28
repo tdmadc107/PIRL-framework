@@ -11,7 +11,7 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 
 SKILL = Path(__file__).resolve().parents[1]
@@ -20,7 +20,6 @@ sys.path.insert(0, str(HUB / ".agents" / "evals"))
 from validate_layer_artifact import PLAN_SCHEMA, LayerArtifactError, read_frontmatter, resolve_path  # noqa: E402
 
 TEMPLATE = SKILL / "assets" / "implementation-record-template.md"
-TZ = timezone(timedelta(hours=7))
 RECORD = re.compile(r"(?m)^## Implementation Record\s*$")
 
 
@@ -33,7 +32,7 @@ def add(root: Path, plan: str) -> dict[str, object]:
         raise LayerArtifactError(f"{plan} is not a {PLAN_SCHEMA} Plan")
     if RECORD.search(body):
         raise LayerArtifactError(f"{plan} already has an Implementation Record; edit it in place")
-    record = TEMPLATE.read_text(encoding="utf-8").replace("{{updated_at}}", datetime.now(TZ).isoformat(timespec="seconds"))
+    record = TEMPLATE.read_text(encoding="utf-8").replace("{{updated_at}}", datetime.now().astimezone().isoformat(timespec="seconds"))
     text = path.read_text(encoding="utf-8")
     with path.open("a", encoding="utf-8", newline="\n") as handle:
         handle.write(("" if text.endswith("\n") else "\n") + "\n" + record)

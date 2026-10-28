@@ -8,7 +8,7 @@ import ast
 import json
 import re
 from collections import deque
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path, PureWindowsPath
 from typing import Any
 
@@ -44,6 +44,13 @@ def _scalar(raw: str, source: str, number: int) -> Any:
         return lowered == "true"
     if lowered in ("null", "~"):
         return None
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+        # A quoted string is taken as written: Windows paths such as "D:\new-app" keep their backslashes.
+        # Only an escaped quote or backslash in double quotes, and a doubled quote in single quotes, are decoded.
+        inner = value[1:-1]
+        if value[0] == "'":
+            return inner.replace("''", "'")
+        return re.sub(r'\\(["\\])', r"\1", inner)
     if value.startswith(("[", "{", "'", '"')):
         try:
             return ast.literal_eval(value)
@@ -185,8 +192,8 @@ def resolve_path(value: Any, root: Path) -> Path:
 def _timestamp(value: Any, label: str, errors: list[str]) -> None:
     try:
         parsed = datetime.fromisoformat(value) if isinstance(value, str) else None
-        if parsed is None or parsed.utcoffset() != timedelta(hours=7):
-            raise ValueError("expected ISO-8601 with +07:00")
+        if parsed is None or parsed.utcoffset() is None:
+            raise ValueError("expected ISO-8601 with a UTC offset, for example +07:00")
     except ValueError as exc:
         errors.append(f"{label}: invalid timestamp ({exc})")
 
