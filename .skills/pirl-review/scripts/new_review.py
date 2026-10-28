@@ -12,7 +12,7 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 
 SKILL = Path(__file__).resolve().parents[1]
@@ -21,7 +21,6 @@ sys.path.insert(0, str(HUB / ".agents" / "evals"))
 from validate_layer_artifact import PLAN_SCHEMA, LayerArtifactError, read_frontmatter, resolve_path  # noqa: E402
 
 TEMPLATE = SKILL / "assets" / "review-template.md"
-TZ = timezone(timedelta(hours=7))
 SLUG = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 ROUND = re.compile(r"round-(\d{2,})-review-.+\.md")
 
@@ -46,7 +45,7 @@ def create(root: Path, plan: str, todo_slug: str, out_dir: str | None) -> dict[s
     rounds = sorted((int(m.group(1)), p) for p in (folder.glob("*.md") if folder.is_dir() else []) if (m := ROUND.fullmatch(p.name)))
     number = rounds[-1][0] + 1 if rounds else 1
     prior = json.dumps(shown(rounds[-1][1], root), ensure_ascii=False) if rounds else "null"
-    now = datetime.now(TZ)
+    now = datetime.now().astimezone()
     target = folder / f"round-{number:02d}-review-{todo_slug}-{now:%Y%m%d-%H%M%S}.md"
     if target.exists():
         raise LayerArtifactError(f"{shown(target, root)} already exists")

@@ -5,7 +5,7 @@ applyTo: ".agents/**/*,.skills/**/*,AGENTS.md,CONTEXT.md"
 metadata:
   id: ".agents/instructions/standalone-and-maintenance"
   kind: "instruction"
-  version: "1.0.2"
+  version: "1.2.0"
   status: "active"
 ---
 
@@ -15,105 +15,62 @@ Read this file only in these cases:
 
 - a standalone task: the [Standalone tasks](#standalone-tasks) section;
 - framework maintenance the user assigns: the whole file;
-- inside a Plan, Implement or Review run, only when a framework improvement is
-  applied (`process-auditor`, or the coordinator in `mode: self`), per the
-  router's [Thorough improvement](layered-task-execution.instructions.md#thorough-improvement) section.
+- inside a Plan, Implement or Review run, only when a framework improvement is applied (`process-auditor`, or the coordinator in `mode: self`), per the [Thorough improvement](self-evaluation.instructions.md#thorough-improvement) section of the self-evaluation instructions.
 
-Plan, Implement and Review runs do not read it otherwise; a question that only
-needs an explanation reads it only when the question is about the framework's
-structure or maintenance.
+Plan, Implement and Review runs do not read it otherwise; a question that only needs an explanation reads it only when the question is about the framework's structure or maintenance.
 
 ## Standalone tasks
 
-A standalone task is work the user assigns directly that closes within that
-same run, outside the Plan → Implement → Review chain: writing or updating
-documentation on request, an investigation with durable output, a small fix
-the user specifies. Carrying out a Plan task is still Implement, even with a
-single role. A question that only needs an explanation and creates no durable
-output is answered directly (step 3 of
-[Choosing a layer](../../AGENTS.md#choosing-a-layer)).
+A standalone task is work the user assigns directly that closes within that same run, outside the Plan → Implement → Review chain: writing or updating documentation on request, an investigation with durable output, a small fix the user specifies.
+It is run through the [`pirl-standalone` skill](../../.skills/pirl-standalone/SKILL.md), which follows this section.
+Carrying out a Plan task is still Implement, even with a single role.
+A question that only needs an explanation and creates no durable output is answered directly (step 3 of [Choosing a layer](../../AGENTS.md#choosing-a-layer)).
 
 No Review is scheduled, so the person doing the work closes the loop within the session:
 
-1. Complete the delivery within exactly the scope the user assigned, under the
-   core rules.
-2. Self-verify: check the output against the request and the authoritative
-   sources, and pick a counterexample that could refute the most important
-   claim; fix wrong output before reporting. Record it as self-verification,
-   not an independent review.
-3. Report separately the delivery result, how it was verified and what remains
-   unknown. Do not create a Plan or report unless the user asks. Standalone
-   tasks write no self-evaluation record; only the three layers write one, per
-   the [Self-evaluation and improvement section](layered-task-execution.instructions.md#self-evaluation-and-improvement).
+1. Complete the delivery within exactly the scope the user assigned, under the core rules.
+2. Self-verify: check the output against the request and the authoritative sources, and pick a counterexample that could refute the most important claim; fix wrong output before reporting.
+   Record it as self-verification, not an independent review.
+3. Report separately the delivery result, how it was verified and what remains unknown.
+   Do not create a Plan or report unless the user asks.
+   Standalone tasks write no self-evaluation record; only the three layers write one, per the [Self-evaluation and improvement section](layered-task-execution.instructions.md#self-evaluation-and-improvement).
 4. Clean up temporary resources per the [cleanup section](layered-task-execution.instructions.md#cleaning-up-temporary-resources-before-handoff).
 
-If the user later asks for a Review, the Review evaluates as usual;
-self-verification does not replace the Review's conclusions.
+If the user later asks for a Review, the Review evaluates as usual; self-verification does not replace the Review's conclusions.
 
 ### Verifying standalone work
 
-Applies to standalone tasks and to work done directly without a layer; the
-three layers verify per the
-[Verification by reasoning section](layered-task-execution.instructions.md#verification-by-reasoning).
+Applies to standalone tasks and to work done directly without a layer; the three layers verify per the [Verification by reasoning section](layered-task-execution.instructions.md#verification-by-reasoning).
 
-- Choose the narrowest verification that answers the open question: static
-  (types, lint, syntax, metadata), unit (pure functions, services, domain
-  rules), component (UI behavior and accessibility), integration (API,
-  authentication, storage, multi-tier flows) or manual (visual layout, real
-  browser, multi-step flows per viewport). Widen only when an affected contract
-  or a concrete failure mechanism requires it; a file name or the existence of
-  a test does not create that need. Tests written or run follow the
-  [FUT rule](layered-task-execution.instructions.md#functional-tests-fut-rule).
-- A passing command only proves the cases that ran, not invariant coverage,
-  adjacent integration paths, edge behavior or the reliability of the skipped
-  part. A case skipped because of the platform only proves that case does not
-  run in this environment; it does not prove the product needs another
-  platform. Infer environment requirements from the user's task and the
-  repository's actually supported behavior.
-- Report each verification with the command, its purpose, the working
-  directory, pass/fail/blocker, a summary of the key output and the remaining
-  risk.
+- Choose the narrowest verification that answers the open question: static (types, lint, syntax, metadata), unit (pure functions, services, domain rules), component (UI behavior and accessibility), integration (API, authentication, storage, multi-tier flows) or manual (visual layout, real browser, multi-step flows per viewport).
+  Widen only when an affected contract or a concrete failure mechanism requires it; a file name or the existence of a test does not create that need.
+  Tests written or run follow the [FUT rule](layered-task-execution.instructions.md#functional-tests-fut-rule).
+- A passing command only proves the cases that ran, not invariant coverage, adjacent integration paths, edge behavior or the reliability of the skipped part.
+  A case skipped because of the platform only proves that case does not run in this environment; it does not prove the product needs another platform.
+  Infer environment requirements from the user's task and the repository's actually supported behavior.
+- Report each verification with the command, its purpose, the working directory, pass/fail/blocker, a summary of the key output and the remaining risk.
 
 ## Framework maintenance
 
-A request to edit `AGENTS.md`, `CONTEXT.md`, instructions, roles, skills or
-the tools in `.agents/evals/` directly is framework maintenance within the scope
-the user assigns. Do not force a product Plan or
-report before editing. Improvements that `process-auditor` applies during a
-layer run under the
-[Self-evaluation and improvement section](layered-task-execution.instructions.md#self-evaluation-and-improvement) are
-also framework maintenance, allowed by that section without a separate request.
+A request to edit `AGENTS.md`, `CONTEXT.md`, instructions, roles, skills, the tools in `.agents/evals/` or the installer in `bin/` directly is framework maintenance within the scope the user assigns.
+It is run through the [`pirl-maintain` skill](../../.skills/pirl-maintain/SKILL.md), which follows this section.
+Do not force a product Plan or report before editing.
+Improvements that `process-auditor` applies during a layer run under the [Self-evaluation and improvement section](layered-task-execution.instructions.md#self-evaluation-and-improvement) are also framework maintenance, allowed by that section without a separate request.
 
-- Start from the wrong or missing decision, then identify the owning file:
-  `AGENTS.md` for the core rules, structure, roles and the target repository;
-  `CONTEXT.md` for how responses to the user are presented; the router for
-  layer boundaries and shared contracts; the layer contract for the roles'
-  responsibilities, decisions and exit conditions; the layer's skill for the
-  run procedure, the output format and the helper scripts. Read the files that
-  reference the rule before changing it, so that other files do not restore the
-  old behavior.
-- Write rules in the framework's general form, reusable for every repository,
-  host and situation of the same kind: conditions are stated by kind of
-  situation, actions by role and output, not by one event that happened. The
-  content of `AGENTS.md`, `CONTEXT.md`, instructions, role files, rules and tools
-  contains no details specific to one run or one project as a condition or
-  basis: repository or product names, paths inside a product repository,
-  specific tokens or values, task or record IDs, dates, quotes from the user,
-  names of a specific host or tool. Illustrative examples, when needed, are
-  marked as examples and do not become conditions. Knowledge specific to one
-  repository lives in that repository's own context documentation; the
-  decisions and evidence of a run live in Plans, Implementation Records,
-  reports and records.
-- Fix with conditions and actions that are concrete enough; replace the wrong
-  passage instead of piling on reminders. Re-read against three scenarios: the
-  scenario that caused the problem, a similar scenario where the rule must not
-  apply, and a scenario of the same kind in another repository or host; the
-  rule must apply to the third scenario without changes. Do not add tests,
-  validators or schemas in place of improving the content, and do not create
-  tests or validators that grade wording by headings, keywords, counts or
-  format.
-- After editing, run the matching commands in the
-  [Framework checks](#framework-checks) section below.
+- Start from the wrong or missing decision, then identify the owning file: `AGENTS.md` for the core rules, structure, roles and the target repository; `CONTEXT.md` for how responses to the user are presented; the router for layer boundaries and shared contracts; the layer contract for the roles' responsibilities, decisions and exit conditions; the layer's skill for the run procedure, the output format and the helper scripts.
+  Read the files that reference the rule before changing it, so that other files do not restore the old behavior.
+- Write rules in the framework's general form, reusable for every repository, host and situation of the same kind: conditions are stated by kind of situation, actions by role and output, not by one event that happened.
+  The content of `AGENTS.md`, `CONTEXT.md`, instructions, role files, rules and tools contains no details specific to one run or one project as a condition or basis: repository or product names, paths inside a product repository, specific tokens or values, task or record IDs, dates, quotes from the user, names of a specific host or tool.
+  Illustrative examples, when needed, are marked as examples and do not become conditions.
+  Knowledge specific to one repository lives in that repository's own context documentation; the decisions and evidence of a run live in Plans, Implementation Records, reports and records.
+- Fix with conditions and actions that are concrete enough; replace the wrong passage instead of piling on reminders.
+  Re-read against three scenarios: the scenario that caused the problem, a similar scenario where the rule must not apply, and a scenario of the same kind in another repository or host; the rule must apply to the third scenario without changes.
+  Do not add tests, validators or schemas in place of improving the content, and do not create tests or validators that grade wording by headings, keywords, counts or format.
+- Write the prose of the framework's Markdown files, in paragraphs and list items, without hard wraps: a line ends only where a sentence ends with `.`, `?` or `!` followed by a space, and every such ending starts a new line, however long the line is; a `;` or `:` does not end the line, except a `:` that ends a paragraph or list item before a list or another block such as a table or code block.
+  An ending inside a code span, a link, parentheses, a `<…>` placeholder or bold text does not end the line.
+  Frontmatter, headings, tables and code blocks keep their own form.
+  The output templates in the skills' `assets/` are not broken inside a sentence, but their lines are not split further either, because the Plans, Implementation Records and reports made from them are read line by line (for example a `Label: value` line).
+- After editing, run the matching commands in the [Framework checks](#framework-checks) section below.
   The checks only confirm structure; they do not prove the quality of the wording.
 
 ### Framework structure
@@ -121,6 +78,10 @@ also framework maintenance, allowed by that section without a separate request.
 ```text
 AGENTS.md                         root: core rules, flow, choosing the kind of work, delegation, target repository
 CONTEXT.md                        how responses to the user are presented
+package.json                      npm package: name, version and the files the package publishes (source repository only)
+manifest.json                     installed version, hashes of the installed files, hosts and adapter files (installed Hub only)
+bin/
+  pirl.mjs                        installer: installs the Hub into a workspace, writes and syncs the host adapters, updates the Hub
 .agents/
   instructions/
     layered-task-execution.instructions.md   router: layer boundaries, assignment, shared contracts
@@ -128,6 +89,7 @@ CONTEXT.md                        how responses to the user are presented
     implement.instructions.md                Implement layer contract
     review.instructions.md                   Review layer contract
     layout-verification.instructions.md      layout verification with mocks, read when a diff changes the UI
+    self-evaluation.instructions.md          issue causes, improvements and the record of a layer run, read by process-auditor
     standalone-and-maintenance.instructions.md   standalone tasks, framework maintenance, structure, role catalog
   roles/          expertise of each role: <role-id>.role.md
   evals/
@@ -139,35 +101,43 @@ CONTEXT.md                        how responses to the user are presented
   pirl-plan/      Plan skill: SKILL.md, assets/, references/, scripts/
   pirl-implement/ Implement skill: same layout
   pirl-review/    Review skill: same layout
-.tmp/             temporary output, ignored by Git (layout snapshots, tool logs)
+  pirl-standalone/ standalone task skill: SKILL.md only
+  pirl-maintain/  framework maintenance skill: SKILL.md only
+.tmp/             temporary output, ignored by Git (layout snapshots, tool logs, an update waiting for its conflicts to be resolved)
 <plan-set>/       Plan package and its Review reports, created at the Hub root unless the user names another directory (ignored by Git)
+```
+
+Installed into a workspace, the Hub is the `.pirl/` folder with the tree above, minus `package.json` and plus `manifest.json`; the adapter files sit in the workspace, where each host looks for them:
+
+```text
+<workspace>/
+  .pirl/                          the Hub
+  <host adapter files>            per chosen host: its instruction file, or a marked block in a file the user owns, and one entry per skill
 ```
 
 | Source | Owns |
 | --- | --- |
 | `AGENTS.md` | Core rules, flow, choosing the kind of work, delegation, target repository, Git |
 | `CONTEXT.md` | How answers, summaries, reports, proposals and syntheses sent to the user are presented |
-| Router | Boundaries between kinds of work, assignment principles, shared contracts (verification by reasoning, functional tests, shared snapshots and older records, self-evaluation and improvement, cleanup) |
+| Router | Boundaries between kinds of work, assignment principles, shared contracts (verification by reasoning, functional tests, shared snapshots and older records, when a run self-evaluates and how it reports, cleanup) |
+| Self-evaluation instructions | How issues are classified by cause, how improvements are applied, the record and its fields |
 | Standalone and maintenance instructions | Standalone tasks, framework maintenance and its check commands, this structure, the role catalog, the constraints that keep roles separate from skills |
 | Layer instruction | Each role's responsibilities at the layer, the decisions the layer settles, the content its output must hold and its exit conditions; the Implement contract also holds when layout verification with mocks applies |
 | Layout verification instructions | How layout is captured and checked with mocks, and how Review reads the result |
-| Skill | How one layer run is carried out: when the skill applies, the ordered procedure linking each step to the contract that owns it, the output format and template, helper scripts |
+| Skill | How one layer run, standalone task or framework maintenance task is carried out: when the skill applies, the ordered procedure linking each step to the section that owns it; for a layer also the output format and template and helper scripts |
 | Role file | Shared expertise of one role, identical in every layer |
-| Evals | Checking handoff artifacts, writing and checking records, the tests of the framework tools and skills |
+| Evals | Checking handoff artifacts, writing and checking records, the tests of the framework tools, the installer and the skills |
+| Installer | Installing the Hub into a workspace, the adapter files each host loads, keeping them in sync with the Hub, updating the Hub with a three-way merge of local improvements |
 | Record | History of self-evaluation and improvement for each layer run; appended only through the tool and kept on the local machine |
 
-Each rule lives in exactly one owner; other files point to it instead of
-copying it.
+Each rule lives in exactly one owner; other files point to it instead of copying it.
 
 ### Role catalog
 
-Each layer assigns work to AI Agents by role, matching the expertise the work
-needs. This table is the only catalog of role IDs. A role's expertise lives in
-`.agents/roles/<ID>.role.md`; its concrete responsibilities at each layer (what
-it is assigned, its inputs, when it is done) live in the role table of the
-corresponding layer file. The `Used in` column says where a role can be
-selected: `plan`, `implement`, `verify` (QG verification at Implement),
-`review`, or `audit` (self-evaluation at the end of each layer).
+Each layer assigns work to AI Agents by role, matching the expertise the work needs.
+This table is the only catalog of role IDs.
+A role's expertise lives in `.agents/roles/<ID>.role.md`; its concrete responsibilities at each layer (what it is assigned, its inputs, when it is done) live in the role table of the corresponding layer file.
+The `Used in` column says where a role can be selected: `plan`, `implement`, `verify` (QG verification at Implement), `review`, or `audit` (self-evaluation at the end of each layer).
 
 | ID | Expertise | Used in |
 | --- | --- | --- |
@@ -185,43 +155,31 @@ selected: `plan`, `implement`, `verify` (QG verification at Implement),
 
 Constraints that keep roles separate from skills:
 
-- Closed catalog: only the IDs in this table. Adding, merging or removing a role
-  means editing this table together with the role file, the layer file tables
-  and the framework checks, in one change.
-- Layers pick roles themselves following the layer file's guidance: Plan and
-  Review by the "Select when" column; the Implement team for implementation and
-  verification is chosen by the Plan. The user does not need to name roles, but
-  when they do, keep exactly that list.
-- A role file contains only shared expertise: the questions the role answers,
-  how it works, warning signs, boundaries with other roles. It does not contain
-  a layer's sequence, output templates, commands or completion conditions; those
-  belong to the layer contract and the layer's skill.
-- Roles have no artifacts, tools, skills or evaluation mechanism of their own;
-  a role is evaluated through the layer's record.
-- Knowledge specific to one repository lives in that repository's context
-  documentation, not in role files or skills. Roles do not rely on a host's
-  skill mechanism or custom agent configuration: the layer skills are plain
-  files the coordinator reads and passes on.
+- Closed catalog: only the IDs in this table.
+  Adding, merging or removing a role means editing this table together with the role file, the layer file tables and the framework checks, in one change.
+- Layers pick roles themselves following the layer file's guidance: Plan and Review by the "Select when" column; the Implement team for implementation and verification is chosen by the Plan.
+  The user does not need to name roles, but when they do, keep exactly that list.
+- A role file contains only shared expertise: the questions the role answers, how it works, warning signs, boundaries with other roles.
+  It does not contain a layer's sequence, output templates, commands or completion conditions; those belong to the layer contract and the layer's skill.
+- Roles have no artifacts, tools, skills or evaluation mechanism of their own; a role is evaluated through the layer's record.
+- Knowledge specific to one repository lives in that repository's context documentation, not in role files or skills.
+  Roles do not rely on a host's skill mechanism or custom agent configuration: the layer skills are plain files the coordinator reads and passes on.
 
 ### Framework checks
 
-Pick the checks that match the change. They only validate handoff inputs and
-outputs and do not grade the wording; instruction content is re-read against
-the scenario that caused the problem.
+Pick the checks that match the change.
+They only validate handoff inputs and outputs and do not grade the wording; instruction content is re-read against the scenario that caused the problem.
 
 ```powershell
 python -B .agents/evals/validate_layer_artifact.py --kind <plan|review> --path <file or directory>
 python -B .agents/evals/layer_record.py <start|append|check|query> ...
 python -B -m unittest discover -s .agents/evals/tests -p "test_*.py"
+node bin/pirl.mjs sync
+node bin/pirl.mjs check
 ```
 
-The first command checks Plan/Review files (schema, required fields, roles,
-dependencies, time zone) and runs when they are handed off. The second writes
-and checks self-evaluation records as the router describes; `check` runs after
-each write or when the tool itself is edited. The last command runs the tests
-of the two tools above, of the role catalog, of the skills (structure, helper
-scripts), of the links between framework files, that private outputs stay out
-of Git and that every tracked file is either framework content or listed as not
-framework; run it when editing the tools, the role catalog, a layer's role
-table, a role file, a skill, `.gitignore`, the headings that other framework
-files link to, or when adding a top-level path.
+The first command checks Plan/Review files (schema, required fields, roles, dependencies, time zone) and runs when they are handed off.
+The second writes and checks self-evaluation records as the router describes; `check` runs after each write or when the tool itself is edited.
+The third command runs the tests of the two tools above, of the installer, of the role catalog, of the skills (structure, helper scripts), of the links between framework files, that private outputs stay out of Git and that every tracked file is either framework content or listed as not framework; run it when editing the tools, the installer, the role catalog, a layer's role table, a role file, a skill, `.gitignore`, the headings that other framework files link to, or when adding a top-level path.
+The installer tests need Node and Git and are skipped without them.
+The last two commands apply only to a Hub installed in a workspace and run from the Hub root: `sync` regenerates the adapter files after `AGENTS.md`, `CONTEXT.md` or the name or description of a skill changed, or after a skill was added or removed, and `check` fails while an adapter file is out of date; in the source repository nothing is installed, and `check` says so.

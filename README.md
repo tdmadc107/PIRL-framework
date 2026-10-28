@@ -1,170 +1,105 @@
-# PIRL Framework
+<div align="center">
 
-**Plan – Implement – Review Layer**: a Hub that coordinates software development
-work for AI Agents, running entirely on instruction files.
+# 🧭 PIRL — Plan · Implement · Review Layer
 
-You assign work in plain words. The Agent reads [`AGENTS.md`](AGENTS.md), picks
-the right layer, splits the work among specialist roles, records the results as
-files in the repository, then improves the instruction files themselves after
-each run.
+**Give your AI coding agent a team, a plan and a review — in one `npx` command.**
 
-## What the framework does
+[![npm version](https://img.shields.io/npm/v/pirl-framework?color=2f6fe4&label=npm)](https://www.npmjs.com/package/pirl-framework)
+[![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![node](https://img.shields.io/badge/node-%E2%89%A518-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![python](https://img.shields.io/badge/python-%E2%89%A53.9-3776AB?logo=python&logoColor=white)](https://www.python.org)
 
-- **Three layers, three skills.** Plan settles the work to do and the quality
-  gates (QG). Implement edits the source according to the Plan. Review checks
-  the result against the QGs by reasoning on the source. Each layer is run
-  through its skill in `.skills/` (`pirl-plan`, `pirl-implement`, `pirl-review`).
-- **Any repository.** The product repositories are not part of the Hub. You
-  name the target repository of each request; the Agent reads that
-  repository's own context documentation (its `AGENTS.md`, `CLAUDE.md`, README
-  and similar).
-- **AI Agent roles.** Each layer assigns work to roles with the right expertise,
-  for example `business-analyst`, `backend-developer`, `code-reviewer`.
-- **Self-improvement.** At the end of each layer run, the `process-auditor` role
-  finds each role's mistakes, fixes the relevant instruction files at the root,
-  writes a JSONL record and reports what was fixed and where.
+[⚡ Quick Start](#-quick-start) · [🧰 Hosts](#-supported-hosts) · [🔧 Commands](#-commands) · [📖 Docs](#-documentation)
 
-The framework does not build, does not run the application for acceptance and
-does not deploy. Those belong to your build/test/release stage. Implement only
-writes and runs functional tests related to the request, and captures layout
-with mocks when the UI changes.
+</div>
 
-## Requirements
+---
 
-- An AI Agent that can read files in the repository and run commands, for
-  example Claude Code. If the host loads `AGENTS.md` automatically, it works
-  right away; if not, ask the Agent to read `AGENTS.md` before assigning work.
-- Git.
-- Python 3.9 or later, for the validator, the record tool and the skills' scripts.
+## 🤔 Why PIRL?
 
-## Quick start
+PIRL turns the AI coding agent you already use into a small, disciplined team, running entirely on instruction files:
 
-### 1. Get the Hub
+- 📝 **Plan → 🔨 Implement → 🔍 Review.** Work is settled into tasks with quality gates, implemented, then checked against those gates on the source.
+- 👥 **Specialist roles.** Each layer hands the work to roles such as `business-analyst` or `code-reviewer`, each in its own sub-agent; no role verifies its own output.
+- 🧠 **Self-improving.** After every run, `process-auditor` fixes the framework's own instructions at the root cause.
+- 🔒 **Safe by default.** The agent never commits, pushes, deploys or touches secrets without your explicit request.
+
+PIRL calls no model and needs no API key: your host runs it with the model you already chose.
+
+---
+
+## ⚡ Quick Start
+
+At the root of your repository:
 
 ```powershell
-git clone https://github.com/tdmadc107/PIRL-framework.git
+npx pirl-framework
 ```
 
-### 2. Have a target repository ready
+The installer copies the framework into `.pirl/`, asks which hosts you use and writes their adapter files.
+In a script or CI, name the hosts: `npx pirl-framework init --host claude,codex`.
 
-Any local Git repository works; nothing needs registering. Give its path in your
-request, relative to the Hub root or absolute. If you want to keep clones
-inside the Hub, put them in `.repos/`, which Git ignores.
+Commit `.pirl/` and the adapter files so the whole team shares the same rules; Plans, reports and records stay out of Git through `.pirl/.gitignore`.
+Then open your host at the repository root and ask in plain words:
 
-The Agent learns the repository from the repository itself: architecture,
-conventions, the command that runs tests by file or name, UI languages and
-viewports, known gaps. If the repository has no such document yet, you can
-assign the Agent to write one (for example its `AGENTS.md`) as a standalone
-task.
+| You want to | Example request |
+| --- | --- |
+| Plan | "Create a Plan: customers get an email when an order is cancelled" |
+| Implement | "Implement Plan T01" |
+| Review | "Review the implementation of Plan T01" |
+| Fix per a Review | "Fix per report `<report path>`" |
+| Work outside a Plan | "Update the AGENTS.md of this repository" |
+| Change the framework | "Fix the cleanup rule in the router" |
 
-### 3. Assign work
+Each layer runs only when you ask for it.
 
-No special commands or keywords are needed; just say it:
+---
 
-| You want to | Example request | The Agent runs |
-| --- | --- | --- |
-| Plan | "Create a Plan for `../shop-web`: customers get an email when an order is cancelled" | `pirl-plan` skill |
-| Implement | "Implement Plan T01 in `<package>`" | `pirl-implement` skill |
-| Review | "Review the implementation of Plan T01" | `pirl-review` skill |
-| Fix per a Review | "Fix per report `<report path>`" | `pirl-implement` skill, repair run |
-| Small work outside the chain | "Update the AGENTS.md of shop-web" | Standalone task |
-| Edit the framework itself | "Fix the cleanup rule in the router" | Framework maintenance |
-| Just ask | "Which tasks does Plan T01 depend on?" | Answer, no files created |
+## 🧰 Supported Hosts
 
-Each layer runs only when you ask for it; the Agent does not move on to the next
-layer by itself. The Agent picks the smallest team of roles with enough
-expertise. To choose the team yourself, name the roles in your request; the role
-catalog is in the [standalone and maintenance instructions](.agents/instructions/standalone-and-maintenance.instructions.md#role-catalog).
+| Host | `--host` | Instructions loaded in every session | Skills |
+| --- | --- | --- | --- |
+| Claude Code | `claude` | `.claude/rules/pirl.md` | `.claude/skills/pirl-*/` |
+| GitHub Copilot | `copilot` | `.github/instructions/pirl.instructions.md` | `.github/skills/pirl-*/` |
+| Codex CLI | `codex` | A marked block in `AGENTS.md` | `.agents/skills/pirl-*/` |
+| Cursor | `cursor` | `.cursor/rules/pirl.mdc` | `.cursor/skills/pirl-*/` |
+| Gemini CLI | `gemini` | A marked block in `GEMINI.md` | `.gemini/skills/pirl-*/` |
 
-Plans and reports go where you say. If you name no location, they are created
-under the Hub root. Inside the Hub, Git ignores Plan packages and their reports
-(directories named `<request-slug>_<YYYYMMDD-HHmmss>/`), because they describe
-your projects.
+In a file you own, PIRL writes only between `<!-- pirl:begin -->` and `<!-- pirl:end -->`, and it never writes to `CLAUDE.md`.
 
-## A full working cycle
+---
 
-1. **Plan.** The Agent investigates the source and asks when a product decision
-   is missing. The result is a Plan package `<request-slug>_<YYYYMMDD-HHmmss>/`,
-   one file per task with: What to do (REQs), How to do it, Participating roles,
-   Required quality gates (QGs). Read and settle the Plan before implementing.
-2. **Implement.** The Agent edits the source in the target repository, within
-   the Plan's scope. Verification roles conclude each QG by reasoning on the
-   source. The results go into the `Implementation Record` section at the end of
-   the Plan file. When the UI changes, layout screenshots are in
-   `.tmp/layout-snapshots/` (not in git).
-3. **Review.** The Agent checks each QG against the source and writes a report
-   `<plan-set>/<task>/round-<NN>-review-...md`; with the default location it
-   sits inside the Plan package. The report has two sections: `Business` (a
-   PASS, FAIL or BLOCKED conclusion with FINDs, RISKs and BLOCKs) and
-   `Evaluations` (an assessment of each role of the Implement run).
-4. **Fix.** When Business is FAIL, assign "Fix per report ...". Implement runs a
-   repair run with the team named in the report, then you ask for a new Review
-   round.
-5. **Commit.** The Agent commits or pushes only when you ask. Changes in the
-   target repository are committed in that repository; a Hub commit carries the
-   framework improvements of the same run. Plans, reports and records stay on
-   your machine.
+## 🔧 Commands
 
-## Reading the self-improvement part after each run
+| Command | What it does |
+| --- | --- |
+| `npx pirl-framework` | Installs PIRL; once installed, shows its status and offers to add hosts, update or remove hosts |
+| `npx pirl-framework@latest update` | Updates `.pirl/` and keeps local improvements; on conflicts it changes nothing until you resolve them and run `update --continue` |
+| `npx pirl-framework remove --host <list>` | Removes those hosts' adapter files; delete `.pirl/` to uninstall |
+| `node .pirl/bin/pirl.mjs sync` | Regenerates the adapter files after `.pirl/` changed |
 
-At the end of each Plan, Implement or Review run, the Agent's response has:
+Options: `--host <list>`, `--yes`, `--dir <folder>`, `--force` (overwrite adapters edited by hand), `--help`.
 
-- **Self-improvement:** the record ID, and for each applied improvement: the
-  issue, cause, file and section edited, old → new version. Look at the diff of
-  these files before committing.
-- **Needs confirmation:** the closing block of the answer; it has a point about
-  this improvement only when the improvement would loosen a safety rule. You
-  choose to apply, skip, or have it re-evaluated by a separate agent; the
-  details of the issue and the change are in the "Self-improvement" section.
-  The evaluation is always delegated to a separate agent; only when the host
-  cannot create agents does the Agent evaluate itself and state the reason.
+---
 
-Safety rules (commit, push, secrets, destructive actions, points that need your
-decision) are never loosened by self-improvement without your consent. The full
-definition is in [`AGENTS.md`](AGENTS.md#safety-rules-and-self-improvement).
+## 📖 Documentation
 
-Records live in `.agents/evals/records/<layer>/<YYYY-MM-DD>.jsonl`. They
-describe your projects, so Git ignores that directory: records stay on your
-machine and the tool still reads them. To look up history:
+| To learn about | Read |
+| --- | --- |
+| Core rules, flow, roles, target repository | [`AGENTS.md`](AGENTS.md) |
+| How the agent presents its answers | [`CONTEXT.md`](CONTEXT.md) |
+| Layer boundaries, shared contracts, self-improvement | [Router](.agents/instructions/layered-task-execution.instructions.md) |
+| Running each kind of work | [`.skills/`](.skills/) |
+| Framework structure, role catalog, checks | [Standalone and maintenance instructions](.agents/instructions/standalone-and-maintenance.instructions.md) |
 
-```powershell
-python -B .agents/evals/layer_record.py query --issue-key <issue key>
-python -B .agents/evals/layer_record.py query --layer review --plan-set <package> --task T01
-python -B .agents/evals/layer_record.py check
-```
-
-## Checks after editing the framework
+To work on PIRL itself, clone this repository and run the tests at its root:
 
 ```powershell
 python -B -m unittest discover -s .agents/evals/tests -p "test_*.py"
 ```
 
-Pick the check commands that match what you edited: see
-[Framework checks](.agents/instructions/standalone-and-maintenance.instructions.md#framework-checks).
+---
 
-## Directory structure
+## 📄 License
 
-```text
-AGENTS.md        root: core rules, flow, choosing the kind of work, delegation, target repository
-CONTEXT.md       how responses to the user are presented
-.agents/         layer instructions, roles, evals (validator, record tool, tests, local records)
-.skills/         the pirl-plan, pirl-implement and pirl-review skills
-.tmp/            temporary output, not in git
-```
-
-Full tree: [framework structure](.agents/instructions/standalone-and-maintenance.instructions.md#framework-structure).
-
-## Reference documentation
-
-| To learn about | Read |
-| --- | --- |
-| Core rules, flow, delegation, target repository | [`AGENTS.md`](AGENTS.md) |
-| How the Agent presents answers, summaries, proposals | [`CONTEXT.md`](CONTEXT.md) |
-| Choosing a layer, shared contracts, functional tests, self-improvement | [Router](.agents/instructions/layered-task-execution.instructions.md) |
-| Each layer's decisions | [Plan](.agents/instructions/plan.instructions.md), [Implement](.agents/instructions/implement.instructions.md), [Review](.agents/instructions/review.instructions.md) |
-| Running each layer, file formats, templates | [`pirl-plan`](.skills/pirl-plan/SKILL.md), [`pirl-implement`](.skills/pirl-implement/SKILL.md), [`pirl-review`](.skills/pirl-review/SKILL.md) |
-| Each role's expertise | [`.agents/roles/`](.agents/roles/) |
-
-## License
-
-[MIT](LICENSE).
+[MIT](LICENSE) © tdmadc107

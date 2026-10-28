@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 
 SKILL = Path(__file__).resolve().parents[1]
@@ -18,7 +18,6 @@ HUB = SKILL.parents[1]
 sys.path.insert(0, str(HUB / ".agents" / "evals"))
 from validate_layer_artifact import PLAN_SCHEMA, LayerArtifactError, read_frontmatter, resolve_path  # noqa: E402
 
-TZ = timezone(timedelta(hours=7))
 
 
 def create(root: Path, plan: str) -> dict[str, object]:
@@ -28,7 +27,7 @@ def create(root: Path, plan: str) -> dict[str, object]:
     metadata, _ = read_frontmatter(path)
     if metadata.get("schema") != PLAN_SCHEMA or not metadata.get("plan_set") or not metadata.get("task_id"):
         raise LayerArtifactError(f"{plan} is not a {PLAN_SCHEMA} Plan with plan_set and task_id")
-    run = root / ".tmp" / "layout-snapshots" / str(metadata["plan_set"]) / str(metadata["task_id"]) / f"{datetime.now(TZ):%Y%m%d-%H%M%S}"
+    run = root / ".tmp" / "layout-snapshots" / str(metadata["plan_set"]) / str(metadata["task_id"]) / f"{datetime.now().astimezone():%Y%m%d-%H%M%S}"
     run.mkdir(parents=True)
     return {"path": run.relative_to(root).as_posix()}
 

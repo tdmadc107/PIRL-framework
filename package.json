@@ -1,0 +1,29 @@
+{
+  "name": "pirl-framework",
+  "version": "0.1.0",
+  "description": "PIRL (Plan – Implement – Review Layer): instruction files that coordinate software development work for AI agents, installed into a workspace as .pirl/.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "pirl-framework": "bin/pirl.mjs"
+  },
+  "files": [
+    ".gitignore",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "CONTEXT.md",
+    ".agents/instructions/",
+    ".agents/roles/",
+    ".agents/evals/*.py",
+    ".agents/evals/tests/",
+    ".skills/",
+    "bin/"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tdmadc107/PIRL-framework.git"
+  }
+}

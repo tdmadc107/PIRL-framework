@@ -15,7 +15,7 @@ import json
 import re
 import subprocess
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path, PureWindowsPath
 from typing import Any
 
@@ -39,13 +39,14 @@ MODES = ("agent", "self")
 RESULTS = ("PASS", "FAIL", "BLOCKED")
 CAUSES = ("instruction", "ineffective_fix", "input", "execution")
 PENDING_REASONS = ("mode_self", "safety", "repository")
-FRAMEWORK_PATHS = ("AGENTS.md", "CONTEXT.md", ".agents/instructions", ".agents/roles", ".agents/evals", ".skills")
+FRAMEWORK_PATHS = ("AGENTS.md", "CONTEXT.md", ".agents/instructions", ".agents/roles", ".agents/evals", ".skills", "bin")
 # Tracked paths that are deliberately not framework content. Every tracked file sits under one of the two lists;
 # a test fails when a new path appears in neither, so adding one is a decision, not an accident.
-NOT_FRAMEWORK_TRACKED = (".gitignore", "LICENSE", "README.md")
+# Written by the installer into a copy of the framework inside a workspace: the installed version and file hashes.
+MANIFEST = "manifest.json"
+NOT_FRAMEWORK_TRACKED = (".gitignore", "CHANGELOG.md", "LICENSE", "README.md", "package.json", MANIFEST)
 # Inside FRAMEWORK_PATHS but not framework content: the records themselves and Python caches.
 NOT_FRAMEWORK = (RECORDS + "/", "__pycache__/")
-TZ = timezone(timedelta(hours=7))
 KEBAB = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 TASK = re.compile(r"T\d{2,}")
 ISSUE_ID = re.compile(r"ISSUE-\d{2,}")
@@ -132,24 +133,28 @@ def validate_record(record: dict[str, Any], others: list[dict[str, Any]], root: 
     elif not isinstance(ref.get("files"), dict) or not all(isinstance(v, str) for v in ref["files"].values()):
         errors.append("framework_ref.files: expected an object of path -> content hash (from `start`)")
 
+    outcome = record.get("outcome")
+    if not isinstance(outcome, dict):
+        errors.append("outcome: expected an object")
+        outcome = {}
     task = record.get("task")
     if not isinstance(task, dict):
         errors.append("task: expected an object")
         task = {}
-    _text(task.get("plan_set"), "task.plan_set", errors)
-    ids = _list(task.get("task_ids"), "task.task_ids", errors)
-    if any(not isinstance(t, str) or not TASK.fullmatch(t) for t in ids):
-        errors.append("task.task_ids: each entry must be a task ID such as T01")
+    # A Plan run that stops before writing any task file ends `blocked` and has neither package nor task.
+    unwritten = (layer == "plan" and outcome.get("status") == "blocked"
+                 and task.get("plan_set") is None and task.get("task_ids") == [])
+    if not unwritten:
+        _text(task.get("plan_set"), "task.plan_set", errors)
+        ids = _list(task.get("task_ids"), "task.task_ids", errors)
+        if any(not isinstance(t, str) or not TASK.fullmatch(t) for t in ids):
+            errors.append("task.task_ids: each entry must be a task ID such as T01")
     if layer == "review":
         report = _text(task.get("report_file"), "task.report_file", errors)
         if report and not resolve_path(report, root).is_file():
             errors.append(f"task.report_file: {report} does not exist (relative to the Hub root or absolute)")
     _text(record.get("target_repo"), "target_repo", errors)
 
-    outcome = record.get("outcome")
-    if not isinstance(outcome, dict):
-        errors.append("outcome: expected an object")
-        outcome = {}
     if layer and outcome.get("status") not in OUTCOMES[layer]:
         errors.append(f"outcome.status: expected one of {', '.join(OUTCOMES[layer])} for layer {layer}")
     if layer == "review" and outcome.get("verdict") not in VERDICTS:
@@ -290,14 +295,38 @@ def _hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()[:12] if path.is_file() else "deleted"
 
 
-def framework_ref(root: Path) -> dict[str, Any]:
-    """Pin the framework version in force: the Hub commit plus a hash of each framework file that differs from it."""
+def _is_framework(rel: str) -> bool:
+    return any(rel == base or rel.startswith(base + "/") for base in FRAMEWORK_PATHS) and not _excluded(rel)
 
-    commit = (_git(root, "rev-parse", "HEAD") or "").strip()
+
+def _framework_files(root: Path) -> dict[str, Path]:
+    files = [p for base in FRAMEWORK_PATHS for p in ([root / base] if (root / base).is_file() else sorted((root / base).rglob("*")))]
+    return {p.relative_to(root).as_posix(): p for p in files if p.is_file() and not _excluded(p.relative_to(root).as_posix())}
+
+
+def framework_ref(root: Path) -> dict[str, Any]:
+    """Pin the framework version in force: the Hub commit plus a hash of each framework file that differs from it.
+
+    A copy installed inside a workspace sits in a repository that is not the framework's own, so its commit would
+    name the workspace instead: the installed version from the manifest and the files that differ from it are used.
+    """
+
+    top = (_git(root, "rev-parse", "--show-toplevel") or "").strip()
+    own_repository = bool(top) and Path(top).resolve() == root.resolve()
+    manifest_path = root / MANIFEST
+    if not own_repository and manifest_path.is_file():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        recorded = manifest.get("files", {})
+        current = _framework_files(root)
+        # Compared with LF line endings, like the installer: a CRLF checkout on Windows is no change of content.
+        changed = sorted({rel for rel, path in current.items()
+                          if hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest() != recorded.get(rel)}
+                         | {rel for rel in recorded if rel not in current and _is_framework(rel)})
+        return {"commit": "none", "version": str(manifest.get("version", "")),
+                "files": {rel: _hash(root / rel) for rel in changed}}
+    commit = (_git(root, "rev-parse", "HEAD") or "").strip() if own_repository else ""
     if not commit:
-        files = [p for base in FRAMEWORK_PATHS for p in ([root / base] if (root / base).is_file() else sorted((root / base).rglob("*")))]
-        paths = {p.relative_to(root).as_posix(): p for p in files if p.is_file()}
-        return {"commit": "none", "files": {rel: _hash(p) for rel, p in paths.items() if not _excluded(rel)}}
+        return {"commit": "none", "files": {rel: _hash(path) for rel, path in _framework_files(root).items()}}
     status = _git(root, "-c", "core.quotepath=off", "status", "--porcelain", "--untracked-files=all", "--", *FRAMEWORK_PATHS) or ""
     changed = {line[3:].split(" -> ")[-1].strip('"') for line in status.splitlines() if len(line) > 3}
     return {"commit": commit, "files": {path: _hash(root / path) for path in sorted(changed) if not _excluded(path)}}
@@ -325,7 +354,7 @@ def append(root: Path, data: dict[str, Any]) -> dict[str, Any]:
     for key in ("schema", "record_id", "recorded_at"):
         if key in data:
             raise RecordError(f"{key} is set by the tool, not by the input")
-    now = datetime.now(TZ)
+    now = datetime.now().astimezone()
     record = {"schema": CURRENT_SCHEMA, "record_id": "", "recorded_at": now.isoformat(timespec="seconds"), **data}
     tasks = data.get("task", {}).get("task_ids") if isinstance(data.get("task"), dict) else None
     base = f"{data.get('layer')}-{now:%Y%m%d-%H%M%S}-{tasks[0] if isinstance(tasks, list) and tasks else 'T00'}"
@@ -345,6 +374,18 @@ def append(root: Path, data: dict[str, Any]) -> dict[str, Any]:
     return {"record_id": record["record_id"], "path": target.relative_to(root).as_posix()}
 
 
+def _instant(value: Any) -> datetime:
+    """Records may carry different UTC offsets (the machine's own), so order them by instant, not by text.
+    A missing or malformed stamp sorts first, as an empty string did."""
+    try:
+        parsed = datetime.fromisoformat(value) if isinstance(value, str) else None
+    except ValueError:
+        parsed = None
+    if parsed is None or parsed.utcoffset() is None:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    return parsed
+
+
 def check(root: Path) -> list[str]:
     stored, errors = read_records(root)
     catalog = load_roles(root)
@@ -355,8 +396,8 @@ def check(root: Path) -> list[str]:
             errors.append(f"{location}: duplicate record_id {record.get('record_id')}")
         # Layer folders sort by name, not by time, so "stored before" is judged by `recorded_at` (same instant allowed):
         # a record may name any record written at or before its own time, whichever layer folder holds it.
-        stamp = str(record.get("recorded_at") or "")
-        earlier = [other for _, other in located if other is not record and str(other.get("recorded_at") or "") <= stamp]
+        stamp = _instant(record.get("recorded_at"))
+        earlier = [other for _, other in located if other is not record and _instant(other.get("recorded_at")) <= stamp]
         errors.extend(f"{location}: {error}" for error in validate_record(record, earlier, root, catalog))
         ids.add(record.get("record_id"))
     return errors

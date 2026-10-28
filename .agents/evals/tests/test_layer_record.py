@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime
 from pathlib import Path
 
 EVALS = Path(__file__).resolve().parents[1]
@@ -55,6 +57,20 @@ IMPLEMENT = {
     "evaluates": None,
     "supersedes": None,
 }
+# A Plan run that asked its questions and wrote no task file: no package, no task.
+PLAN_BLOCKED = {
+    "layer": "plan",
+    "framework_ref": REF,
+    "task": {"plan_set": None, "task_ids": []},
+    "target_repo": ".",
+    "outcome": {"status": "blocked", "summary": "Every REQ depends on content only the user can supply; questions asked"},
+    "roles": [{"role": "business-analyst", "mode": "agent", "assignment": "Find the missing product decisions", "result": "PASS"}],
+    "audit": {"role": "process-auditor", "mode": "agent", "result": "clean"},
+    "issues": [],
+    "fixes": [],
+    "evaluates": None,
+    "supersedes": None,
+}
 
 
 class LayerRecordTests(unittest.TestCase):
@@ -92,7 +108,7 @@ class LayerRecordTests(unittest.TestCase):
         [record] = self.stored()
         self.assertEqual(record["schema"], "pirl-record/v1")
         self.assertEqual(record["outcome"]["summary"], NON_ASCII)
-        self.assertTrue(record["recorded_at"].endswith("+07:00"))
+        self.assertIsNotNone(datetime.fromisoformat(record["recorded_at"]).utcoffset())
         code, again = self.append(IMPLEMENT)
         self.assertEqual(code, 0, again)
         self.assertNotEqual(again["record_id"], result["record_id"])
@@ -131,6 +147,39 @@ class LayerRecordTests(unittest.TestCase):
                 self.assertNotEqual(code, 0)
                 self.assertIn(message, " ".join(result["errors"]))
         self.assertEqual(self.stored(), [])
+
+    def test_only_a_blocked_plan_run_without_a_task_file_may_omit_the_package(self):
+        code, result = self.append(PLAN_BLOCKED)
+        self.assertEqual(code, 0, result)
+        self.assertTrue(result["record_id"].startswith("plan-") and result["record_id"].endswith("-T00"))
+        self.assertEqual(self.run_tool("check")[0], 0)
+        self.assertEqual(self.run_tool("query", "--layer", "plan")[1][0]["task"], {"plan_set": None, "task_ids": []})
+
+        def variant(base, change):
+            data = copy.deepcopy(base)
+            change(data)
+            return data
+
+        cases = {
+            "task.plan_set": [
+                variant(PLAN_BLOCKED, lambda d: d["outcome"].update(status="draft")),
+                variant(PLAN_BLOCKED, lambda d: d["outcome"].update(status="ready")),
+                variant(PLAN_BLOCKED, lambda d: d["task"].update(task_ids=["T01"])),
+                variant(IMPLEMENT, lambda d: d["task"].update(plan_set=None, task_ids=[])),
+                variant(PLAN_BLOCKED, lambda d: d.update(task={})),
+            ],
+            "task.task_ids": [variant(PLAN_BLOCKED, lambda d: d["task"].update(plan_set="sign-in_20261014-090000"))],
+        }
+        for message, payloads in cases.items():
+            for payload in payloads:
+                with self.subTest(message=message, layer=payload["layer"], status=payload["outcome"]["status"]):
+                    code, result = self.append(payload)
+                    self.assertNotEqual(code, 0)
+                    self.assertIn(message, " ".join(result["errors"]))
+        self.assertEqual(len(self.stored()), 1)
+        # A blocked Plan run that did write a package still names it.
+        packaged = variant(PLAN_BLOCKED, lambda d: d["task"].update(plan_set="sign-in_20261014-090000", task_ids=["T01"]))
+        self.assertEqual(self.append(packaged)[0], 0)
 
     def test_pending_fixes_follow_mode_and_safety(self):
         self_run = copy.deepcopy(IMPLEMENT)
@@ -208,6 +257,26 @@ class LayerRecordTests(unittest.TestCase):
         self.assertNotEqual(code, 0)
         self.assertTrue(any("prior_fix" in error for error in result["errors"]), result)
 
+    def test_check_orders_records_by_instant_across_utc_offsets(self):
+        _, first = self.append(IMPLEMENT)
+        repeat = copy.deepcopy(IMPLEMENT)
+        repeat["issues"][0].update(cause="ineffective_fix", prior_fix=f"{first['record_id']}#FIX-01")
+        self.assertEqual(self.append(repeat)[0], 0)
+        path = self.root / first["path"]
+        lines = path.read_text(encoding="utf-8").splitlines()
+        # 10:00+07:00 is 03:00Z and comes before 04:00Z, although it sorts after "2026-10-14T04" as text.
+        stamps = ["2026-10-14T10:00:00+07:00", "2026-10-14T04:00:00+00:00"]
+        records = [json.loads(line) for line in lines]
+        for record, stamp in zip(records, stamps):
+            record["recorded_at"] = stamp
+        path.write_text("".join(json.dumps(r, ensure_ascii=False, separators=(",", ":")) + "\n" for r in records), encoding="utf-8")
+        self.assertEqual(self.run_tool("check")[0], 0)
+        records[0]["recorded_at"], records[1]["recorded_at"] = "2026-10-14T05:00:00+00:00", "2026-10-14T10:00:00+07:00"
+        path.write_text("".join(json.dumps(r, ensure_ascii=False, separators=(",", ":")) + "\n" for r in records), encoding="utf-8")
+        code, result = self.run_tool("check")
+        self.assertNotEqual(code, 0)
+        self.assertTrue(any("prior_fix" in error for error in result["errors"]), result)
+
     def test_check_reads_stored_v1_lines_and_reports_corruption(self):
         self.assertEqual(self.append(IMPLEMENT)[0], 0)
         self.assertEqual(self.run_tool("check")[0], 0)
@@ -229,7 +298,8 @@ class LayerRecordTests(unittest.TestCase):
         self.assertEqual(ref["commit"], "none")
         # Skills are framework files; records are local output, not framework content.
         self.assertEqual(sorted(ref["files"]), [CATALOG, ".skills/pirl-plan/SKILL.md", "AGENTS.md"])
-        git = ["git", "-C", str(self.root), "-c", "user.email=t@t", "-c", "user.name=t"]
+        # autocrlf off: Git for Windows would otherwise warn about the LF record file of this temporary repository.
+        git = ["git", "-C", str(self.root), "-c", "user.email=t@t", "-c", "user.name=t", "-c", "core.autocrlf=false"]
         subprocess.run([*git, "init", "-q"], check=True)
         subprocess.run([*git, "add", "-A"], check=True)
         subprocess.run([*git, "commit", "-qm", "init"], check=True)
@@ -237,6 +307,33 @@ class LayerRecordTests(unittest.TestCase):
         ref = self.run_tool("start")[1]["framework_ref"]
         self.assertRegex(ref["commit"], r"^[0-9a-f]{40}$")
         self.assertEqual(list(ref["files"]), ["AGENTS.md"])
+
+    @unittest.skipUnless(shutil.which("git"), "git is required")
+    def test_start_pins_the_installed_version_inside_a_workspace(self):
+        # A Hub installed as a folder of another repository must not report that repository's commit as its version.
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        workspace = Path(temporary.name)
+        hub = workspace / ".pirl"
+        shutil.copytree(self.root, hub)
+        # Hashed with LF line endings, as the installer writes them; Windows writes these test files with CRLF.
+        files = {name: hashlib.sha256((hub / name).read_bytes().replace(b"\r\n", b"\n")).hexdigest() for name in ("AGENTS.md", CATALOG)}
+        (hub / "manifest.json").write_text(json.dumps({"package": "pirl-framework", "version": "1.2.3", "files": files}), encoding="utf-8")
+        git = ["git", "-C", str(workspace), "-c", "user.email=t@t", "-c", "user.name=t"]
+        subprocess.run([*git, "init", "-q"], check=True)
+        subprocess.run([*git, "add", "-A"], check=True)
+        subprocess.run([*git, "commit", "-qm", "init"], check=True)
+
+        def start():
+            result = subprocess.run([sys.executable, "-B", str(TOOL), "--root", str(hub), "start"], capture_output=True)
+            return json.loads(result.stdout.decode("utf-8"))["framework_ref"]
+
+        self.assertEqual(start(), {"commit": "none", "version": "1.2.3", "files": {}})
+        (hub / "AGENTS.md").write_text("# Start here\nimproved\n", encoding="utf-8")
+        (hub / CATALOG).unlink()
+        ref = start()
+        self.assertEqual(sorted(ref["files"]), sorted(["AGENTS.md", CATALOG]))
+        self.assertEqual(ref["files"][CATALOG], "deleted")
 
 
 if __name__ == "__main__":
