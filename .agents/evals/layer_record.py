@@ -44,7 +44,7 @@ FRAMEWORK_PATHS = ("AGENTS.md", "CONTEXT.md", ".agents/instructions", ".agents/r
 # a test fails when a new path appears in neither, so adding one is a decision, not an accident.
 # Written by the installer into a copy of the framework inside a workspace: the installed version and file hashes.
 MANIFEST = "manifest.json"
-NOT_FRAMEWORK_TRACKED = (".gitignore", "LICENSE", "README.md", "package.json", MANIFEST)
+NOT_FRAMEWORK_TRACKED = (".gitignore", "CHANGELOG.md", "LICENSE", "README.md", "package.json", MANIFEST)
 # Inside FRAMEWORK_PATHS but not framework content: the records themselves and Python caches.
 NOT_FRAMEWORK = (RECORDS + "/", "__pycache__/")
 KEBAB = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")

@@ -10,6 +10,7 @@
   "files": [
     ".gitignore",
     "AGENTS.md",
+    "CHANGELOG.md",
     "CONTEXT.md",
     ".agents/instructions/",
     ".agents/roles/",
