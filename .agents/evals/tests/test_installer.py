@@ -129,6 +129,10 @@ class InstallerTests(unittest.TestCase):
         code, out = self.run_cli("sync")
         self.assertNotEqual(code, 0)
         self.assertIn("edited by hand", out)
+        # check points to the command that resolves it, since a plain sync refuses.
+        code, out = self.run_cli("check")
+        self.assertNotEqual(code, 0)
+        self.assertIn("sync --force", out)
         self.assertEqual(rule.read_text(encoding="utf-8"), "edited by hand\n")
         self.assertEqual(self.run_cli("sync", "--force")[0], 0)
         self.assertIn("Another improvement.", rule.read_text(encoding="utf-8"))
@@ -167,7 +171,7 @@ class InstallerTests(unittest.TestCase):
         self.assertTrue((self.ws / ".pirl/.skills/pirl-plan/new-file.md").is_file())
         self.assertEqual(self.manifest()["version"], "9.9.9")
         self.assertIn("Upstream first line.", (self.ws / ".claude/rules/pirl.md").read_text(encoding="utf-8"))
-        self.assertFalse((self.ws / ".pirl/.tmp/update").exists())
+        self.assertFalse((self.ws / ".pirl/.tmp").exists())
 
     def test_update_stops_on_conflicts_until_they_are_resolved(self):
         self.assertEqual(self.run_cli("init", "--host", "claude")[0], 0)

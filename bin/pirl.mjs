@@ -164,10 +164,8 @@ function sourcePath(root, rel) {
   return file;
 }
 
-// The framework files of a copy: the package's `files` list, or the manifest of an installed copy.
+// The framework files of the package: its `files` list, plus LICENSE and README.md.
 function frameworkFiles(root) {
-  const manifest = readManifest(root);
-  if (manifest) return Object.keys(manifest.files).filter((f) => fs.existsSync(path.join(root, f))).sort();
   const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
   const out = new Set(["LICENSE", "README.md"].filter((f) => fs.existsSync(path.join(root, f))));
   const walk = (rel) => {
@@ -360,11 +358,11 @@ function planAdapters(ws, manifest, desired, force) {
     const current = read(file);
     const recorded = manifest.adapters[rel];
     if (current !== null && recorded === undefined && sha(current) !== sha(content)) {
-      conflicts.push(`${rel}: exists and was not created by ${PACKAGE}; move or remove it`);
+      conflicts.push({ text: `${rel}: exists and was not created by ${PACKAGE}; move or remove it` });
       continue;
     }
     if (current !== null && recorded !== undefined && sha(current) !== recorded && sha(current) !== sha(content) && !force) {
-      conflicts.push(`${rel}: edited by hand; pass --force to overwrite it`);
+      conflicts.push({ text: `${rel}: edited by hand`, forceable: true });
       continue;
     }
     if (current === null || sha(current) !== sha(content)) writes.push({ file, data: content });
@@ -376,8 +374,7 @@ function planAdapters(ws, manifest, desired, force) {
     const current = read(file);
     if (current === null) continue;
     if (sha(current) !== recorded && !force) {
-      conflicts.push(`${rel}: edited by hand; pass --force to remove it`);
-      adapters[rel] = recorded;
+      conflicts.push({ text: `${rel}: edited by hand`, forceable: true });
     } else {
       removes.push(file);
     }
@@ -391,16 +388,15 @@ function planAdapters(ws, manifest, desired, force) {
     const recorded = manifest.blocks[rel];
     const wanted = desired.blocks[rel];
     if (block && block.broken) {
-      conflicts.push(`${rel}: the ${BEGIN} / ${END} markers are incomplete; repair them by hand`);
+      conflicts.push({ text: `${rel}: the ${BEGIN} / ${END} markers are incomplete; repair them by hand` });
       continue;
     }
     if (block && !recorded) {
-      conflicts.push(`${rel}: holds a PIRL block that ${PACKAGE} did not record; remove the block by hand`);
+      conflicts.push({ text: `${rel}: holds a PIRL block that ${PACKAGE} did not record; remove the block by hand` });
       continue;
     }
     if (block && recorded && sha(block.content) !== recorded.hash && (wanted === undefined || sha(block.content) !== sha(wanted)) && !force) {
-      conflicts.push(`${rel}: the PIRL block was edited by hand; pass --force to replace it`);
-      blocks[rel] = recorded;
+      conflicts.push({ text: `${rel}: the PIRL block was edited by hand`, forceable: true });
       continue;
     }
     if (wanted !== undefined) {
@@ -422,7 +418,8 @@ function planAdapters(ws, manifest, desired, force) {
 
 function applyAdapters(ws, pirl, manifest, hosts, opts) {
   const plan = planAdapters(ws, manifest, desiredAdapters(pirl, hosts), opts.force);
-  if (plan.conflicts.length) fail(`nothing was changed; resolve these first:\n  ${plan.conflicts.join("\n  ")}`);
+  const conflicts = plan.conflicts.map((c) => (c.forceable ? `${c.text}; pass --force to overwrite or remove it` : c.text));
+  if (conflicts.length) fail(`nothing was changed; resolve these first:\n  ${conflicts.join("\n  ")}`);
   for (const { file, data } of plan.writes) write(file, data);
   for (const file of plan.removes) removeFile(file, ws);
   manifest.hosts = hosts;
@@ -518,10 +515,12 @@ function check(opts) {
     return;
   }
   const plan = planAdapters(ws, manifest, desiredAdapters(pirl, manifest.hosts), false);
-  const stale = [...plan.writes.map((w) => posix(path.relative(ws, w.file))), ...plan.removes.map((f) => posix(path.relative(ws, f)))];
-  if (plan.conflicts.length || stale.length) {
-    fail(`adapters are out of date (run \`node ${DIR}/bin/pirl.mjs sync\`):\n  ${[...plan.conflicts, ...stale].join("\n  ")}`);
-  }
+  const sync = `node ${DIR}/bin/pirl.mjs sync`;
+  const problems = [
+    ...plan.conflicts.map((c) => (c.forceable ? `${c.text}; \`${sync} --force\` overwrites or removes it` : c.text)),
+    ...[...plan.writes.map((w) => w.file), ...plan.removes].map((f) => `${posix(path.relative(ws, f))}: out of date; \`${sync}\` regenerates it`),
+  ];
+  if (problems.length) fail(`adapters are not in sync:\n  ${problems.join("\n  ")}`);
   console.log(`Adapters are up to date for: ${manifest.hosts.join(", ") || "no host"}.`);
 }
 
@@ -570,11 +569,10 @@ function untar(buffer, dest) {
 
 // Downloads the installed version from the registry, to use as the common base of a three-way merge.
 function fetchBase(version, temp) {
-  const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-  const result = spawnSync(npm, ["pack", `${PACKAGE}@${version}`, "--pack-destination", temp, "--silent"], {
-    encoding: "utf8",
-    shell: process.platform === "win32",
-  });
+  const windows = process.platform === "win32";
+  // npm is a .cmd script on Windows, which Node runs only through a shell; quote so a path with spaces stays one argument.
+  const args = ["pack", `${PACKAGE}@${version}`, "--pack-destination", temp, "--silent"];
+  const result = spawnSync(windows ? "npm.cmd" : "npm", windows ? args.map((a) => `"${a}"`) : args, { encoding: "utf8", shell: windows });
   const tarball = result.status === 0 && result.stdout.trim().split(/\r?\n/).pop();
   if (!tarball || !fs.existsSync(path.join(temp, tarball))) return null;
   untar(fs.readFileSync(path.join(temp, tarball)), path.join(temp, "base"));
@@ -604,6 +602,8 @@ function applyStaged(pirl, state) {
   manifest.files = state.upstream;
   writeManifest(pirl, manifest);
   fs.rmSync(path.join(pirl, UPDATE), { recursive: true, force: true });
+  const temp = path.dirname(path.join(pirl, UPDATE));
+  if (fs.existsSync(temp) && fs.readdirSync(temp).length === 0) fs.rmdirSync(temp);
   return manifest;
 }
 
@@ -625,7 +625,7 @@ async function update(opts) {
   if (INSTALLED) fail(`update runs from the new package: npx ${PACKAGE}@latest update`);
   if (fs.existsSync(statePath)) fail(`an update is already waiting; resolve it and run update --continue, or delete ${DIR}/${UPDATE}/`);
   const version = packageVersion();
-  if (version === manifest.version && !opts.force) {
+  if (version === manifest.version) {
     applyAdapters(ws, pirl, manifest, manifest.hosts, opts);
     console.log(`PIRL ${version} is already installed; adapters are in sync.`);
     return;
