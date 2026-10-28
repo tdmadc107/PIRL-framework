@@ -17,6 +17,8 @@ sys.path.insert(0, str(EVALS))
 from layer_record import FRAMEWORK_PATHS, LAYERS, NOT_FRAMEWORK, NOT_FRAMEWORK_TRACKED, RECORDS  # noqa: E402
 from validate_layer_artifact import CATALOG, parse_yaml_subset  # noqa: E402
 
+# Skills for the kinds of work outside a layer, as listed in AGENTS.md under "Choosing a layer".
+WORK_SKILLS = ("pirl-standalone", "pirl-maintain")
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 FENCE = re.compile(r"(?ms)^(`{3,})[^\n]*\n.*?^\1\s*$")
 
@@ -57,7 +59,18 @@ class SkillPackageTests(unittest.TestCase):
                 self.assertTrue((REPO / f".agents/instructions/{layer}.instructions.md").is_file())
                 for folder in ("assets", "references", "scripts"):
                     self.assertTrue([p for p in (skill / folder).glob("*") if p.is_file()], f"{skill.name}/{folder} is empty")
-                self.assertEqual(set(SKILLS.iterdir()), {SKILLS / f"pirl-{name}" for name in LAYERS})
+        self.assertEqual(set(SKILLS.iterdir()), {SKILLS / f"pirl-{name}" for name in LAYERS} | {SKILLS / name for name in WORK_SKILLS})
+
+    def test_each_work_skill_opens_no_layer(self):
+        for name in WORK_SKILLS:
+            with self.subTest(skill=name):
+                text = (SKILLS / name / "SKILL.md").read_text(encoding="utf-8")
+                meta = parse_yaml_subset(text.split("---")[1], f"{name}/SKILL.md")
+                self.assertEqual(meta.get("name"), name)
+                self.assertTrue(isinstance(meta.get("description"), str) and 0 < len(meta["description"]) <= 1024)
+                self.assertEqual(meta.get("metadata", {}).get("kind"), "skill")
+                self.assertNotIn("layer", meta.get("metadata", {}))
+                self.assertRegex(str(meta.get("metadata", {}).get("version")), r"^\d+\.\d+\.\d+$")
 
 
 @unittest.skipUnless(HAS_GIT, "a git checkout is required")

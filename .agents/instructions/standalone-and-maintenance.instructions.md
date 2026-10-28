@@ -5,7 +5,7 @@ applyTo: ".agents/**/*,.skills/**/*,AGENTS.md,CONTEXT.md"
 metadata:
   id: ".agents/instructions/standalone-and-maintenance"
   kind: "instruction"
-  version: "1.1.0"
+  version: "1.2.0"
   status: "active"
 ---
 
@@ -22,6 +22,7 @@ Plan, Implement and Review runs do not read it otherwise; a question that only n
 ## Standalone tasks
 
 A standalone task is work the user assigns directly that closes within that same run, outside the Plan → Implement → Review chain: writing or updating documentation on request, an investigation with durable output, a small fix the user specifies.
+It is run through the [`pirl-standalone` skill](../../.skills/pirl-standalone/SKILL.md), which follows this section.
 Carrying out a Plan task is still Implement, even with a single role.
 A question that only needs an explanation and creates no durable output is answered directly (step 3 of [Choosing a layer](../../AGENTS.md#choosing-a-layer)).
 
@@ -51,7 +52,8 @@ Applies to standalone tasks and to work done directly without a layer; the three
 
 ## Framework maintenance
 
-A request to edit `AGENTS.md`, `CONTEXT.md`, instructions, roles, skills or the tools in `.agents/evals/` directly is framework maintenance within the scope the user assigns.
+A request to edit `AGENTS.md`, `CONTEXT.md`, instructions, roles, skills, the tools in `.agents/evals/` or the installer in `bin/` directly is framework maintenance within the scope the user assigns.
+It is run through the [`pirl-maintain` skill](../../.skills/pirl-maintain/SKILL.md), which follows this section.
 Do not force a product Plan or report before editing.
 Improvements that `process-auditor` applies during a layer run under the [Self-evaluation and improvement section](layered-task-execution.instructions.md#self-evaluation-and-improvement) are also framework maintenance, allowed by that section without a separate request.
 
@@ -76,6 +78,10 @@ Improvements that `process-auditor` applies during a layer run under the [Self-e
 ```text
 AGENTS.md                         root: core rules, flow, choosing the kind of work, delegation, target repository
 CONTEXT.md                        how responses to the user are presented
+package.json                      npm package: name, version and the files the package publishes (source repository only)
+manifest.json                     installed version, hashes of the installed files, hosts and adapter files (installed Hub only)
+bin/
+  pirl.mjs                        installer: installs the Hub into a workspace, writes and syncs the host adapters, updates the Hub
 .agents/
   instructions/
     layered-task-execution.instructions.md   router: layer boundaries, assignment, shared contracts
@@ -95,8 +101,18 @@ CONTEXT.md                        how responses to the user are presented
   pirl-plan/      Plan skill: SKILL.md, assets/, references/, scripts/
   pirl-implement/ Implement skill: same layout
   pirl-review/    Review skill: same layout
-.tmp/             temporary output, ignored by Git (layout snapshots, tool logs)
+  pirl-standalone/ standalone task skill: SKILL.md only
+  pirl-maintain/  framework maintenance skill: SKILL.md only
+.tmp/             temporary output, ignored by Git (layout snapshots, tool logs, an update waiting for its conflicts to be resolved)
 <plan-set>/       Plan package and its Review reports, created at the Hub root unless the user names another directory (ignored by Git)
+```
+
+Installed into a workspace, the Hub is the `.pirl/` folder with the tree above, minus `package.json` and plus `manifest.json`; the adapter files sit in the workspace, where each host looks for them:
+
+```text
+<workspace>/
+  .pirl/                          the Hub
+  <host adapter files>            per chosen host: its instruction file, or a marked block in a file the user owns, and one entry per skill
 ```
 
 | Source | Owns |
@@ -108,9 +124,10 @@ CONTEXT.md                        how responses to the user are presented
 | Standalone and maintenance instructions | Standalone tasks, framework maintenance and its check commands, this structure, the role catalog, the constraints that keep roles separate from skills |
 | Layer instruction | Each role's responsibilities at the layer, the decisions the layer settles, the content its output must hold and its exit conditions; the Implement contract also holds when layout verification with mocks applies |
 | Layout verification instructions | How layout is captured and checked with mocks, and how Review reads the result |
-| Skill | How one layer run is carried out: when the skill applies, the ordered procedure linking each step to the contract that owns it, the output format and template, helper scripts |
+| Skill | How one layer run, standalone task or framework maintenance task is carried out: when the skill applies, the ordered procedure linking each step to the section that owns it; for a layer also the output format and template and helper scripts |
 | Role file | Shared expertise of one role, identical in every layer |
-| Evals | Checking handoff artifacts, writing and checking records, the tests of the framework tools and skills |
+| Evals | Checking handoff artifacts, writing and checking records, the tests of the framework tools, the installer and the skills |
+| Installer | Installing the Hub into a workspace, the adapter files each host loads, keeping them in sync with the Hub, updating the Hub with a three-way merge of local improvements |
 | Record | History of self-evaluation and improvement for each layer run; appended only through the tool and kept on the local machine |
 
 Each rule lives in exactly one owner; other files point to it instead of copying it.
@@ -157,8 +174,12 @@ They only validate handoff inputs and outputs and do not grade the wording; inst
 python -B .agents/evals/validate_layer_artifact.py --kind <plan|review> --path <file or directory>
 python -B .agents/evals/layer_record.py <start|append|check|query> ...
 python -B -m unittest discover -s .agents/evals/tests -p "test_*.py"
+node bin/pirl.mjs sync
+node bin/pirl.mjs check
 ```
 
 The first command checks Plan/Review files (schema, required fields, roles, dependencies, time zone) and runs when they are handed off.
 The second writes and checks self-evaluation records as the router describes; `check` runs after each write or when the tool itself is edited.
-The last command runs the tests of the two tools above, of the role catalog, of the skills (structure, helper scripts), of the links between framework files, that private outputs stay out of Git and that every tracked file is either framework content or listed as not framework; run it when editing the tools, the role catalog, a layer's role table, a role file, a skill, `.gitignore`, the headings that other framework files link to, or when adding a top-level path.
+The third command runs the tests of the two tools above, of the installer, of the role catalog, of the skills (structure, helper scripts), of the links between framework files, that private outputs stay out of Git and that every tracked file is either framework content or listed as not framework; run it when editing the tools, the installer, the role catalog, a layer's role table, a role file, a skill, `.gitignore`, the headings that other framework files link to, or when adding a top-level path.
+The installer tests need Node and Git and are skipped without them.
+The last two commands apply only to a Hub installed in a workspace and run from the Hub root: `sync` regenerates the adapter files after `AGENTS.md`, `CONTEXT.md` or the name or description of a skill changed, or after a skill was added or removed, and `check` fails while an adapter file is out of date; in the source repository nothing is installed, and `check` says so.

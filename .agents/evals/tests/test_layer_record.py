@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import shutil
 import subprocess
@@ -305,6 +306,32 @@ class LayerRecordTests(unittest.TestCase):
         ref = self.run_tool("start")[1]["framework_ref"]
         self.assertRegex(ref["commit"], r"^[0-9a-f]{40}$")
         self.assertEqual(list(ref["files"]), ["AGENTS.md"])
+
+    @unittest.skipUnless(shutil.which("git"), "git is required")
+    def test_start_pins_the_installed_version_inside_a_workspace(self):
+        # A Hub installed as a folder of another repository must not report that repository's commit as its version.
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        workspace = Path(temporary.name)
+        hub = workspace / ".pirl"
+        shutil.copytree(self.root, hub)
+        files = {name: hashlib.sha256((hub / name).read_bytes()).hexdigest() for name in ("AGENTS.md", CATALOG)}
+        (hub / "manifest.json").write_text(json.dumps({"package": "pirl-framework", "version": "1.2.3", "files": files}), encoding="utf-8")
+        git = ["git", "-C", str(workspace), "-c", "user.email=t@t", "-c", "user.name=t"]
+        subprocess.run([*git, "init", "-q"], check=True)
+        subprocess.run([*git, "add", "-A"], check=True)
+        subprocess.run([*git, "commit", "-qm", "init"], check=True)
+
+        def start():
+            result = subprocess.run([sys.executable, "-B", str(TOOL), "--root", str(hub), "start"], capture_output=True)
+            return json.loads(result.stdout.decode("utf-8"))["framework_ref"]
+
+        self.assertEqual(start(), {"commit": "none", "version": "1.2.3", "files": {}})
+        (hub / "AGENTS.md").write_text("# Start here\nimproved\n", encoding="utf-8")
+        (hub / CATALOG).unlink()
+        ref = start()
+        self.assertEqual(sorted(ref["files"]), sorted(["AGENTS.md", CATALOG]))
+        self.assertEqual(ref["files"][CATALOG], "deleted")
 
 
 if __name__ == "__main__":

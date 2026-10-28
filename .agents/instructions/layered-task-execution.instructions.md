@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/**/*,.skills/**/*"
 metadata:
   id: ".agents/instructions/layered-task-execution"
   kind: "instruction"
-  version: "2.4.1"
+  version: "2.4.2"
   status: "active"
 ---
 
@@ -148,6 +148,7 @@ Asking the user for a decision or for content is not a handoff: the run pauses a
 ### Timing and evaluator
 
 - At the start of the run, the coordinator runs `python -B .agents/evals/layer_record.py start` and keeps the returned `framework_ref`: the Hub commit and the hashes of framework files that differ from that commit.
+  When the Hub is installed inside a workspace, `framework_ref` holds the installed version from the Hub's `manifest.json` in place of a commit, and the hashes of framework files that differ from that version.
   This is the version of the rules the run applies.
 - After the layer's output is settled and before cleanup, [`process-auditor`](../roles/process-auditor.role.md) evaluates the run: every role that took part and the coordinator itself (choosing the team, assigning work, merging results).
   At Review, `process-auditor` also re-evaluates the roles of the reviewed Implement run per the [Evaluations section](review.instructions.md#evaluations-assessing-implement-roles).

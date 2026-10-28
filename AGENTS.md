@@ -1,9 +1,14 @@
 # Start here
 
-This repository is PIRL (Plan – Implement – Review Layer): a Hub that coordinates software development work for AI Agents.
+PIRL (Plan – Implement – Review Layer) is a Hub that coordinates software development work for AI Agents.
+The Hub is the folder that holds this file: the root of the PIRL repository itself, or the `.pirl/` folder when PIRL is installed into a workspace, the folder where the user works.
+Every path in the framework that starts at the Hub root resolves from that folder.
 The framework runs entirely on instruction files: three layers, Plan, Implement and Review, define what the Agent does, how it does it and what it produces.
-Each layer is run through its skill in `.skills/`.
-The product repositories the Agent works on are not part of the Hub; the user names the target repository of each request, as described in [Target repository](#target-repository).
+Each layer is run through its skill in `.skills/`, and so are the other kinds of work that change files, per [Choosing a layer](#choosing-a-layer).
+The product repositories the Agent works on are not part of the Hub, even when an installed Hub sits inside one of them; the user names the target repository of each request, as described in [Target repository](#target-repository).
+
+When PIRL is installed into a workspace, the installer ([`bin/pirl.mjs`](bin/pirl.mjs)) also writes adapter files next to `.pirl/`: for each host the user chose, the instruction file that host loads in every session, holding this file and `CONTEXT.md`, and an entry for each skill in that host's skill folder.
+The adapter files are generated from the Hub's files; the [Framework checks](.agents/instructions/standalone-and-maintenance.instructions.md#framework-checks) say when they are regenerated.
 
 The file structure, the owner of each rule and the role catalog are described in the [standalone and maintenance instructions](.agents/instructions/standalone-and-maintenance.instructions.md#framework-structure), read when the framework itself is maintained.
 
@@ -23,6 +28,9 @@ Read [CONTEXT.md](CONTEXT.md) before the first answer of each session and apply 
   For example, Implement edits product files in the target repository within the scope its contract defines.
   Never edit files inside `.git` by hand.
 - Files inside a target repository, including its own `.github`, `.gitignore` or `.vscode`, follow that task scope, not the Hub-root list.
+- When the Hub is installed inside a workspace, the Hub folder (`.pirl/`) is part of the protected working directory of that workspace: never delete, move, reset or clean it wholesale either, unless the user explicitly asks for that operation.
+- The Hub's own files are never product files, even when the Hub sits inside the target repository: they are edited only by [framework maintenance](.agents/instructions/standalone-and-maintenance.instructions.md#framework-maintenance) or by the improvements of the [self-evaluation instructions](.agents/instructions/self-evaluation.instructions.md#thorough-improvement), never under a task's product scope.
+- The adapter files the installer generates are changed only through the installer, never by hand; the installer refuses to overwrite or remove a file it did not create or one edited by hand, and that refusal is resolved by the user, not worked around.
 - Do not switch branches, reset, or stash inside a target repository, or update a submodule pointer, unless the user asks.
 - Do not commit, push, deploy, alter production data, expose secrets, or contact people without explicit authority.
 - Do not run destructive or externally consequential actions beyond the user's authorized scope.
@@ -110,8 +118,8 @@ No slash command, activation token or exact keyword is needed.
 | Plan | Write/adjust a Plan from the request and the source; [Plan contract](.agents/instructions/plan.instructions.md), run through the [`pirl-plan` skill](.skills/pirl-plan/SKILL.md). |
 | Implement | Carry out one selected Plan, or repair it per a report for the same task; [Implement contract](.agents/instructions/implement.instructions.md), run through the [`pirl-implement` skill](.skills/pirl-implement/SKILL.md). |
 | Review | Check an implementation run against the Plan; [Review contract](.agents/instructions/review.instructions.md), run through the [`pirl-review` skill](.skills/pirl-review/SKILL.md). |
-| Standalone task | Work assigned directly, outside a Plan's chain; [Standalone tasks section](.agents/instructions/standalone-and-maintenance.instructions.md#standalone-tasks). |
-| Framework maintenance | Edit `AGENTS.md`, instructions, roles, skills or framework tools themselves; [Framework maintenance section](.agents/instructions/standalone-and-maintenance.instructions.md#framework-maintenance). |
+| Standalone task | Work assigned directly, outside a Plan's chain; [Standalone tasks section](.agents/instructions/standalone-and-maintenance.instructions.md#standalone-tasks), run through the [`pirl-standalone` skill](.skills/pirl-standalone/SKILL.md). |
+| Framework maintenance | Edit `AGENTS.md`, instructions, roles, skills or framework tools themselves; [Framework maintenance section](.agents/instructions/standalone-and-maintenance.instructions.md#framework-maintenance), run through the [`pirl-maintain` skill](.skills/pirl-maintain/SKILL.md). |
 
 Load only the documents relevant to the current decision: the skill and the contract of the selected layer, and the context documentation of the target repository.
 Do not load every file in `.agents/` or `.skills/`.
@@ -122,8 +130,8 @@ Loading order:
 2. Depending on the kind of work:
    - Plan, Implement or Review: read the [router](.agents/instructions/layered-task-execution.instructions.md), which holds the boundaries between kinds of work and the shared contracts, then run that layer's skill (`.skills/pirl-<layer>/SKILL.md`); the skill loads exactly the layer contract and the resources each step needs.
      A host that loads skills on its own reaches the same file; a host that does not reads it like any other file.
-   - Standalone task, meaning work assigned directly outside a Plan's chain: read the [Standalone tasks](.agents/instructions/standalone-and-maintenance.instructions.md#standalone-tasks) section of the standalone and maintenance instructions; no layer is activated.
-   - Framework maintenance: read the [standalone and maintenance instructions](.agents/instructions/standalone-and-maintenance.instructions.md) in full, then edit `AGENTS.md`, `CONTEXT.md`, instructions, roles, skills or tools themselves, within the scope the user assigns.
+   - Standalone task, meaning work assigned directly outside a Plan's chain: run the [`pirl-standalone` skill](.skills/pirl-standalone/SKILL.md), which applies the [Standalone tasks](.agents/instructions/standalone-and-maintenance.instructions.md#standalone-tasks) section of the standalone and maintenance instructions; no layer is activated.
+   - Framework maintenance: run the [`pirl-maintain` skill](.skills/pirl-maintain/SKILL.md), which reads the [standalone and maintenance instructions](.agents/instructions/standalone-and-maintenance.instructions.md) in full, then edit `AGENTS.md`, `CONTEXT.md`, instructions, roles, skills or tools themselves, within the scope the user assigns; no layer is activated.
    - A question that only needs an explanation and creates no durable output: answer within its scope, create no files.
      The router is not needed, unless the answer draws a conclusion about a Plan, an Implementation Record, a report or a record (then apply the router's [Shared snapshots and older records](.agents/instructions/layered-task-execution.instructions.md#shared-snapshots-and-older-records) section), or it is unclear whether the request is only such a question (then read the router before answering).
 3. For work that touches a product repository, identify the [target repository](#target-repository), then read its context documentation.
@@ -149,10 +157,10 @@ The [constraints that keep roles separate from skills](.agents/instructions/stan
 
 # Target repository
 
-The Hub holds no product repository and keeps no registry of them.
+The Hub keeps no registry of product repositories, and no product repository is part of the Hub's files.
 The target repository of a request is a local Git repository that the user names, by path or by a name that identifies exactly one local directory, or that the settled context names (a Plan's `target_repo`, a report).
 
-- **Path.** A Plan records the target in `target_repo` as a path relative to the Hub root, or as an absolute path when the repository lives outside the Hub; `.` means the Hub itself.
+- **Path.** A Plan records the target in `target_repo` as a path relative to the Hub root, or as an absolute path when the repository lives outside the Hub; `.` means the Hub itself, and `..` the workspace that holds an installed Hub.
   The path must be an existing directory when the Plan is handed off.
 - **Context documentation.** The documents inside the target repository that tell agents how it works: architecture, conventions, commands (including how to run tests by file, class or name), the UI languages, viewports and breakpoint thresholds to capture in layout snapshots, notes on capture tooling (where the browser automation tool is and how to install it, how to launch a browser without touching the user's open session, how to run a stable dev server, known environment obstacles) and where known gaps are recorded.
   They are usually the repository's agent instruction file (for example `AGENTS.md` or `CLAUDE.md`), its README, its contributing guide or a documentation folder.
@@ -161,7 +169,8 @@ The target repository of a request is a local Git repository that the user names
 Choosing the target repository:
 
 1. Use the repository the user's words or the settled context name.
-   Read only the context documentation of that repository.
+   When they name none and the Hub is installed in a workspace that is itself a Git repository, that workspace is the target repository (`target_repo: ..`); a workspace that is not a Git repository is no default, and step 3 applies.
+   Read only the context documentation of that repository; when the workspace's own instruction file also holds the generated PIRL block, the content outside that block is the repository's context documentation.
 2. Choose exactly one repository, unless the request explicitly names several; in that case handle and record each repository separately, including the contracts between them.
 3. If the request needs a repository and none is named, or two repositories are equally plausible and the choice changes the result, ask one short question.
    If the analysis can safely continue, state the assumption and carry on.
@@ -171,5 +180,6 @@ Choosing the target repository:
 
 Commit or push only when the user asks.
 Changes in a target repository are committed in that repository first; then the Hub commit carries the framework improvements of the same run.
+When the Hub is installed inside the target repository, both live in one repository: the product changes and the framework improvements (the Hub's files with the adapter files regenerated from them) still go in two separate commits, the product changes first.
 When the target repository is a submodule of the Hub, the Hub commit also updates its pointer.
-Plan packages (`<request-slug>_<YYYYMMDD-HHmmss>/`, anywhere in the Hub) with the Review reports inside them, and self-evaluation records in `.agents/evals/records/`, describe the user's projects: they are ignored by Git and are never committed.
+Plan packages (`<request-slug>_<YYYYMMDD-HHmmss>/`, anywhere in the Hub) with the Review reports inside them, and self-evaluation records in `.agents/evals/records/`, describe the user's projects: they are ignored by Git through the Hub's `.gitignore`, also when the Hub is installed inside a workspace, and are never committed.

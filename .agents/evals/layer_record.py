@@ -39,10 +39,12 @@ MODES = ("agent", "self")
 RESULTS = ("PASS", "FAIL", "BLOCKED")
 CAUSES = ("instruction", "ineffective_fix", "input", "execution")
 PENDING_REASONS = ("mode_self", "safety", "repository")
-FRAMEWORK_PATHS = ("AGENTS.md", "CONTEXT.md", ".agents/instructions", ".agents/roles", ".agents/evals", ".skills")
+FRAMEWORK_PATHS = ("AGENTS.md", "CONTEXT.md", ".agents/instructions", ".agents/roles", ".agents/evals", ".skills", "bin")
 # Tracked paths that are deliberately not framework content. Every tracked file sits under one of the two lists;
 # a test fails when a new path appears in neither, so adding one is a decision, not an accident.
-NOT_FRAMEWORK_TRACKED = (".gitignore", "LICENSE", "README.md")
+# Written by the installer into a copy of the framework inside a workspace: the installed version and file hashes.
+MANIFEST = "manifest.json"
+NOT_FRAMEWORK_TRACKED = (".gitignore", "LICENSE", "README.md", "package.json", MANIFEST)
 # Inside FRAMEWORK_PATHS but not framework content: the records themselves and Python caches.
 NOT_FRAMEWORK = (RECORDS + "/", "__pycache__/")
 KEBAB = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
@@ -293,14 +295,36 @@ def _hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()[:12] if path.is_file() else "deleted"
 
 
-def framework_ref(root: Path) -> dict[str, Any]:
-    """Pin the framework version in force: the Hub commit plus a hash of each framework file that differs from it."""
+def _is_framework(rel: str) -> bool:
+    return any(rel == base or rel.startswith(base + "/") for base in FRAMEWORK_PATHS) and not _excluded(rel)
 
-    commit = (_git(root, "rev-parse", "HEAD") or "").strip()
+
+def _framework_files(root: Path) -> dict[str, Path]:
+    files = [p for base in FRAMEWORK_PATHS for p in ([root / base] if (root / base).is_file() else sorted((root / base).rglob("*")))]
+    return {p.relative_to(root).as_posix(): p for p in files if p.is_file() and not _excluded(p.relative_to(root).as_posix())}
+
+
+def framework_ref(root: Path) -> dict[str, Any]:
+    """Pin the framework version in force: the Hub commit plus a hash of each framework file that differs from it.
+
+    A copy installed inside a workspace sits in a repository that is not the framework's own, so its commit would
+    name the workspace instead: the installed version from the manifest and the files that differ from it are used.
+    """
+
+    top = (_git(root, "rev-parse", "--show-toplevel") or "").strip()
+    own_repository = bool(top) and Path(top).resolve() == root.resolve()
+    manifest_path = root / MANIFEST
+    if not own_repository and manifest_path.is_file():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        recorded = manifest.get("files", {})
+        current = _framework_files(root)
+        changed = sorted({rel for rel, path in current.items() if hashlib.sha256(path.read_bytes()).hexdigest() != recorded.get(rel)}
+                         | {rel for rel in recorded if rel not in current and _is_framework(rel)})
+        return {"commit": "none", "version": str(manifest.get("version", "")),
+                "files": {rel: _hash(root / rel) for rel in changed}}
+    commit = (_git(root, "rev-parse", "HEAD") or "").strip() if own_repository else ""
     if not commit:
-        files = [p for base in FRAMEWORK_PATHS for p in ([root / base] if (root / base).is_file() else sorted((root / base).rglob("*")))]
-        paths = {p.relative_to(root).as_posix(): p for p in files if p.is_file()}
-        return {"commit": "none", "files": {rel: _hash(p) for rel, p in paths.items() if not _excluded(rel)}}
+        return {"commit": "none", "files": {rel: _hash(path) for rel, path in _framework_files(root).items()}}
     status = _git(root, "-c", "core.quotepath=off", "status", "--porcelain", "--untracked-files=all", "--", *FRAMEWORK_PATHS) or ""
     changed = {line[3:].split(" -> ")[-1].strip('"') for line in status.splitlines() if len(line) > 3}
     return {"commit": commit, "files": {path: _hash(root / path) for path in sorted(changed) if not _excluded(path)}}
