@@ -298,7 +298,8 @@ class LayerRecordTests(unittest.TestCase):
         self.assertEqual(ref["commit"], "none")
         # Skills are framework files; records are local output, not framework content.
         self.assertEqual(sorted(ref["files"]), [CATALOG, ".skills/pirl-plan/SKILL.md", "AGENTS.md"])
-        git = ["git", "-C", str(self.root), "-c", "user.email=t@t", "-c", "user.name=t"]
+        # autocrlf off: Git for Windows would otherwise warn about the LF record file of this temporary repository.
+        git = ["git", "-C", str(self.root), "-c", "user.email=t@t", "-c", "user.name=t", "-c", "core.autocrlf=false"]
         subprocess.run([*git, "init", "-q"], check=True)
         subprocess.run([*git, "add", "-A"], check=True)
         subprocess.run([*git, "commit", "-qm", "init"], check=True)
