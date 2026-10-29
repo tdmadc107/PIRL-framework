@@ -3,7 +3,7 @@
 Every notable change to PIRL is recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.1] - 2026-10-29
 
 ### Added
 
@@ -29,5 +29,5 @@ First release on npm.
 - Line endings are compared as LF, so a CRLF checkout on Windows is not reported as a change.
 - The README is a short landing page; the details live in `AGENTS.md`, the router and the skills.
 
-[Unreleased]: https://github.com/tdmadc107/PIRL-framework/compare/v0.1.0...HEAD
+[0.1.1]: https://github.com/tdmadc107/PIRL-framework/releases/tag/v0.1.1
 [0.1.0]: https://github.com/tdmadc107/PIRL-framework/releases/tag/v0.1.0
