@@ -48,5 +48,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tdmadc107/PIRL-framework.git"
+  },
+  "homepage": "https://github.com/tdmadc107/PIRL-framework#readme",
+  "bugs": {
+    "url": "https://github.com/tdmadc107/PIRL-framework/issues"
   }
 }
