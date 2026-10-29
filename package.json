@@ -1,7 +1,25 @@
 {
   "name": "pirl-framework",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "PIRL (Plan – Implement – Review Layer): instruction files that coordinate software development work for AI agents, installed into a workspace as .pirl/.",
+  "keywords": [
+    "agent-skills",
+    "agentic-workflow",
+    "ai-agents",
+    "ai-coding",
+    "claude-code",
+    "code-review",
+    "codex",
+    "coding-agent",
+    "cursor",
+    "developer-tools",
+    "gemini-cli",
+    "github-copilot",
+    "implementation",
+    "multi-agent",
+    "planner",
+    "spec-driven-development"
+  ],
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -25,5 +43,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tdmadc107/PIRL-framework.git"
+  },
+  "homepage": "https://github.com/tdmadc107/PIRL-framework#readme",
+  "bugs": {
+    "url": "https://github.com/tdmadc107/PIRL-framework/issues"
   }
 }
