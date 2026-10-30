@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/plan.instructions.md"
 metadata:
   id: ".agents/instructions/plan"
   kind: "instruction"
-  version: "2.1.2"
+  version: "2.3.2"
   status: "active"
 ---
 
@@ -31,7 +31,7 @@ Do not add roles just to complete the process.
 | [`business-analyst`](../roles/business-analyst.role.md) | The request has business behavior to settle | Settle REQs, business logic and QGs; find missing product decisions | Request, existing decisions, specifications | Each REQ has a source and an outcome; a source is recorded as the user's decision only for what is in the user's words or in the verbatim text of the choices and choice descriptions the user saw when choosing; what is inferred from the source or the repository's conventions, what interprets or extends a choice, and what the agent chose itself in work the user explicitly delegated to the agent are all recorded as decided by the agent, with their basis; product choices that change the result and that nobody has decided have been asked or marked unsettled; each QG states its required logic; a file or area is left out of the scope, or called free of a value, only after the role read it in full, otherwise that statement is an inference naming what was not read ([evidence rule](../../AGENTS.md#evidence)); the basis is read from sources by the role, which runs or builds measuring tools only when the user asks for a root-cause investigation ([Investigating and settling decisions](#investigating-and-settling-decisions)) |
 | [`code-analyst`](../roles/code-analyst.role.md) | The request touches the target repository's source or documentation | Read callers/consumers, configuration and constraints; identify change points and affected documentation | Source of the target repository | The change scope and allowed paths are grounded in the source; for changes that spread to other elements or consumers (inherited properties, creating a containing block or stacking context, default configuration), the element carrying the change and the list of affected ones are stated; the basis is read from sources by the role, which runs or builds measuring tools only when the user asks for a root-cause investigation ([Investigating and settling decisions](#investigating-and-settling-decisions)) |
 | [`solution-architect`](../roles/solution-architect.role.md) | API/data/permission contracts change, or the package has several tasks | Settle contracts, ownership, permission model, boundaries and dependencies between tasks | Source, shared contracts | Each task has its own acceptance outcome; real dependencies are recorded; for each value, symbol or file that a task adds, changes or removes, every passage of a file shared between tasks (including context documentation) that mentions it is in that same task's REQs, `Allowed paths` and QGs, so the file stays right after each task completes; the basis is read from sources by the role, which runs or builds measuring tools only when the user asks for a root-cause investigation ([Investigating and settling decisions](#investigating-and-settling-decisions)) |
-| [`ux-designer`](../roles/ux-designer.role.md) | The request touches what the user sees | Settle screens, display states, interaction flows, UI strings per language and viewports; write UI QGs as state and layout logic | Request, existing UI, the repository's context documentation | Every display state created or changed has a QG; the basis is read from sources by the role, which runs or builds measuring tools only when the user asks for a root-cause investigation ([Investigating and settling decisions](#investigating-and-settling-decisions)) |
+| [`ux-designer`](../roles/ux-designer.role.md) | The request touches what the user sees | Settle screens, display states, interaction flows, UI strings per language and viewports; write UI QGs as state and layout logic | Request, existing UI, the repository's context documentation | Every display state created or changed has a QG; each width threshold and each width formula in a UI QG is derived from the CSS with its inputs written out (the figure or text it must fit, the paddings and borders in between), and covers every layout regime the shell has inside the rule's viewport range (a sidebar, a padding or a frame that changes at a breakpoint), so the verification role can compare each measured box with a value; the basis is read from sources by the role, which runs or builds measuring tools only when the user asks for a root-cause investigation ([Investigating and settling decisions](#investigating-and-settling-decisions)) |
 | [`process-auditor`](../roles/process-auditor.role.md) | Every Plan run; not recorded in `planning_roles` | Self-evaluate the Plan run per the [router](layered-task-execution.instructions.md#self-evaluation-and-improvement) | Plan, sources used, each role's decisions | Record written; improvements applied or summarized for the user |
 
 The Plan coordinator merges the roles' conclusions, settles disagreements by sources (not by voting), writes the Plan and self-reviews it.
@@ -86,7 +86,7 @@ Per the [router](layered-task-execution.instructions.md#verification-by-reasonin
 - Never create a task, a `How to do it` step, a REQ, a QG, a `Done when` or `Allowed paths` for building, running the application/database/browser for acceptance, measuring performance, new harnesses or verification scripts, deploying or releasing.
   [Layout verification with mocks](implement.instructions.md#layout-verification-with-mocks) is something Implement does on its own when the diff changes the UI: the Plan creates no task, step or QG for it, including a numbered step assigning the implementation role to capture layout.
   UI QGs are still written as layout/state logic.
-  What needs to be captured or measured beyond that section (viewports the user asked for, thresholds computable from the source, computed properties to record) goes in the logic of the UI QGs and in the implementation role's `Done when`; how to build the state without the diff belongs to that section.
+  What needs to be captured or measured beyond that section (viewports the user asked for, thresholds computable from the source, computed properties to record) goes in the logic of the UI QGs and in the implementation role's `Done when`; how to build the state without the diff and where a defect found there that predates the task is recorded belong to that section.
 - When a task has tests, state the REQ/behavior under test, the affected functionality with its grounds (call path, contract or shared data that is changed), the test files allowed to be edited and exactly which tests run.
   Do not assign tests for unrelated functionality, do not assign running the whole suite, and do not invent test viewpoints beyond the specification.
 - Specification goals that belong to the user's stage (performance thresholds, device testing, running the whole system, release) do not become work in the package; write one line in `What to do` saying they belong to the user's build/test/release stage.
@@ -134,9 +134,35 @@ Each task is one Plan file.
 The [`pirl-plan` skill](../../.skills/pirl-plan/SKILL.md) owns its format: the [template](../../.skills/pirl-plan/assets/plan-template.md) with the four sections `What to do`, `How to do it`, `Participating roles` and `Required quality gates`, and the [format reference](../../.skills/pirl-plan/references/plan-format.md) with the frontmatter fields, file naming and output location.
 This contract owns what those sections must settle.
 
+## Clean Plan
+
+A clean Plan defines exactly what the user's request needs: every part of the request has a REQ, every REQ has QGs that cover it, and no REQ or QG goes beyond the request.
+Before handoff the coordinator answers the five questions below for the whole package, fixes the Plan for every answer that shows a gap or an excess, and reports the answers per [Saving and handoff](#saving-and-handoff).
+
+1. **Is the user's request understood?**
+   State the request in one sentence in the user's terms, with its source (the user's words, a decision the user made, or the document the user named), and the result the user can check once every task is implemented.
+   What was inferred from context rather than said is labeled inferred, with its basis.
+2. **Does any point of the request need a warning or a clarification?**
+   List each interpretation, extension or agent decision that changes what the user gets beyond the literal request, each conflict between the request and the target repository's rules or current state, and each risk the user should know before Implement.
+   A point that changes the result and that nobody has settled is asked per [Investigating and settling decisions](#investigating-and-settling-decisions); a point the agent settled is reported as a warning with its basis.
+3. **Do the REQs cover every part of the request?**
+   Break the request into the outcomes it asks for and map each outcome to the REQ that delivers it; an outcome with no REQ gets one, or is recorded in `Scope` as excluded with its reason.
+4. **Do the QGs cover every REQ?**
+   Each REQ has at least one QG whose required logic concludes the REQ's outcome and the failure branches the REQ names; a QG that concludes no REQ is removed.
+5. **Does any REQ or QG go beyond the request?**
+   Every REQ traces to the user's request, to a decision the user made, or to an obligation that the target repository's rules attach to the requested change (for example updating the documentation that describes the changed behavior); anything else is removed, or raised under question 2.
+   A REQ or QG asserts only what the task changes and the state that change depends on.
+   For a file or record that other work also changes (a shared list, index, status table or configuration), it names the passages the task adds, changes or removes and requires the other passages to stay as they were, instead of asserting the state of the whole file, which work outside the task can make true or false.
+   It also does not forbid what Implement writes under its own contract, for example an entry that the user, once the [sweep](implement.instructions.md#implementing-and-repairing-per-review) reports a defect or a product-decision point, decides to record where the project keeps known gaps; a QG such as "the task adds no row" would fail such a run.
+
+Defects, issues and gaps found while defining the Plan that the request does not ask to handle (for example a bug next to the changed code, a flaw in a shared component, documentation that no longer matches the source) are reported to the user with a proposal, and the user decides how they are handled.
+The Plan adds no REQ, QG, step or `Allowed paths` entry for them, does not widen a task to fix them, and does not have them recorded in the target repository (for example in its list of known gaps) unless the user decides so.
+When the requested outcome cannot be reached correctly without handling one of them, how it is handled is a decision asked under question 2, not a REQ the agent adds on its own.
+
 ## Self-review before handoff
 
-1. Check each role's contribution against the request, the source, the approach and the QGs.
+1. Answer the [Clean Plan](#clean-plan) questions and fix the Plan per their answers.
+   Check each role's contribution against the request, the source, the approach and the QGs.
    If the Plan is wrong or lacks a mandatory decision, fix the content before declaring it ready.
    For a multi-task package, check separate acceptability per the task-splitting section above and confirm every package-wide requirement still has an owning task.
    Confirm each task separates implementation roles from verification roles that fit the QGs' questions, that no task, step or QG belongs to the user's build/test/release stage, that there is no separate QG for capturing layout, and that the test part (if any) is limited to FUT.
@@ -159,11 +185,16 @@ This contract owns what those sections must settle.
 - After the final review and self-evaluation, the coordinator and every role complete the [temporary-resource cleanup](layered-task-execution.instructions.md#cleaning-up-temporary-resources-before-handoff) and check again before declaring the Plan ready.
   A run that ends as a draft or blocked must still clean up what is no longer needed; do not hand Plan clutter to Implement.
 - Save each task file where the user says, or by default under the Hub root, per the [Plan file format](../../.skills/pirl-plan/references/plan-format.md).
-  Do not overwrite history.
+  Never overwrite a file that is history: an Implementation Record, a Review report or a self-evaluation record.
+- Adjusting an existing Plan: a task file with status `planned` and no Implementation Record is edited in place, keeping its path, file name, `plan_set`, `task_id` and `created_at`; its content is replaced by the adjusted decisions, not annotated with the old ones, and its `Planning` line records the adjustment run (date, the roles that took part, what changed).
+  A task file that has an Implementation Record or a Review report is not rewritten by this layer: the adjustment goes into a new task file of the package, except a change the user confirmed, which follows the [Changes to the Plan confirmed by the user](implement.instructions.md#changes-to-the-plan-confirmed-by-the-user) section.
 - A run ends in one of three outcomes: `ready` (every task file has all its decisions), `draft` (task files exist and some parts are marked unsettled), `blocked` (no task file written, because no part had enough basis).
   A `blocked` run writes no package; its final reply says that, why, which decisions are asked, which content is requested, and what the `Participating roles` line would have held: how each planning role was performed and every consultation of a reviewer outside the role team.
   Its record has `plan_set: null` and `task_ids: []` ([Record](self-evaluation.instructions.md#record)).
 - State clearly whether the Plan has all decisions or still has unsettled parts, its path (or that no file was written) and the self-improvement result per the router's reporting section.
   Do not call a draft with insufficient input ready for Implement.
+- The final reply answers the [Clean Plan](#clean-plan) questions, one short answer each, with the warnings of question 2 in its body and each point still waiting on the user as one point of "Needs confirmation" ([CONTEXT.md](../../CONTEXT.md#5-closing-block-needs-confirmation-and-proposals)).
+  A `blocked` run answers questions 1 and 2.
+  Each defect, issue or gap found while planning and left to the user is presented per [Raising a problem](../../CONTEXT.md#42-raising-a-problem-issue-bug-risk) and offered as one point of "Proposals".
 - Do not edit product source at Plan.
   Finish and hand off the specific files to the corresponding Implement instruction; do not start the next task on your own.

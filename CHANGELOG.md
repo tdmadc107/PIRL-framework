@@ -3,6 +3,16 @@
 Every notable change to PIRL is recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-10-30
+
+### Fixed
+
+- Fixed an issue where play layers could define REQ and QG values beyond the specified requirement scope.
+
+### Added
+
+- Introduced the Clean Plan rule, requiring plan layers to perform a self-audit of the purpose and validity of each generated plan.
+
 ## [0.1.1] - 2026-10-29
 
 ### Added
@@ -29,5 +39,6 @@ First release on npm.
 - Line endings are compared as LF, so a CRLF checkout on Windows is not reported as a change.
 - The README is a short landing page; the details live in `AGENTS.md`, the router and the skills.
 
+[0.1.1]: https://github.com/tdmadc107/PIRL-framework/releases/tag/v0.1.2
 [0.1.1]: https://github.com/tdmadc107/PIRL-framework/releases/tag/v0.1.1
 [0.1.0]: https://github.com/tdmadc107/PIRL-framework/releases/tag/v0.1.0
