@@ -1,6 +1,6 @@
 {
   "name": "pirl-framework",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "PIRL (Plan – Implement – Review Layer): instruction files that coordinate software development work for AI agents, installed into a workspace as .pirl/.",
   "keywords": [
     "agent-skills",
