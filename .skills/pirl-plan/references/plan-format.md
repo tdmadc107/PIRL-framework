@@ -12,7 +12,7 @@ What each section must settle belongs to the [Plan contract](../../../.agents/in
 - Slugs are ASCII kebab-case: lowercase letters, digits and single hyphens.
 - Timestamps use the machine's local time zone and carry its UTC offset, for example `+07:00`.
 - Task IDs start at `T01` and are consecutive within the package.
-- Never overwrite an existing file.
+- Creating a Plan never overwrites an existing file (the helper script refuses); adjusting an existing Plan follows [Saving and handoff](../../../.agents/instructions/plan.instructions.md#saving-and-handoff).
   Review reports of the package are placed per the [report format](../../pirl-review/references/review-format.md#location-and-naming).
 - Git ignores package directories anywhere in the Hub, by their name pattern ([AGENTS.md](../../../AGENTS.md#git)); a package the user places outside the Hub follows the Git rules of that location.
 

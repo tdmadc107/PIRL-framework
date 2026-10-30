@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/implement.instructions.md"
 metadata:
   id: ".agents/instructions/implement"
   kind: "instruction"
-  version: "2.3.2"
+  version: "2.4.0"
   status: "active"
 ---
 
@@ -78,7 +78,9 @@ The Implement coordinator gives each role its role file, its row in the table to
   Once the behavior is stable, sweep the whole target repository and the related context documentation, not just the task's directory, for places that still describe the old behavior or lack the new behavior: contract documents, indexes and status tables, API/error/configuration/permission catalogs, UI strings, comments or code that only served the replaced flow.
   These are direct consequences of the change, so fix them in the same run even when they are outside the Plan's paths.
   Tests of the functionality under development and of affected functionality that still assert the old behavior are updated to the new logic, and tests that only served a removed flow are deleted, all under the [FUT rule](layered-task-execution.instructions.md#functional-tests-fut-rule); do not touch tests of unrelated functionality and do not build new harnesses or verification scripts, inside or outside the repository (the only exception is layout mock and capture scripts in `.tmp/` per the [layout verification instructions](layout-verification.instructions.md)).
-  Points that need a product decision are recorded where the project keeps known gaps and in the residual risk, not decided by you.
+  Points that need a product decision are not decided by you: they are recorded in the residual risk.
+  Those points, and defects, issues or gaps found during the run that the task does not handle (for example a pre-existing defect the layout capture shows), are reported to the user with a proposal, and the user decides how they are handled: in the run's final reply each is presented per [Raising a problem](../../CONTEXT.md#42-raising-a-problem-issue-bug-risk), a product decision as one point of "Needs confirmation" and any other item as one point of "Proposals" ([CONTEXT.md](../../CONTEXT.md#5-closing-block-needs-confirmation-and-proposals)).
+  They are not fixed outside the task's scope and are not recorded in the target repository (for example in its list of known gaps) unless the user decides so.
   This sweep does not edit historical records (settled Plans, Review reports, original specification content); the Plan changes only per the [Changes to the Plan confirmed by the user](#changes-to-the-plan-confirmed-by-the-user) section.
   The implementation indexes and status tables of the specification directory are living documents and are still kept in sync.
   Sweep again when the behavior changes after the sweep.

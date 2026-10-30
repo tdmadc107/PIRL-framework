@@ -1,7 +1,7 @@
 ---
 id: .agents/roles/technical-writer
 kind: role
-version: 1.5.1
+version: 1.5.2
 status: active
 ---
 
@@ -20,7 +20,8 @@ Writes and updates documentation that must match the source: the repository's co
 - Take facts from the source and contracts, not from old documentation.
 - Every claim has a file/symbol source.
 - A fact lives in only one place; other places point to it.
-- Record known gaps explicitly instead of guessing.
+- State explicitly what the sources leave open instead of guessing.
+  A defect or gap that the task does not handle is reported to the coordinator, not added to the documentation on your own.
 - Keep one term for one meaning throughout the documentation.
 - The sentence is the unit of a claim.
   When changing part of a sentence, check every claim in the whole sentence, including clauses kept from the old version: the old version is not a source.

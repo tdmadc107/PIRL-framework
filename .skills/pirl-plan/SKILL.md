@@ -5,7 +5,7 @@ metadata:
   id: .skills/pirl-plan
   kind: skill
   layer: plan
-  version: 1.2.0
+  version: 1.2.2
 ---
 
 # Plan
@@ -46,6 +46,7 @@ Run the commands from the Hub root.
    When no part has enough basis, write no Plan file: skip steps 5 to 7 and continue at step 8 with the `blocked` outcome of [Saving and handoff](../../.agents/instructions/plan.instructions.md#saving-and-handoff).
 5. **Split the work into tasks** ([contract](../../.agents/instructions/plan.instructions.md#splitting-tasks-for-separate-implementation-and-acceptance)), within the [scope of work](../../.agents/instructions/plan.instructions.md#scope-of-work-source-code-documentation-and-functional-tests) and with [separate implementation and verification roles](../../.agents/instructions/plan.instructions.md#separating-implementation-roles-from-verification-roles).
 6. **Write the task files** in the directory the user named, or by default under the Hub root ([format](references/plan-format.md#location-and-naming)).
+   When the user asks to adjust an existing Plan, edit its task file per [Saving and handoff](../../.agents/instructions/plan.instructions.md#saving-and-handoff) instead of running the script.
    The first task starts the package; each next task joins it:
 
    ```powershell
@@ -54,7 +55,7 @@ Run the commands from the Hub root.
    ```
 
    Replace every `<...>` placeholder so the content is [sufficient to execute](../../.agents/instructions/plan.instructions.md#content-must-be-sufficient-to-execute).
-7. **Self-review and validate** ([contract](../../.agents/instructions/plan.instructions.md#self-review-before-handoff)), then fix and rerun until the validator passes:
+7. **Self-review and validate** ([contract](../../.agents/instructions/plan.instructions.md#self-review-before-handoff)), starting with the [Clean Plan](../../.agents/instructions/plan.instructions.md#clean-plan) questions, then fix and rerun until the validator passes:
 
    ```powershell
    python -B .agents/evals/validate_layer_artifact.py --kind plan --path <package directory>

@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/layout-verification.instructions.md"
 metadata:
   id: ".agents/instructions/layout-verification"
   kind: "instruction"
-  version: "1.0.1"
+  version: "1.0.2"
   status: "active"
 ---
 
@@ -33,7 +33,7 @@ Who captures, when, and the condition itself stay in that contract.
   This run does not extend to builds, typechecks, tests outside FUT, a real backend, real devices or releases; those still belong to the user's stage.
   The verification role treats the screenshots as a source when concluding UI QGs and does not run anything itself.
   Each failed check is compared with the same scenario in the state without the diff (an unchanged screen or route); only defects caused by the diff are FAIL.
-  A wrong layout caused by the diff (overflow, overlap, wrong language, missing state) is a FAIL returned to `frontend-developer`, under the same two-repair limit of Implement; pre-existing defects are recorded where the project keeps known gaps and in the summary, and do not block the task.
+  A wrong layout caused by the diff (overflow, overlap, wrong language, missing state) is a FAIL returned to `frontend-developer`, under the same two-repair limit of Implement; pre-existing defects are recorded in the summary, do not block the task, and are reported to the user with a proposal, per the [sweep](implement.instructions.md#implementing-and-repairing-per-review) of the Implement contract.
   A failed check caused by the diff that the Plan excluded from scope with a REQ naming exactly that behavior and the viewport range, together with a known-gaps entry, is not a FAIL of the task but is still a failed check: `layout_verification` lists it with the REQ and its cause (the diff), and `residual_risk` states the impact; if the Plan did not exclude it, it is a FAIL.
   When no usable browser engine is available, the layout part is `BLOCKED` with an owner.
   A diff that changes the UI without this result cannot be recorded as `implemented`.
