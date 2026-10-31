@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/implement.instructions.md"
 metadata:
   id: ".agents/instructions/implement"
   kind: "instruction"
-  version: "2.4.2"
+  version: "2.5.2"
   status: "active"
 ---
 
@@ -152,6 +152,7 @@ After the implementation/repair team is done, each verification role handles its
    `BLOCKED` when sources or decisions needed to conclude are missing, not because tests have not been run.
 
 A FAIL is returned to the implementation role that owns that part, with the trigger, mechanism and fix target; after the fix, the verification role reasons again over the affected part.
+Each repair, and each verification after it, runs in a new agent of the same role, not by resuming the agent of an earlier step: its assignment holds only the FAIL or the user's decision that causes the repair, the trigger, mechanism and fix target, and the excerpts of the Plan, the diff and the Implementation Record that concern them.
 At most two repairs of the same cause per run; if it still FAILs, record `failed` with evidence.
 Do not weaken a QG to match the code or add QGs mid-run.
 
@@ -172,16 +173,18 @@ When this applies, read and follow the [layout verification instructions](layout
 ## Recording results
 
 Update the Plan status and one `Implementation Record` section below the four Plan content sections.
-Record the actual work, sources, changes, QG evidence, self-challenge and limits.
+Every later role reads this record, so it is complete and short: for each REQ, the implementation role, the verification role of each QG, what was done with its file and line ranges and anything done outside the Plan, the verification result of each QG in one or two sentences with its deciding source, and what the user confirmed during the run.
+`volume` classifies the size of the run's diff in the target repository: the lines added plus the lines deleted over every path of `changed_paths` (source, tests and documentation alike), without the Plan file, counted against the revision the run started from (for example with `git diff --numstat`); `small` below 300 lines, `medium` from 300 to 1000 lines, `large` above 1000 lines.
+A repair run records the `volume` of its own diff, which decides the Review team of the next round ([Review contract](review.instructions.md#ai-agent-roles-at-the-review-layer)).
 A repair run replaces the reference with the record of that run itself.
 The Plan content changes only per the [Changes to the Plan confirmed by the user](#changes-to-the-plan-confirmed-by-the-user) section; do not edit the Plan to legitimize a direction the agent changed on its own.
 
 The Implementation Record follows the [template](../../.skills/pirl-implement/assets/implementation-record-template.md) and the [format reference](../../.skills/pirl-implement/references/implementation-record-format.md) of the `pirl-implement` skill.
 After writing it, run the Plan validator (command in the [`pirl-implement` skill's procedure](../../.skills/pirl-implement/SKILL.md#procedure)) and fix errors before handoff.
 
-`role_work` and `role_challenge_results` cover each implementation/repair role, then each verification role, exactly once and in order; `effective_implementation_roles` contains only the implementation/repair team.
+Each REQ of the task has one `### REQ-NN` block, in the Plan's order; a repair run updates the blocks of the REQs it touches; `effective_implementation_roles` contains only the implementation/repair team.
 `changed_paths` stays within the paths the Plan allows; the Plan file receiving the results is the bookkeeping exception.
-Consistency updates from the impact sweep are the second exception: list them separately in `changed_paths` with the sync reason, and state in `role_work` what was swept so readers know which parts were checked.
+Consistency updates from the impact sweep are the second exception: list them separately in `changed_paths` with the sync reason, and state in the `Implementation result` line of the REQ concerned what was swept so readers know which parts were checked.
 `root_cause_revalidation` and `review_item_disposition` are always present: the first run writes `N/A`, a repair run covers every report item in order.
 `plan_amendments` is also always present, with `N/A` when the Plan was not edited.
 When a repair run corrects a statement of an earlier Implementation Record, `repair_closure_evidence` follows the [Shared snapshots and older records section](layered-task-execution.instructions.md#shared-snapshots-and-older-records) of the router: state the time-stamped source showing the statement was wrong when written; without such a source, record the mismatch between the record and the source as a change without a record, and do not claim the old statement was wrong.

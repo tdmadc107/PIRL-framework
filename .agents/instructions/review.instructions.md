@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/review.instructions.md"
 metadata:
   id: ".agents/instructions/review"
   kind: "instruction"
-  version: "2.0.5"
+  version: "2.1.1"
   status: "active"
 ---
 
@@ -21,21 +21,24 @@ Use exactly the two sections `Business` and `Evaluations`; keep IDs, symbols, ro
 ## AI Agent roles at the Review layer
 
 The role catalog lives in the [standalone and maintenance instructions](standalone-and-maintenance.instructions.md#role-catalog) and the assignment principles in the [router](layered-task-execution.instructions.md#assignment-principles); each role's expertise lives in the role file linked in the table.
-Review picks `review_roles` from the table below using the "Select when" column, in the table's order: the first four roles are the default, and `ux-designer` is added when the diff changes the UI.
-Each role applies its own expertise to specific QGs/boundaries; do not force every role to find a defect.
+Review picks `review_roles` by the `volume` of the reviewed Implement run, recorded in the Implementation Record per the [Recording results section](implement.instructions.md#recording-results); when an older record has no `volume`, the coordinator computes it from the reviewed diff by the same rule and states it in `implementation_target`.
+`code-reviewer` is the main role in every round and owns the conclusion of every QG that is not a UI QG; the other roles join only as the "Select when" column says, and each receives only the part its row names.
 
 | Role | Select when | Responsibility at Review | Done when |
 | --- | --- | --- | --- |
-| [`code-analyst`](../roles/code-analyst.role.md) | Default | Trace the entrypoint, callers, writers/readers and configuration to the final state of each QG | QG conclusions with the path traced and sources |
-| [`code-reviewer`](../roles/code-reviewer.role.md) | Default | Challenge the diff: bugs, regressions, permissions and security, inconsistency, guards/error handling, tests that violate FUT | Each suspicion is proven as a FIND or refuted with sources |
-| [`business-analyst`](../roles/business-analyst.role.md) | Default | Check the REQs and the QGs' `Required logic` against the source's behavior; block self-invented criteria | Each QG has `PASS\|FAIL\|BLOCKED` true to its REQ |
-| [`solution-architect`](../roles/solution-architect.role.md) | Default | Consider whether contracts, ownership, task boundaries and dependencies are broken | Names the affected QGs or confirms there is no impact |
-| [`ux-designer`](../roles/ux-designer.role.md) | The diff changes the UI | Read Implement's `layout_verification` and screenshots and check them against the UI QGs | Each UI QG has a conclusion with the screenshots and source checked |
+| [`code-reviewer`](../roles/code-reviewer.role.md) | Every round | Conclude each QG that is not a UI QG by tracing the diff from the entrypoint through callers, guards and writers/readers to the final state, against its `Required logic` and REQ; challenge the diff: bugs, regressions, permissions and security, inconsistency, guards/error handling, contracts and boundaries the diff touches, tests that violate FUT | Each such QG has `PASS\|FAIL\|BLOCKED` with the path traced, a counterexample and sources; each suspicion is proven as a FIND, kept as a grounded RISK or BLOCK, or refuted with sources |
+| [`code-analyst`](../roles/code-analyst.role.md) | `small` or `medium`: `code-reviewer`'s result has a RISK or a BLOCK; `large`: every round, after `code-reviewer` | `small`/`medium`: analyze each RISK and BLOCK for its mechanism and reachability (trigger, call path, guards) so the coordinator can decide it; `large`, execution-path check: for each QG conclusion of `code-reviewer`, re-trace the path from the entrypoint through callers, guards and writers/readers to the final state, and whether its counterexample can occur | Each assigned RISK/BLOCK is confirmed, turned into a FIND or refuted, or each `code-reviewer` QG conclusion is confirmed or refuted on that aspect, with sources |
+| [`solution-architect`](../roles/solution-architect.role.md) | `medium`: `code-reviewer`'s result has a RISK or a BLOCK; `large`: every round, after `code-reviewer` | `medium`: analyze each RISK and BLOCK for the contracts, ownership, task boundaries and dependencies it touches and name its owner; `large`, contract and boundary check: whether each conclusion of `code-reviewer` still holds at the contracts, ownership, task boundaries and dependencies the diff touches (other consumers, shared components, other tasks) | As `code-analyst`, for that aspect |
+| [`business-analyst`](../roles/business-analyst.role.md) | `medium`: `code-reviewer`'s result has a RISK or a BLOCK; `large`: every round, after `code-reviewer` | `medium`: analyze each RISK and BLOCK against the REQs, the `Required logic` and the user's decisions; `large`, requirement check: whether each QG verdict of `code-reviewer` is true to its REQ, its `Required logic` and the user's decisions, with no self-invented criterion | As `code-analyst`, for that aspect |
+| [`ux-designer`](../roles/ux-designer.role.md) | The diff changes the UI, at every `volume` | Read Implement's `layout_verification` and screenshots and conclude the UI QGs against them | Each UI QG has a conclusion with the screenshots and source checked |
 | [`process-auditor`](../roles/process-auditor.role.md) | Every Review round; not recorded in `review_roles` | Re-evaluate the Implement roles (Evaluations section) and self-evaluate the Review run per the [router](layered-task-execution.instructions.md#self-evaluation-and-improvement) | Evaluations cover the Implement team; record written; improvements applied or summarized for the user |
 
+- `review_roles` lists the roles that actually ran, in the table's order.
+  A role that joins because of a RISK or a BLOCK runs after `code-reviewer` and receives only those items; its conclusion settles the item together with the coordinator, by the source.
+  Under `large`, each of the three checking roles examines only its own aspect of `code-reviewer`'s conclusions, so no aspect has two owners; a disagreement between a checking role and `code-reviewer` is settled by the coordinator on the source, and the report states which conclusion holds.
 - Settle disagreements by the source and merge suspicions with the same cause; do not vote.
   Delegate each role in `review_roles` per the [assignment principles](layered-task-execution.instructions.md#assignment-principles).
-  The report records how each role was performed (a separate agent, or self-performed with the reason) and the actual level of independence when a role has read the run's drafts or conclusions or has consulted a reviewer outside the role team.
+  The report records how each role was performed (a separate agent, or self-performed with the reason) and the actual level of independence when a role has read the run's drafts or conclusions.
 - For each Implement record, assign one evaluation owner and cross-check when there is a suspicion.
 
 ## Inputs and permissions

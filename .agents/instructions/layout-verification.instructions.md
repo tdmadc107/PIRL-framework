@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/layout-verification.instructions.md"
 metadata:
   id: ".agents/instructions/layout-verification"
   kind: "instruction"
-  version: "1.1.2"
+  version: "1.1.3"
   status: "active"
 ---
 
@@ -65,7 +65,8 @@ Who captures, when, and the condition itself stay in that contract.
   Capture the base state repeatedly to learn its own variation, record every value seen in the summary, then stop.
   Looking for the cause of such a difference or of a pre-existing defect, and measuring a behavior the checks do not require (for example hiding an element and measuring again, forcing a viewport change while a state is open, building a separate probe script), is a root-cause investigation that runs only when the user asks for it ([Verification by reasoning](layered-task-execution.instructions.md#verification-by-reasoning)); missing handling visible from the source is recorded by reasoning on the source.
   Pixel counts and repeated base captures, if any, are recorded apart from the checks and marked as not QG evidence.
-- **Record:** summarize in the `layout_verification` field of the Implementation Record: states captured, the patterns (each abnormal one with the REQ or QG it traces to), languages, viewports and where they came from (the context documentation or the defaults above), the base used for comparison (commit and uncommitted changes counted), number of screenshots, checks passed/failed (each failed check with its cause: pre-existing, or caused by the diff and excluded by a Plan REQ) and the directory path.
+- **Record:** summarize in the `layout_verification` field of the Implementation Record: states captured, the patterns (each abnormal one with the REQ or QG it traces to), languages, viewports and where they came from (the context documentation or the defaults above), the base used for comparison (commit and uncommitted changes counted), number of screenshots, checks passed/failed (each failed check with its cause: pre-existing, or caused by the diff and excluded by a Plan REQ), the directory path, and for each UI QG the files of the run directory and the line ranges in them that hold the measurements of its instances, with and without the diff.
+  That index only locates values: the verification role reads exactly those ranges, and the values it reads there are the evidence.
   `.tmp/` does not go with commits, so the summary is the evidence and the path is for lookup only.
 - **Review:** reads Implement's summary and screenshots and does not rerun them.
   A diff that changes the UI while the Record lacks this result, or screenshots showing a layout that violates a QG, is a `repair` FIND for `frontend-developer`.

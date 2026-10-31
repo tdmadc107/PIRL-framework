@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/plan.instructions.md"
 metadata:
   id: ".agents/instructions/plan"
   kind: "instruction"
-  version: "2.3.4"
+  version: "2.3.5"
   status: "active"
 ---
 
@@ -191,7 +191,7 @@ When the requested outcome cannot be reached correctly without handling one of t
 - Adjusting an existing Plan: a task file with status `planned` and no Implementation Record is edited in place, keeping its path, file name, `plan_set`, `task_id` and `created_at`; its content is replaced by the adjusted decisions, not annotated with the old ones, and its `Planning` line records the adjustment run (date, the roles that took part, what changed).
   A task file that has an Implementation Record or a Review report is not rewritten by this layer: the adjustment goes into a new task file of the package, except a change the user confirmed, which follows the [Changes to the Plan confirmed by the user](implement.instructions.md#changes-to-the-plan-confirmed-by-the-user) section.
 - A run ends in one of three outcomes: `ready` (every task file has all its decisions), `draft` (task files exist and some parts are marked unsettled), `blocked` (no task file written, because no part had enough basis).
-  A `blocked` run writes no package; its final reply says that, why, which decisions are asked, which content is requested, and what the `Participating roles` line would have held: how each planning role was performed and every consultation of a reviewer outside the role team.
+  A `blocked` run writes no package; its final reply says that, why, which decisions are asked, which content is requested, and what the `Participating roles` line would have held: how each planning role was performed.
   Its record has `plan_set: null` and `task_ids: []` ([Record](self-evaluation.instructions.md#record)).
 - State clearly whether the Plan has all decisions or still has unsettled parts, its path (or that no file was written) and the self-improvement result per the router's reporting section.
   Do not call a draft with insufficient input ready for Implement.

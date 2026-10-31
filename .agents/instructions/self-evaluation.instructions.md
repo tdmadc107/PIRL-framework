@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/**/*,.skills/**/*,.agents/roles/process-auditor.r
 metadata:
   id: ".agents/instructions/self-evaluation"
   kind: "instruction"
-  version: "1.0.1"
+  version: "1.1.0"
   status: "active"
 ---
 
@@ -17,7 +17,7 @@ Standalone tasks and framework maintenance do not apply it.
 
 ## Issues and causes
 
-An issue is a decision or output that is wrong against the request, the source, a contract or a rule, with evidence.
+An issue is a decision or output that is wrong against the request, the source, a contract or a rule, with evidence, and that meets the [improvement threshold](#improvement-threshold).
 Each issue records the role (or `coordinator`), the wrong decision, the related rule as `file#section`, the evidence and an `issue_key`: a kebab-case key describing the issue; an issue already present in an earlier record keeps its existing key.
 
 Before classifying, look up earlier records with `layer_record.py query --issue-key <key>` and `layer_record.py query --rule <file#section>`.
@@ -30,10 +30,22 @@ Classify by evidence, not by how many times it repeated:
 | `input` | The rule is right but the input is missing or wrong: the Plan lacks a decision, the target repository's context documentation is incomplete or wrong | Fix where the input is produced: the rule of the layer or skill that produces it. A gap in the target repository's context documentation lies outside the framework: record that improvement `pending_user` with reason `repository` and propose it to the user as a standalone task in that repository |
 | `execution` | The rule is clear, was loaded and leads to the right decision, but the role did not follow it | Increase enforcement: put that point in the role's "Done when" column in the layer file's table, or assign a verification role to check exactly that point |
 
+## Improvement threshold
+
+A wrong decision is recorded as an issue, and improves the framework, only when all three hold:
+
+1. Its cause lies in the framework: the cause is `instruction`, `ineffective_fix`, or `input` produced by a layer or skill of the framework, or it is `execution` of a rule that an earlier record already recorded under the same `issue_key` or rule.
+2. It affects how the framework runs: choosing or assigning roles, reading and passing inputs, verification and evidence, recording and handoff, safety, or the cost of a run; not the content of one product.
+3. It can recur in another task or another repository of the same kind.
+
+A wrong decision that fails any of the three, for example a value, a mock row or a sentence that is wrong only in this task, or a first `execution` slip of a clear rule, changes no framework file.
+An output defect among them is still returned to the owning role within the run, and the record's `summary` (at Review also the EVAL) states it in one sentence with the reason it is below the threshold.
+When the threshold is met, the improvement edits the one file that owns the cause; it is not copied into role files, other contracts or templates that only point to that owner.
+
 ## Thorough improvement
 
 Applies in `mode: agent`, and in `mode: self` per the [Self-evaluation when `mode: self`](#self-evaluation-when-mode-self) section.
-Every issue must have an improvement applied within the run.
+Every issue that meets the threshold must have an improvement applied within the run.
 There are no off-limits areas and no waiting for proposals:
 
 1. Before editing any framework file, read the [standalone and maintenance instructions](standalone-and-maintenance.instructions.md).
