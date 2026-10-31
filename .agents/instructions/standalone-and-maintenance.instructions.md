@@ -5,7 +5,7 @@ applyTo: ".agents/**/*,.skills/**/*,AGENTS.md,CONTEXT.md"
 metadata:
   id: ".agents/instructions/standalone-and-maintenance"
   kind: "instruction"
-  version: "1.2.0"
+  version: "1.2.2"
   status: "active"
 ---
 
@@ -79,9 +79,9 @@ Improvements that `process-auditor` applies during a layer run under the [Self-e
 AGENTS.md                         root: core rules, flow, choosing the kind of work, delegation, target repository
 CONTEXT.md                        how responses to the user are presented
 package.json                      npm package: name, version and the files the package publishes (source repository only)
-manifest.json                     installed version, hashes of the installed files, hosts and adapter files (installed Hub only)
+manifest.json                     installed version, hashes of the installed files, hosts, adapter files and the browser MCP setting (installed Hub only)
 bin/
-  pirl.mjs                        installer: installs the Hub into a workspace, writes and syncs the host adapters, updates the Hub
+  pirl.mjs                        installer: installs the Hub into a workspace, writes and syncs the host adapters, registers and starts the browser MCP server, updates the Hub
 .agents/
   instructions/
     layered-task-execution.instructions.md   router: layer boundaries, assignment, shared contracts
@@ -127,7 +127,7 @@ Installed into a workspace, the Hub is the `.pirl/` folder with the tree above, 
 | Skill | How one layer run, standalone task or framework maintenance task is carried out: when the skill applies, the ordered procedure linking each step to the section that owns it; for a layer also the output format and template and helper scripts |
 | Role file | Shared expertise of one role, identical in every layer |
 | Evals | Checking handoff artifacts, writing and checking records, the tests of the framework tools, the installer and the skills |
-| Installer | Installing the Hub into a workspace, the adapter files each host loads, keeping them in sync with the Hub, updating the Hub with a three-way merge of local improvements |
+| Installer | Installing the Hub into a workspace, the adapter files each host loads, keeping them in sync with the Hub, the browser MCP server entry in each host's project-level MCP file (created only when absent, never overwritten once the user owns or edited it) and the command that starts that server with its pinned version and without its code-running tool, updating the Hub with a three-way merge of local improvements |
 | Record | History of self-evaluation and improvement for each layer run; appended only through the tool and kept on the local machine |
 
 Each rule lives in exactly one owner; other files point to it instead of copying it.

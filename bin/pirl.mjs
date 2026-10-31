@@ -2,7 +2,7 @@
 // Installs PIRL into a workspace as `.pirl/`, creates the adapter files each host loads, keeps them in sync with
 // `.pirl/` and updates the framework without losing local improvements. No dependencies beyond Node and Git.
 
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -17,6 +17,12 @@ const MANIFEST = "manifest.json";
 const UPDATE = ".tmp/update";
 const BEGIN = "<!-- pirl:begin -->";
 const END = "<!-- pirl:end -->";
+// The browser MCP server that layout verification drives. Hosts run it through the `mcp` command below, so this pin
+// is the only place that names its package and version, and a new pin never rewrites a host's file.
+// `--caps=network` enables the tool that answers requests with mocks; `--isolated` keeps profile state between captures out.
+const MCP_SERVER = "playwright";
+const MCP_PACKAGE = "@playwright/mcp@0.0.83";
+const MCP_ARGS = ["--headless", "--isolated", "--caps=network"];
 const SOURCE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // The copy inside a workspace carries a manifest; the package itself does not.
 const INSTALLED = fs.existsSync(path.join(SOURCE, MANIFEST));
@@ -26,11 +32,15 @@ const INSTALLED = fs.existsSync(path.join(SOURCE, MANIFEST));
 // `pointer` adapters hold `.pirl/AGENTS.md` alone while the file has no other content, and only point to it once the
 // file also holds the user's own content: the host stops reading its instruction files past a size cap that the full
 // text, or the user's content with `.pirl/AGENTS.md`, could exceed.
+// `mcp` is the project-level file where the host reads MCP servers, its `format` (JSON unless named), the key that holds
+// them and the `fields` the host needs on a local server besides the command; a host without a project-level file has no
+// `mcp` and is told to register the server by hand.
 const HOSTS = {
   claude: {
     label: "Claude Code",
     instructions: { kind: "file", path: ".claude/rules/pirl.md", frontmatter: "" },
     skills: ".claude/skills",
+    mcp: { path: ".mcp.json", key: "mcpServers" },
     detect: [".claude", "CLAUDE.md"],
   },
   copilot: {
@@ -44,18 +54,23 @@ const HOSTS = {
     // Codex stops reading AGENTS.md files once they reach `project_doc_max_bytes`, 32 KiB by default.
     instructions: { kind: "block", path: "AGENTS.md", pointer: true, cap: 32 * 1024 },
     skills: ".agents/skills",
+    // Codex reads `.codex/config.toml` only in a trusted project, and gives up on a server that has not started within
+    // `startup_timeout_sec`, 10 by default, which the first start can exceed while npx downloads the pinned server.
+    mcp: { path: ".codex/config.toml", format: "toml", key: "mcp_servers", fields: { startup_timeout_sec: 60 } },
     detect: [".codex"],
   },
   cursor: {
     label: "Cursor",
     instructions: { kind: "file", path: ".cursor/rules/pirl.mdc", frontmatter: "---\ndescription: PIRL framework rules\nalwaysApply: true\n---\n\n" },
     skills: ".cursor/skills",
+    mcp: { path: ".cursor/mcp.json", key: "mcpServers", fields: { type: "stdio" } },
     detect: [".cursor"],
   },
   gemini: {
     label: "Gemini CLI",
     instructions: { kind: "block", path: "GEMINI.md" },
     skills: ".gemini/skills",
+    mcp: { path: ".gemini/settings.json", key: "mcpServers" },
     detect: [".gemini", "GEMINI.md"],
   },
 };
@@ -107,19 +122,24 @@ Commands:
   remove      Remove the adapters of the hosts named with --host (${DIR}/ itself is kept).
   sync        Regenerate the adapters from ${DIR}/ after its files changed.
   check       Exit with an error when an adapter is missing or out of date.
-  status      Show the installed version, hosts and local changes.
+  status      Show the installed version, hosts, the browser MCP setting and local changes.
+  mcp         Run the browser MCP server that layout verification drives (hosts start this command; it
+              prints nothing but the protocol and hides the server's code-running tool).
 
 Options:
   --host <list>      Hosts, comma-separated: ${Object.keys(HOSTS).join(", ")}
   --yes              Confirm every question.
   --dir <folder>     Workspace folder (default: the current folder).
   --force            Overwrite adapters that were edited by hand.
+  --mcp, --no-mcp    Register or stop registering the browser MCP server in the project-level MCP file of
+                     each host that has one. A new install registers it unless --no-mcp is given; an
+                     existing install keeps its setting until one of the two is given.
   --base-dir <dir>   update: the files of the installed version, instead of downloading them.
   --continue         update: apply an update whose conflicts were resolved.
 `;
 
 function parseArgs(argv) {
-  const opts = { command: null, host: null, yes: false, force: false, continue: false, dir: null, baseDir: null };
+  const opts = { command: null, host: null, yes: false, force: false, continue: false, dir: null, baseDir: null, mcp: null };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const value = () => {
@@ -132,6 +152,8 @@ function parseArgs(argv) {
     else if (arg === "--yes" || arg === "-y") opts.yes = true;
     else if (arg === "--force") opts.force = true;
     else if (arg === "--continue") opts.continue = true;
+    else if (arg === "--mcp") opts.mcp = true;
+    else if (arg === "--no-mcp") opts.mcp = false;
     else if (arg === "--help" || arg === "-h") opts.command = "help";
     else if (arg === "--version" || arg === "-v") opts.command = "version";
     else if (!arg.startsWith("-") && !opts.command) opts.command = arg;
@@ -207,14 +229,17 @@ function readManifest(pirl) {
   if (text === null) return null;
   const manifest = JSON.parse(text);
   if (manifest.package !== PACKAGE) fail(`${path.join(pirl, MANIFEST)} does not belong to ${PACKAGE}`);
-  return { hosts: [], adapters: {}, blocks: {}, ...manifest };
+  return { hosts: [], adapters: {}, blocks: {}, mcp: false, mcpFiles: {}, ...manifest };
 }
 
 // A fixed key order and an unchanged file left untouched keep the committed manifest free of noise diffs.
+// `mcp` and `mcpFiles` are written only when set, so a manifest that never used them keeps its shape.
 function writeManifest(pirl, manifest) {
   const sorted = (o) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => (a < b ? -1 : 1)));
-  const { package: name, version, files, hosts, adapters, blocks } = manifest;
+  const { package: name, version, files, hosts, adapters, blocks, mcp, mcpFiles } = manifest;
   const out = { package: name, version, files: sorted(files), hosts: [...hosts].sort(), adapters: sorted(adapters), blocks: sorted(blocks) };
+  if (mcp) out.mcp = true;
+  if (mcpFiles && Object.keys(mcpFiles).length) out.mcpFiles = sorted(mcpFiles);
   const text = JSON.stringify(out, null, 2) + "\n";
   const file = path.join(pirl, MANIFEST);
   if (readText(file) === null || lf(readText(file)) !== text) write(file, text);
@@ -446,17 +471,112 @@ function planAdapters(ws, manifest, desired, force) {
   return { writes, removes, conflicts, adapters, blocks };
 }
 
+// The entry a host's MCP file holds: the host starts the `mcp` command of this Hub from the workspace root.
+function mcpEntry(host) {
+  return { command: "node", args: [`${DIR}/bin/pirl.mjs`, "mcp"], ...host.mcp.fields };
+}
+
+// A TOML file holds the entry as one table; its values are strings, numbers and arrays of strings, which JSON writes in
+// the form TOML reads.
+function mcpText(host) {
+  if (host.mcp.format !== "toml") return JSON.stringify({ [host.mcp.key]: { [MCP_SERVER]: mcpEntry(host) } }, null, 2) + "\n";
+  const value = (v) => (Array.isArray(v) ? `[${v.map((item) => JSON.stringify(item)).join(", ")}]` : JSON.stringify(v));
+  const lines = Object.entries(mcpEntry(host)).map(([key, v]) => `${key} = ${value(v)}`);
+  return [`[${host.mcp.key}.${MCP_SERVER}]`, ...lines].join("\n") + "\n";
+}
+
+// In a TOML file the server counts as registered when a table header or a dotted key at the root names it under the
+// host's key, or a key inside the host's own table names it; adding the table to such a file would define it twice.
+function hasTomlServer(text, host) {
+  const name = String.raw`(?:${MCP_SERVER}|"${MCP_SERVER}"|'${MCP_SERVER}')`;
+  const under = String.raw`${host.mcp.key}\s*\.\s*${name}`;
+  const header = /^\s*\[\[?\s*([^\]]*?)\s*\]\]?/;
+  const named = new RegExp(String.raw`^${under}\s*(?:$|\.)`);
+  const rootKey = new RegExp(String.raw`^\s*${under}\s*[.=]`);
+  const ownKey = new RegExp(String.raw`^\s*${name}\s*[.=]`);
+  let table = "";
+  for (const line of lf(text).split("\n")) {
+    const match = line.match(header);
+    if (match) {
+      table = match[1];
+      if (named.test(table)) return true;
+    } else if (table === "" ? rootKey.test(line) : table === host.mcp.key && ownKey.test(line)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function hasMcpServer(text, host) {
+  if (host.mcp.format === "toml") return hasTomlServer(text, host);
+  try {
+    return Boolean(JSON.parse(lf(text))?.[host.mcp.key]?.[MCP_SERVER]);
+  } catch {
+    return false;
+  }
+}
+
+// Plans the browser MCP registration. A host's MCP file is a settings file that the user shares with other servers, so
+// it is created only when absent, followed while PIRL's copy is unedited, and left alone once edited or when the user
+// owns it: none of these is a conflict that stops the adapters; each is a note with the entry to add by hand.
+function planMcp(ws, manifest, hosts) {
+  const writes = [];
+  const removes = [];
+  const notes = [];
+  const files = {};
+  const chosen = manifest.mcp ? hosts : [];
+  const wanted = Object.fromEntries(chosen.filter((id) => HOSTS[id].mcp).map((id) => [HOSTS[id].mcp.path, id]));
+  for (const [rel, id] of Object.entries(wanted)) {
+    const host = HOSTS[id];
+    const file = path.join(ws, rel);
+    const content = mcpText(host);
+    const current = read(file);
+    const recorded = manifest.mcpFiles[rel];
+    const hint =
+      host.mcp.format === "toml"
+        ? `add this table to ${rel}:\n${content.trimEnd()}`
+        : `add "${MCP_SERVER}" under "${host.mcp.key}" in ${rel}: ${JSON.stringify(mcpEntry(host))}`;
+    if (current === null) {
+      writes.push({ file, data: content });
+      files[rel] = sha(content);
+    } else if (recorded !== undefined && sha(current) === recorded) {
+      if (sha(current) !== sha(content)) writes.push({ file, data: content });
+      files[rel] = sha(content);
+    } else if (recorded !== undefined) {
+      notes.push(`${rel}: edited by hand, so ${PACKAGE} no longer manages it; ${hasMcpServer(current, host) ? `it keeps its "${MCP_SERVER}" entry` : hint}`);
+    } else if (!hasMcpServer(current, host)) {
+      notes.push(`${rel}: exists and was not created by ${PACKAGE}; ${hint}`);
+    }
+  }
+  for (const id of chosen.filter((h) => !HOSTS[h].mcp)) {
+    notes.push(`${HOSTS[id].label} has no project-level MCP file; register the server by hand with the command \`node ${DIR}/bin/pirl.mjs mcp\``);
+  }
+  for (const [rel, recorded] of Object.entries(manifest.mcpFiles)) {
+    if (rel in wanted) continue;
+    const file = path.join(ws, rel);
+    const current = read(file);
+    if (current === null) continue;
+    if (sha(current) === recorded) removes.push(file);
+    else notes.push(`${rel}: edited by hand, so it is left in place`);
+  }
+  return { writes, removes, notes, files };
+}
+
 function applyAdapters(ws, pirl, manifest, hosts, opts) {
+  if (opts.mcp !== null && opts.mcp !== undefined) manifest.mcp = opts.mcp;
   const plan = planAdapters(ws, manifest, desiredAdapters(pirl, hosts), opts.force);
   const conflicts = plan.conflicts.map((c) => (c.forceable ? `${c.text}; pass --force to overwrite or remove it` : c.text));
   if (conflicts.length) fail(`nothing was changed; resolve these first:\n  ${conflicts.join("\n  ")}`);
-  for (const { file, data } of plan.writes) write(file, data);
-  for (const file of plan.removes) removeFile(file, ws);
+  const mcp = planMcp(ws, manifest, hosts);
+  for (const { file, data } of [...plan.writes, ...mcp.writes]) write(file, data);
+  for (const file of [...plan.removes, ...mcp.removes]) removeFile(file, ws);
+  for (const note of mcp.notes) console.warn(`note: ${note}`);
   manifest.hosts = hosts;
   manifest.adapters = plan.adapters;
   manifest.blocks = plan.blocks;
+  manifest.mcpFiles = mcp.files;
   writeManifest(pirl, manifest);
-  return plan;
+  return { ...plan, writes: [...plan.writes, ...mcp.writes], removes: [...plan.removes, ...mcp.removes] };
 }
 
 function warnPersonalSkills(pirl) {
@@ -495,7 +615,7 @@ async function init(opts) {
     const files = frameworkFiles(SOURCE);
     if (!files.includes(".gitignore")) fail("the package has no .gitignore; it is needed to keep Plans and records out of Git");
     for (const file of files) write(path.join(pirl, file), fs.readFileSync(sourcePath(SOURCE, file)));
-    manifest = { package: PACKAGE, version: packageVersion(), files: {}, hosts: [], adapters: {}, blocks: {} };
+    manifest = { package: PACKAGE, version: packageVersion(), files: {}, hosts: [], adapters: {}, blocks: {}, mcp: opts.mcp !== false, mcpFiles: {} };
     for (const file of files) manifest.files[file] = sha(fs.readFileSync(sourcePath(SOURCE, file)));
     writeManifest(pirl, manifest);
     installedNow = true;
@@ -565,6 +685,7 @@ function status(opts) {
   const changed = localChanges(pirl, manifest);
   console.log(`PIRL ${manifest.version} in ${pirl}`);
   console.log(`Hosts: ${manifest.hosts.join(", ") || "none"}`);
+  console.log(`Browser MCP server registered in project files: ${manifest.mcp ? "yes (--no-mcp stops it)" : "no (--mcp registers it)"}`);
   console.log(`Framework files changed since install or update: ${changed.length ? changed.join(", ") : "none"}`);
   if (fs.existsSync(path.join(pirl, UPDATE, "state.json"))) console.log(`An update is waiting: resolve the conflicts, then run update --continue.`);
   return manifest;
@@ -714,6 +835,92 @@ async function update(opts) {
   }
 }
 
+// ---------- browser MCP server ----------
+
+// Tools of the server that the Hub never exposes. This one runs arbitrary code in the server process, so a capture
+// script could be written inside a tool call, and the server has no option to turn it off: the `mcp` command sits
+// between the host and the server, removes these tools from the tool list and refuses calls to them.
+const MCP_BLOCKED = ["browser_run_code_unsafe"];
+
+// Runs the pinned browser MCP server for the host that started this process (`node .pirl/bin/pirl.mjs mcp`).
+// stdout carries the protocol, one JSON document per line, so nothing else is printed there. On Windows `npx` is a
+// .cmd file that a host cannot start directly, so the command interpreter starts it.
+function mcp() {
+  const npx = ["npx", "-y", MCP_PACKAGE, ...MCP_ARGS];
+  const [command, args] = process.platform === "win32" ? ["cmd.exe", ["/d", "/s", "/c", ...npx]] : [npx[0], npx.slice(1)];
+  const child = spawn(command, args, { stdio: ["pipe", "pipe", "inherit"] });
+  const listing = new Set(); // ids of the tool-list requests whose replies are filtered
+  const parse = (line) => {
+    try {
+      return JSON.parse(line);
+    } catch {
+      return undefined;
+    }
+  };
+  const lines = (stream, handle) => {
+    let buffer = "";
+    stream.setEncoding("utf8");
+    stream.on("data", (chunk) => {
+      buffer += chunk;
+      let end;
+      while ((end = buffer.indexOf("\n")) !== -1) {
+        const line = buffer.slice(0, end);
+        buffer = buffer.slice(end + 1);
+        if (line.trim()) handle(line);
+      }
+    });
+    stream.on("end", () => {
+      if (buffer.trim()) handle(buffer);
+    });
+  };
+  const blocked = (message) => message?.method === "tools/call" && MCP_BLOCKED.includes(message.params?.name);
+  const refuse = (message) => {
+    if (message.id === undefined) return;
+    const error = { code: -32601, message: `${message.params.name} is not available through ${PACKAGE}` };
+    process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: message.id, error }) + "\n");
+  };
+  const track = (message) => {
+    if (message?.method === "tools/list" && message.id !== undefined) listing.add(message.id);
+  };
+  const strip = (message) => {
+    if (message && listing.has(message.id) && Array.isArray(message.result?.tools)) {
+      listing.delete(message.id);
+      message.result.tools = message.result.tools.filter((tool) => !MCP_BLOCKED.includes(tool.name));
+    }
+    return message;
+  };
+
+  lines(process.stdin, (line) => {
+    const parsed = parse(line);
+    if (Array.isArray(parsed)) {
+      const kept = parsed.filter((message) => !blocked(message) || (refuse(message), false));
+      kept.forEach(track);
+      if (kept.length) child.stdin.write(JSON.stringify(kept) + "\n");
+    } else if (blocked(parsed)) {
+      refuse(parsed);
+    } else {
+      track(parsed);
+      child.stdin.write(line + "\n");
+    }
+  });
+  process.stdin.on("end", () => child.stdin.end());
+  lines(child.stdout, (line) => {
+    const parsed = listing.size ? parse(line) : undefined;
+    process.stdout.write((parsed === undefined ? line : JSON.stringify(Array.isArray(parsed) ? parsed.map(strip) : strip(parsed))) + "\n");
+  });
+  child.stdin.on("error", () => {});
+  child.on("error", (error) => {
+    console.error(`${PACKAGE}: cannot start npx (Node and npm are required): ${error.message}`);
+    process.exitCode = 1;
+    process.stdin.destroy();
+  });
+  child.on("close", (code) => {
+    process.exitCode = code ?? 1;
+    process.stdin.destroy();
+  });
+  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => child.kill(signal));
+}
+
 async function menu(opts) {
   const manifest = status(opts);
   if (!interactive()) return;
@@ -736,6 +943,7 @@ async function main() {
     sync,
     check,
     status,
+    mcp,
     menu,
   };
   if (!commands[command]) fail(`unknown command: ${command}\n\n${USAGE}`);

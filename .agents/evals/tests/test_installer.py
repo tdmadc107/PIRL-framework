@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -17,6 +19,13 @@ HOST_FILES = {
     "codex": ("AGENTS.md", ".agents/skills"),
     "cursor": (".cursor/rules/pirl.mdc", ".cursor/skills"),
     "gemini": ("GEMINI.md", ".gemini/skills"),
+}
+# The project-level file where each host reads MCP servers, and the key that holds them.
+MCP_FILES = {
+    "claude": (".mcp.json", "mcpServers"),
+    "gemini": (".gemini/settings.json", "mcpServers"),
+    "cursor": (".cursor/mcp.json", "mcpServers"),
+    "codex": (".codex/config.toml", "mcp_servers"),
 }
 
 
@@ -170,6 +179,114 @@ class InstallerTests(unittest.TestCase):
         self.assertTrue((self.ws / ".claude/rules/pirl.md").is_file())
         self.assertEqual(self.manifest()["hosts"], ["claude"])
         self.assertTrue((self.ws / ".pirl/AGENTS.md").is_file())
+
+    def server(self, rel, key="mcpServers"):
+        text = (self.ws / rel).read_text(encoding="utf-8")
+        return (tomllib.loads(text) if rel.endswith(".toml") else json.loads(text))[key]
+
+    def test_new_install_registers_the_browser_mcp_server_where_each_host_reads_it(self):
+        code, out = self.run_cli("init", "--host", ",".join(HOST_FILES))
+        self.assertEqual(code, 0, out)
+        for host, (rel, key) in MCP_FILES.items():
+            with self.subTest(host=host):
+                entry = self.server(rel, key)["playwright"]
+                self.assertEqual((entry["command"], entry["args"]), ("node", [".pirl/bin/pirl.mjs", "mcp"]))
+                self.assertEqual(entry.get("type"), "stdio" if host == "cursor" else None)
+                self.assertEqual(entry.get("startup_timeout_sec"), 60 if host == "codex" else None)
+        # A host with no project-level MCP file is told how to register the server by hand.
+        self.assertIn("GitHub Copilot has no project-level MCP file", out)
+        self.assertNotIn("Codex CLI has no project-level MCP file", out)
+        self.assertTrue(self.manifest()["mcp"])
+        self.assertEqual(sorted(self.manifest()["mcpFiles"]), sorted(rel for rel, _ in MCP_FILES.values()))
+        self.assertEqual(self.run_cli("check")[0], 0)
+
+    def test_the_setting_follows_the_flags_and_an_existing_install_keeps_its_own(self):
+        self.assertEqual(self.run_cli("init", "--host", "claude", "--no-mcp")[0], 0)
+        self.assertFalse((self.ws / ".mcp.json").exists())
+        self.assertNotIn("mcp", self.manifest())
+        # A plain sync keeps the setting; --mcp registers the server, --no-mcp removes what was created.
+        self.assertEqual(self.run_cli("sync")[0], 0)
+        self.assertFalse((self.ws / ".mcp.json").exists())
+        self.assertEqual(self.run_cli("sync", "--mcp")[0], 0)
+        self.assertIn("playwright", self.server(".mcp.json"))
+        self.assertEqual(self.run_cli("sync")[0], 0)
+        self.assertTrue((self.ws / ".mcp.json").is_file())
+        self.assertEqual(self.run_cli("sync", "--no-mcp")[0], 0)
+        self.assertFalse((self.ws / ".mcp.json").exists())
+        self.assertNotIn("mcpFiles", self.manifest())
+
+    def test_an_mcp_file_the_user_owns_or_edited_is_never_overwritten_and_never_stops_the_adapters(self):
+        own = self.ws / ".mcp.json"
+        own.write_text(json.dumps({"mcpServers": {"other": {"command": "x"}}}), encoding="utf-8")
+        code, out = self.run_cli("init", "--host", "claude,gemini")
+        self.assertEqual(code, 0, out)
+        self.assertIn(".mcp.json: exists and was not created by", out)
+        self.assertEqual(list(self.server(".mcp.json")), ["other"])
+        self.assertNotIn(".mcp.json", self.manifest()["mcpFiles"])
+        # A file PIRL created and the user then edited is released, with a note, and survives host removal.
+        created = self.ws / ".gemini/settings.json"
+        data = json.loads(created.read_text(encoding="utf-8"))
+        data["mcpServers"]["mine"] = {"command": "y"}
+        created.write_text(json.dumps(data), encoding="utf-8")
+        code, out = self.run_cli("sync")
+        self.assertEqual(code, 0, out)
+        self.assertIn(".gemini/settings.json: edited by hand", out)
+        self.assertEqual(sorted(self.server(".gemini/settings.json")), ["mine", "playwright"])
+        self.assertEqual(self.manifest().get("mcpFiles", {}), {})
+        self.assertEqual(self.run_cli("remove", "--host", "gemini")[0], 0)
+        self.assertTrue(created.is_file())
+
+    def test_a_server_the_user_already_registered_needs_no_note(self):
+        (self.ws / ".mcp.json").write_text(json.dumps({"mcpServers": {"playwright": {"command": "mine"}}}), encoding="utf-8")
+        code, out = self.run_cli("init", "--host", "claude")
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("note:", out)
+        self.assertEqual(self.server(".mcp.json")["playwright"]["command"], "mine")
+
+    def test_a_toml_mcp_file_the_user_owns_gets_the_table_to_add_unless_it_names_the_server(self):
+        own = self.ws / ".codex/config.toml"
+        own.parent.mkdir()
+        own.write_text('model = "x"\n', encoding="utf-8")
+        code, out = self.run_cli("init", "--host", "codex")
+        self.assertEqual(code, 0, out)
+        self.assertIn(".codex/config.toml: exists and was not created by", out)
+        self.assertIn("[mcp_servers.playwright]", out)
+        self.assertEqual(own.read_text(encoding="utf-8"), 'model = "x"\n')
+        self.assertNotIn(".codex/config.toml", self.manifest().get("mcpFiles", {}))
+        named = (
+            '[mcp_servers."playwright"]\ncommand = "mine"\n',
+            'mcp_servers.playwright.command = "mine"\n',
+            '[mcp_servers]\nplaywright.command = "mine"\n',
+            '[mcp_servers]\nplaywright = { command = "mine" }\n',
+        )
+        for text in named:
+            with self.subTest(text=text):
+                own.write_text(text, encoding="utf-8")
+                code, out = self.run_cli("sync")
+                self.assertEqual(code, 0, out)
+                self.assertNotIn("note:", out)
+        # The same key under another table names a different setting.
+        for text in ('[mcp_servers.other]\nplaywright = 1\n', '[profiles]\nplaywright.command = "mine"\n'):
+            with self.subTest(text=text):
+                own.write_text(text, encoding="utf-8")
+                code, out = self.run_cli("sync")
+                self.assertEqual(code, 0, out)
+                self.assertIn("[mcp_servers.playwright]", out)
+
+    def test_removing_a_host_deletes_the_mcp_file_only_while_it_is_unedited(self):
+        self.assertEqual(self.run_cli("init", "--host", "claude,gemini")[0], 0)
+        self.assertEqual(self.run_cli("remove", "--host", "gemini")[0], 0)
+        self.assertFalse((self.ws / ".gemini").exists())
+        self.assertTrue((self.ws / ".mcp.json").is_file())
+        self.assertEqual(sorted(self.manifest()["mcpFiles"]), [".mcp.json"])
+
+    def test_the_mcp_command_keeps_the_protocol_stream_clean_when_it_cannot_start_the_server(self):
+        empty = self.temp / "empty-path"
+        empty.mkdir()
+        result = subprocess.run(["node", str(self.package / "bin/pirl.mjs"), "mcp"], cwd=self.ws, stdin=subprocess.DEVNULL,
+                                capture_output=True, text=True, encoding="utf-8", env={"PATH": str(empty), "SystemRoot": os.environ.get("SystemRoot", "")})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
 
     def new_version(self, edit):
         package = make_package(self.temp / "package-b", version="9.9.9")

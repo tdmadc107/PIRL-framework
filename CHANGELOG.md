@@ -3,6 +3,24 @@
 Every notable change to PIRL is recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-10-31
+
+### Added
+
+- A new install registers a version-pinned browser MCP server in the project-level MCP file of Claude Code (`.mcp.json`), Codex CLI (`.codex/config.toml`), Cursor (`.cursor/mcp.json`) and Gemini CLI (`.gemini/settings.json`), so layout verification has the browser tools it needs.
+  The Codex CLI entry allows the server 60 seconds to start (`startup_timeout_sec`), because Codex gives up after 10 seconds by default and the first start downloads the server.
+  `--no-mcp` skips it, and `sync --mcp` or `sync --no-mcp` changes the setting of an existing install.
+  A file the user owns or edited is never overwritten; the installer prints the entry to add by hand.
+- `node .pirl/bin/pirl.mjs mcp` starts that server, so a host's file names only this command and a new pin never rewrites it.
+  The command removes the server's code-running tool (`browser_run_code_unsafe`) from the tool list and refuses calls to it, since the server cannot turn that tool off.
+
+### Changed
+
+- Layout verification captures a closed set: at most two mock patterns (`normal`, and `abnormal` only for conditions a REQ, QG or the specification names), the responsive sizes the target repository's context documentation defines or else desktop 1920×1080, tablet 768×1024 and mobile 390×844, and every UI language; no sizes around breakpoints and no combinations of the agent's own choosing.
+- Layout captures go through the browser tools the host exposes by an MCP server; capture scripts and runners are not allowed, and code passed to a code-running tool may not loop over captures.
+- A repeat capture after a repair covers only what the repair can change, and a failed check is pre-existing only when the same element fails for the same cause without the diff.
+- Plans compare every width-dependent UI clause with the room the REQs leave, and Implement re-derives such clauses before capturing.
+
 ## [0.1.2] - 2026-10-30
 
 ### Fixed
@@ -39,6 +57,7 @@ First release on npm.
 - Line endings are compared as LF, so a CRLF checkout on Windows is not reported as a change.
 - The README is a short landing page; the details live in `AGENTS.md`, the router and the skills.
 
-[0.1.1]: https://github.com/tdmadc107/PIRL-framework/releases/tag/v0.1.2
+[0.2.0]: https://github.com/tdmadc107/PIRL-framework/releases/tag/v0.2.0
+[0.1.2]: https://github.com/tdmadc107/PIRL-framework/releases/tag/v0.1.2
 [0.1.1]: https://github.com/tdmadc107/PIRL-framework/releases/tag/v0.1.1
 [0.1.0]: https://github.com/tdmadc107/PIRL-framework/releases/tag/v0.1.0
