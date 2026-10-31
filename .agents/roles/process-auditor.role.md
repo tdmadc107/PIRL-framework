@@ -1,7 +1,7 @@
 ---
 id: .agents/roles/process-auditor
 kind: role
-version: 1.3.3
+version: 1.3.4
 status: active
 ---
 
@@ -34,6 +34,7 @@ When it runs and how the result is reported belong to the [router's Self-evaluat
 - Blaming the instructions when the rule was clear and the role did not follow it.
 - Piling on a reminder instead of fixing the sentence that caused the issue.
 - Overfitting a fix to one case and breaking a similar scenario.
+- Editing the framework for a mistake below the [improvement threshold](../instructions/self-evaluation.instructions.md#improvement-threshold), or copying one fix into several files instead of the one that owns the cause.
 - Writing a rule tied to one run's repository, host, value, date or quote, so it cannot be reused in another project.
 - Giving an old issue a new `issue_key`.
 - Copying into its own report what a role or record says about a mismatch or a gap (for example documentation differing from the source) without checking it against the source itself, or without stating that it is unchecked.

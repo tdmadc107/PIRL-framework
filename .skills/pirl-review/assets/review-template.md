@@ -5,13 +5,13 @@ plan_file: "{{plan_file}}"
 task_id: {{task_id}}
 review_round: {{review_round}}
 prior_review: {{prior_review}}
-review_roles: [code-analyst, code-reviewer, business-analyst, solution-architect]
+review_roles: [code-reviewer]
 repair_roles: []
 business_verdict: PASS
 verdict: PASS
 status: completed
 reviewed_at: "{{reviewed_at}}"
-implementation_target: "<diff/commit/paths reviewed>"
+implementation_target: "<diff/commit/paths reviewed; volume of the reviewed run>"
 ---
 
 # Review {{review_round_padded}}: {{task_id}} — {{title}}

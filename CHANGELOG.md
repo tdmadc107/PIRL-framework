@@ -3,6 +3,19 @@
 Every notable change to PIRL is recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Review picks its team by the `volume` of the reviewed Implement run (`small` below 300 changed lines, `medium` from 300 to 1000, `large` above 1000): `code-reviewer` concludes every QG that is not a UI QG in every round, `ux-designer` joins when the diff changes the UI, and `code-analyst`, `solution-architect` and `business-analyst` join only for `code-reviewer`'s RISKs and BLOCKs, or, under `large`, each to check one aspect of its conclusions.
+  `review_roles` lists the roles that actually ran.
+- The Implementation Record records `volume` and holds one `### REQ-NN` block per REQ (implementation role, verification roles, result with `path:start-end` ranges, verification result per QG, what the user confirmed) in place of `role_work`, `checkpoint_evidence`, `quality_gate_evidence`, `role_challenge_results` and `review_handoff`.
+- Each question of a layer run (each QG, suspicion, check or item to analyze) has exactly one owning role; assignments copy the REQs, QGs and record excerpts of the part and the snapshot verbatim instead of passing the whole Plan, and each framework file and fixed input is read once per run.
+- Each repair at Implement, and each verification after it, runs in a new agent that receives only the cause of the repair and the excerpts that concern it.
+- For each UI QG, `layout_verification` indexes the files and line ranges that hold its measurements, with and without the diff.
+- Self-evaluation improves the framework only for issues that meet the new improvement threshold: the cause lies in the framework, it affects how the framework runs, and it can recur in another task or repository; a mistake specific to one project or one task's content changes no framework file.
+- A reviewer outside the role team (for example an advisor tool the host offers) is consulted only in an Implement run; Plan and Review runs consult none.
+
 ## [0.2.0] - 2026-10-31
 
 ### Added

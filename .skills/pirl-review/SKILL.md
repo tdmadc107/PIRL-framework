@@ -5,7 +5,7 @@ metadata:
   id: .skills/pirl-review
   kind: skill
   layer: review
-  version: 1.1.3
+  version: 1.2.0
 ---
 
 # Review
@@ -45,7 +45,8 @@ Run the commands from the Hub root.
    python -B .skills/pirl-review/scripts/new_review.py --plan <Plan file> --todo-slug <todo-slug> [--out-dir <dir>]
    ```
 
-4. **Team.** Pick `review_roles` by the "Select when" column ([AI Agent roles at the Review layer](../../.agents/instructions/review.instructions.md#ai-agent-roles-at-the-review-layer)); delegate each role to a separate agent per the [assignment principles](../../.agents/instructions/layered-task-execution.instructions.md#assignment-principles).
+4. **Team.** Read the reviewed run's `volume` and pick the roles by the "Select when" column ([AI Agent roles at the Review layer](../../.agents/instructions/review.instructions.md#ai-agent-roles-at-the-review-layer)): delegate `code-reviewer`, and `ux-designer` when the diff changes the UI, first; then delegate the roles the column calls in for `code-reviewer`'s RISKs and BLOCKs, or for checking its conclusions under `large`.
+   Each role runs in a separate agent per the [assignment principles](../../.agents/instructions/layered-task-execution.instructions.md#assignment-principles) and receives only its part.
 5. **Business** ([contract](../../.agents/instructions/review.instructions.md#business-prove-or-refute-each-suspicion)): conclude each QG, keep only grounded FINDs, RISKs and BLOCKs, and write the `Business` section.
 6. **Evaluations and self-evaluation.** `process-auditor`, in a separate agent, evaluates the roles of the reviewed Implement run ([Evaluations](../../.agents/instructions/review.instructions.md#evaluations-assessing-implement-roles)) and the Review run itself ([Self-evaluation and improvement](../../.agents/instructions/layered-task-execution.instructions.md#self-evaluation-and-improvement)), applies improvements and writes the `Evaluations` section.
    The reviewed record is found with:

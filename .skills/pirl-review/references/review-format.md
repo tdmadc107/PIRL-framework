@@ -22,13 +22,13 @@ What each conclusion must prove, and when a new round opens, belongs to the [Rev
 | `task_id` | The Plan's `task_id` |
 | `review_round` | `1`, `2`, … |
 | `prior_review` | `null` in round 1; afterwards the report of the round just before, as a path like `plan_file` |
-| `review_roles` | Roles registered for `review`, in the order of the contract's role table |
+| `review_roles` | The roles registered for `review` that actually ran, chosen by the reviewed run's `volume`, in the order of the contract's role table |
 | `repair_roles` | Roles registered for `implement`; `[]` while a `replan` remains or nothing needs repair |
 | `business_verdict` | `PASS`, `FAIL` or `BLOCKED` |
 | `verdict` | Equal to `business_verdict` |
 | `status` | `completed` or `blocked` |
 | `reviewed_at` | ISO-8601 timestamp with a UTC offset, quoted |
-| `implementation_target` | The diff, commit or paths reviewed, including a shared snapshot |
+| `implementation_target` | The diff, commit or paths reviewed, including a shared snapshot, and the `volume` of the reviewed run |
 
 ## Presentation rules
 

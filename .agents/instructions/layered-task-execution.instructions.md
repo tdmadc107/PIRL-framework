@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/**/*,.skills/**/*"
 metadata:
   id: ".agents/instructions/layered-task-execution"
   kind: "instruction"
-  version: "2.4.2"
+  version: "2.5.2"
   status: "active"
 ---
 
@@ -38,10 +38,19 @@ For all three layers, together with the delegation rules in AGENTS.md:
 - The coordinator (the Agent receiving the request from the user) is responsible for the final result: it assigns work and merges results by evidence, not by how many roles agree.
 - Roles that do not need each other's results run in parallel; a role that needs another role's result runs after that role (`process-auditor` runs after the layer's output is settled).
   The coordinator does not do the delegated work itself.
-- Roles that run in parallel get parts that do not overlap: no two roles examine the same question in the same sources.
-  The coordinator reads only what it needs to choose the team and assign the parts (the request, the target repository's context documentation); the sources a part needs are read by the role that examines it.
+- Each question of the run is assigned to exactly one role: each QG, each suspicion or check (for example a regression path, a contract between two components, the ownership of a change) and each item to analyze.
+  Before delegating, the coordinator lists these questions and gives each one owner by the role's expertise; the assignment names the questions that other roles own, and a role that meets one of them reports it to the coordinator instead of examining it.
+  Two roles never receive the same question, in parallel or in turn.
+  Checking another role's conclusions is a question of its own: when a layer contract assigns such a check, each aspect it names is one question with one owner, and the checking role examines only that aspect of those conclusions.
+  The coordinator reads only what it needs to choose the team and assign the parts (the request, the target repository's context documentation, the Plan's REQs, QGs and Implementation Record); the sources a part needs are read by the role that examines it.
   Each role reads only the sources that bear on its part: a part about which content a page shows does not need the page's styles, images or tests.
-- When delegating, pass the role file, the role's row in the layer file's table (plus every row that row refers to for its completion condition), sources, constraints, the settled direction and the part to examine; do not hide the solution and do not impose the conclusion.
+- When delegating, pass the role file, the role's row in the layer file's table (plus every row that row refers to for its completion condition), constraints, the settled direction and the part to examine; do not hide the solution and do not impose the conclusion.
+  Copy into the assignment, verbatim, the REQs and QGs of the part and the excerpt of the Implementation Record or report that concerns them, with the source paths; do not pass the whole Plan file, and the role reads the Plan file only for a section the assignment names as missing.
+  The coordinator identifies the snapshot once (the revision under review or the base revision, the command that shows the diff, and the changed paths) and copies it into every assignment; a role does not derive the snapshot again unless its part is the snapshot itself.
+- Reading, for the coordinator and every role: each framework file and each fixed input (role file, layer contract section, Plan section) is read once per run and not again while it is unchanged; a link inside a file is followed only when the current step needs the section it points to, and then only that section, never recursively.
+  A source is read in whole line ranges with one read per range the part needs; a search is used to locate a range, not to collect values one search at a time.
+  Reads and searches that do not depend on each other's result are issued together in one step, as parallel tool calls when the host offers them, not one per step.
+  Data files (measurements, logs, generated output) are read the same way: the ranges that hold the part's instances, read once.
 - Self-perform (`mode: self`) only when the host has no mechanism to create agents in the session or the call to create an agent fails.
   The coordinator then takes on each role in turn in the layer's order and records the concrete reason in the record's `summary` and in the layer's output.
   Lack of delegation does not block the work.
@@ -49,8 +58,8 @@ For all three layers, together with the delegation rules in AGENTS.md:
   To keep a role independent of drafts or existing conclusions of the same run (written by the coordinator or another role), leave them out of the assignment and state that the paths holding them must not be read, or place them outside the area the agent can read.
   Until that is ensured, record each role's actual level of independence in the output.
   Self-checking is recorded as self-checking; do not claim independent challenge or verification that did not happen.
-- A reviewer outside the run's role team (another host tool or agent, not in the role catalog) that a role consulted while working is part of that role's actual level of independence, even when independence from drafts was ensured.
-  The assignment asks the role to report every consultation; the coordinator records each role that consulted one in the run's output.
+- A reviewer outside the run's role team is consulted only where [AGENTS.md](../../AGENTS.md#ai-agent-roles) allows it, in an Implement run.
+  There, a consultation is part of the role's actual level of independence, even when independence from drafts was ensured: the assignment asks the role to report every consultation, and the coordinator records each role that consulted one in the run's output.
   That opinion is not a source of evidence and does not replace the role's reasoning on the sources the router allows.
 
 ## Runtime Neutrality
@@ -140,7 +149,7 @@ Review applies these rules to conclude QGs and attribute issues to Implement rol
 
 ## Self-evaluation and improvement
 
-Each Plan, Implement or Review run (including repair runs and every Review round) self-evaluates and improves the framework before handoff, whether the result is PASS, FAIL or blocked.
+Each Plan, Implement or Review run (including repair runs and every Review round) self-evaluates before handoff, whether the result is PASS, FAIL or blocked, and improves the framework only for the issues that meet the [improvement threshold](self-evaluation.instructions.md#improvement-threshold).
 Standalone tasks and framework maintenance do not apply this section.
 
 Asking the user for a decision or for content is not a handoff: the run pauses and continues with the answers, and it self-evaluates once, after its output is settled, never at a pause.
@@ -164,7 +173,7 @@ Output issues (product source, Plan, report) are also returned to the owning rol
 
 ### Reporting
 
-The run's final response has a "Self-improvement" section: the `record_id`, then for each applied improvement the issue, cause, file and section edited, old → new version, and a summary of the change; or a single sentence "no issues found".
+The run's final response has a "Self-improvement" section: the `record_id`, then for each applied improvement the issue, cause, file and section edited, old → new version, and a summary of the change; or a single sentence "no issue meets the improvement threshold".
 In `mode: self`, the `record_id` is the maintenance record that supersedes the self-evaluation record.
 An improvement pending the user for reason `safety` is described in the "Self-improvement" section, and the decision about it is one point of "Needs confirmation" per the [Self-evaluation when `mode: self`](self-evaluation.instructions.md#self-evaluation-when-mode-self) section.
 An improvement pending for reason `repository` is described in the "Self-improvement" section and offered as one point of "Proposals" ([CONTEXT.md](../../CONTEXT.md#5-closing-block-needs-confirmation-and-proposals)): the user assigns it as a standalone task in the target repository.

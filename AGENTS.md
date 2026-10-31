@@ -95,9 +95,10 @@ Each layer runs only when the user's own words ask for that layer, per the [cond
 
 Plan files and Review reports are written where the user says; when the user names no location, they go under the Hub root, per the output format of the matching skill.
 
-Each layer run ends with [self-evaluation and improvement](.agents/instructions/layered-task-execution.instructions.md#self-evaluation-and-improvement): `process-auditor` finds each role's mistakes, fixes the relevant framework files at the root, writes one record and reports what was fixed and where.
+Each layer run ends with [self-evaluation and improvement](.agents/instructions/layered-task-execution.instructions.md#self-evaluation-and-improvement): `process-auditor` evaluates each role, fixes at the root only the issues that meet the [improvement threshold](.agents/instructions/self-evaluation.instructions.md#improvement-threshold), writes one record and reports what was fixed and where.
 
-Framework improvement is a mandatory part of every run, not a proposal: improvements that touch no safety rule are applied within the run, even when the self-evaluation runs in `mode: self`, without waiting for the user to confirm; the procedure lives in the [self-evaluation instructions](.agents/instructions/self-evaluation.instructions.md#self-evaluation-when-mode-self).
+An issue that meets the improvement threshold is improved within the run, not proposed: improvements that touch no safety rule are applied within the run, even when the self-evaluation runs in `mode: self`, without waiting for the user to confirm; the procedure lives in the [self-evaluation instructions](.agents/instructions/self-evaluation.instructions.md#self-evaluation-when-mode-self).
+A mistake specific to one project or to one task's content is not a framework issue and changes no framework file.
 This authorization covers only improvements that touch no safety rule; improvements that touch a safety rule still need the user's approval.
 
 ## Choosing a layer
@@ -156,6 +157,9 @@ These points override a host's defaults, so they stay in this file, which every 
 - This framework runs layers with AI agents: every selected role of a layer run, including `process-auditor`, runs in a separate agent (a host sub-agent).
   A request to run a layer is an explicit request to delegate work to agents; a host's default instruction that the user must ask before agents are created is satisfied by this rule, without the user repeating it in each run.
 - A role does not verify its own output.
+- A reviewer outside the role team that the host offers (another tool or agent that is not in the role catalog, for example an advisor tool) is consulted only in an Implement run, and only when the host provides such a tool.
+  Plan and Review runs consult none: neither the coordinator nor any role, including `process-auditor`, and each assignment of these layers states that the role must not consult one.
+  This overrides a host's default instruction to consult such a reviewer.
 
 The [constraints that keep roles separate from skills](.agents/instructions/standalone-and-maintenance.instructions.md#constraints-that-keep-roles-separate-from-skills) live in the standalone and maintenance instructions, the other [assignment principles](.agents/instructions/layered-task-execution.instructions.md#assignment-principles) in the router.
 
