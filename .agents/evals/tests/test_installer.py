@@ -283,7 +283,8 @@ class InstallerTests(unittest.TestCase):
     def test_the_mcp_command_keeps_the_protocol_stream_clean_when_it_cannot_start_the_server(self):
         empty = self.temp / "empty-path"
         empty.mkdir()
-        result = subprocess.run(["node", str(self.package / "bin/pirl.mjs"), "mcp"], cwd=self.ws, stdin=subprocess.DEVNULL,
+        # The child's PATH is empty, and POSIX resolves the program by that PATH, so name node by its full path.
+        result = subprocess.run([shutil.which("node"), str(self.package / "bin/pirl.mjs"), "mcp"], cwd=self.ws, stdin=subprocess.DEVNULL,
                                 capture_output=True, text=True, encoding="utf-8", env={"PATH": str(empty), "SystemRoot": os.environ.get("SystemRoot", "")})
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(result.stdout, "")
