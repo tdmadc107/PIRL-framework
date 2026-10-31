@@ -5,7 +5,7 @@ metadata:
   id: .skills/pirl-implement
   kind: skill
   layer: implement
-  version: 1.1.3
+  version: 1.1.4
 ---
 
 # Implement
@@ -42,7 +42,7 @@ Run the commands from the Hub root.
    Delegate each role to a separate agent per the [assignment principles](../../.agents/instructions/layered-task-execution.instructions.md#assignment-principles), with its role file, its table row and the rows that row refers to.
 4. **Implement or repair** ([contract](../../.agents/instructions/implement.instructions.md#implementing-and-repairing-per-review)), with tests only under the [FUT rule](../../.agents/instructions/layered-task-execution.instructions.md#functional-tests-fut-rule) and the test command the target repository documents.
    A deviation the user confirms follows [Changes to the Plan confirmed by the user](../../.agents/instructions/implement.instructions.md#changes-to-the-plan-confirmed-by-the-user).
-5. **Capture the layout** when the diff changes the UI, before verification ([Layout verification with mocks](../../.agents/instructions/implement.instructions.md#layout-verification-with-mocks)).
+5. **Capture the layout** when the diff changes the UI, before verification ([Layout verification with mocks](../../.agents/instructions/implement.instructions.md#layout-verification-with-mocks)), through the host's browser tools and inside the closed capture set of the [layout verification instructions](../../.agents/instructions/layout-verification.instructions.md); write no capture script.
    Each capture run gets a new directory:
 
    ```powershell

@@ -8,6 +8,7 @@ Each layer is run through its skill in `.skills/`, and so are the other kinds of
 The product repositories the Agent works on are not part of the Hub, even when an installed Hub sits inside one of them; the user names the target repository of each request, as described in [Target repository](#target-repository).
 
 When PIRL is installed into a workspace, the installer ([`bin/pirl.mjs`](bin/pirl.mjs)) also writes adapter files next to `.pirl/`: for each host the user chose, the instruction file that host loads in every session and an entry for each skill in that host's skill folder.
+Unless the user opts out, it also registers the browser MCP server that layout verification needs in the project-level MCP file of each chosen host that has one, and never overwrites such a file that the user owns or edited.
 The instruction file holds this file and `CONTEXT.md`, except for a host that stops reading its instruction files past a size the full text would exceed.
 For such a host, the instruction file holds this file alone while it has no other content and this file fits under that size; once it also holds the workspace's own content, or this file no longer fits, it only points to this file.
 This file's rule to read `CONTEXT.md` applies in both cases.
@@ -165,7 +166,7 @@ The target repository of a request is a local Git repository that the user names
 
 - **Path.** A Plan records the target in `target_repo` as a path relative to the Hub root, or as an absolute path when the repository lives outside the Hub; `.` means the Hub itself, and `..` the workspace that holds an installed Hub.
   The path must be an existing directory when the Plan is handed off.
-- **Context documentation.** The documents inside the target repository that tell agents how it works: architecture, conventions, commands (including how to run tests by file, class or name), the UI languages, viewports and breakpoint thresholds to capture in layout snapshots, notes on capture tooling (where the browser automation tool is and how to install it, how to launch a browser without touching the user's open session, how to run a stable dev server, known environment obstacles) and where known gaps are recorded.
+- **Context documentation.** The documents inside the target repository that tell agents how it works: architecture, conventions, commands (including how to run tests by file, class or name), the UI languages and the responsive sizes (viewports or devices) to capture in layout snapshots, notes on capture tooling (a browser MCP server other than the one the installer registers and how to enable it, how to run a stable dev server, known environment obstacles) and where known gaps are recorded.
   They are usually the repository's agent instruction file (for example `AGENTS.md` or `CLAUDE.md`), its README, its contributing guide or a documentation folder.
 - **Rules of the repository.** Constraints that apply to one repository live in that repository's own documentation; the Hub has no per-repository rules.
 

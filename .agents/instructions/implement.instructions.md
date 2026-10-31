@@ -5,7 +5,7 @@ applyTo: ".agents/instructions/implement.instructions.md"
 metadata:
   id: ".agents/instructions/implement"
   kind: "instruction"
-  version: "2.4.0"
+  version: "2.4.2"
   status: "active"
 ---
 
@@ -77,7 +77,7 @@ The Implement coordinator gives each role its role file, its row in the table to
 - The Plan's path list is the scope of the main work, not the boundary of consistency.
   Once the behavior is stable, sweep the whole target repository and the related context documentation, not just the task's directory, for places that still describe the old behavior or lack the new behavior: contract documents, indexes and status tables, API/error/configuration/permission catalogs, UI strings, comments or code that only served the replaced flow.
   These are direct consequences of the change, so fix them in the same run even when they are outside the Plan's paths.
-  Tests of the functionality under development and of affected functionality that still assert the old behavior are updated to the new logic, and tests that only served a removed flow are deleted, all under the [FUT rule](layered-task-execution.instructions.md#functional-tests-fut-rule); do not touch tests of unrelated functionality and do not build new harnesses or verification scripts, inside or outside the repository (the only exception is layout mock and capture scripts in `.tmp/` per the [layout verification instructions](layout-verification.instructions.md)).
+  Tests of the functionality under development and of affected functionality that still assert the old behavior are updated to the new logic, and tests that only served a removed flow are deleted, all under the [FUT rule](layered-task-execution.instructions.md#functional-tests-fut-rule); do not touch tests of unrelated functionality and do not build new harnesses or verification scripts, inside or outside the repository (the only exception is layout mock data files in `.tmp/` per the [layout verification instructions](layout-verification.instructions.md), which also bar capture scripts).
   Points that need a product decision are not decided by you: they are recorded in the residual risk.
   Those points, and defects, issues or gaps found during the run that the task does not handle (for example a pre-existing defect the layout capture shows), are reported to the user with a proposal, and the user decides how they are handled: in the run's final reply each is presented per [Raising a problem](../../CONTEXT.md#42-raising-a-problem-issue-bug-risk), a product decision as one point of "Needs confirmation" and any other item as one point of "Proposals" ([CONTEXT.md](../../CONTEXT.md#5-closing-block-needs-confirmation-and-proposals)).
   They are not fixed outside the task's scope and are not recorded in the target repository (for example in its list of known gaps) unless the user decides so.
@@ -96,7 +96,7 @@ The Implement coordinator gives each role its role file, its row in the table to
   EVAL items record the evaluation of the previous run's roles and the framework improvements the Review applied; read them to know which rules changed, but do not turn them into new product FINDs or QGs.
 - Keep before/after evidence for the mechanism to fix by reasoning on the source: the old execution path that led to the defect and the change point that blocks it, with a counterexample that distinguishes the defect from valid behavior.
   Do not build, typecheck, lint or run the application; test results under FUT, when the Plan assigns them, are only stated next to the reasoning and are not an evidence line ([sources of evidence](layered-task-execution.instructions.md#verification-by-reasoning)).
-  A repair run that touches the UI captures the layout again per the [layout verification instructions](layout-verification.instructions.md), into a new run directory.
+  A repair run that touches the UI captures again, per the [layout verification instructions](layout-verification.instructions.md), only the captures the repair can change, into a new run directory.
 
 ### Clean code
 
@@ -136,6 +136,7 @@ When the Plan assigns tests, the implementation role runs only the tests of the 
 A red test is explained from the source before fixing the product or the test; do not edit a test to match wrong code, and do not add tests or widen the run to increase confidence.
 
 Each implementation role self-challenges its own work: check the REQs and the `Required logic` against the source, pick a counterexample or edge branch that could refute it, and fix in-scope gaps as soon as they are found.
+For a QG clause that depends on a width, the role recomputes it by arithmetic before the layout capture, from the values the REQs fix and with every text width it has to assume written out, and a clause that these values cannot satisfy goes back per step 1 of [Reading inputs and determining scope](#reading-inputs-and-determining-scope) instead of being captured to find out.
 Self-challenge does not replace the verification role's conclusion.
 
 After the implementation/repair team is done, each verification role handles its assigned QGs:

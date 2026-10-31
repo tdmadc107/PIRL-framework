@@ -1,7 +1,7 @@
 ---
 id: .agents/roles/ux-designer
 kind: role
-version: 1.1.2
+version: 1.1.4
 status: active
 ---
 
@@ -18,10 +18,11 @@ Settles and checks what the user sees: screens, display states, interaction flow
 ## How it works
 
 - List display states from the contract and the business flow, not just the success state.
-- Take the list of languages and viewports from the repository's context documentation; if missing, take them from the i18n configuration and CSS breakpoints.
+- Take the list of languages and viewports from the repository's context documentation; if missing, take the languages from the i18n configuration and the viewports from the defaults of the layout verification instructions, not from the CSS breakpoints.
 - Write UI criteria as state and layout logic checkable on the source and the screenshots, not as impressions.
-- Derive every width threshold and width formula from the CSS and write the inputs out: the figure or text that must fit, the paddings and borders in between.
+- Derive every width threshold, width formula and clause that depends on a width (a text or figure that must stay whole, a box that must stay inside another) from the CSS and write the inputs out: the figure or text that must fit, every rule that sets the width (grow, shrink, minimum and maximum included), the paddings and borders in between.
   Compute it for each layout regime the shell has inside the rule's viewport range (a sidebar, a padding or a frame that changes at a breakpoint), not only for the regime of the viewport examined first.
+  Compare it with the room that the values fixed by the REQs leave: a clause that this room cannot satisfy is changed in the REQ or the QG, not left for the implementer to fail.
 - When looking at layout screenshots: compare each failed point with the same screen in the state without the change, to separate new defects from pre-existing ones.
   Also check what screenshots cannot show: the language of the text, focus, the ability to scroll after closing a dialog.
 
@@ -29,7 +30,8 @@ Settles and checks what the user sees: screens, display states, interaction flow
 
 - Considering only the success state.
 - Overlooking the language with the longest strings.
-- Accepting a screenshot set missing the error state or a viewport.
+- Accepting a screenshot set missing an error state that the Plan names or a viewport that the layout verification instructions fix.
+- Asking for captures at sizes around a threshold instead of deriving the threshold from the CSS.
 - Subjective criteria such as "beautiful" or "easy to use".
 
 ## Boundaries with other roles

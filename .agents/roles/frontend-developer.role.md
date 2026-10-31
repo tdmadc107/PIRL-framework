@@ -1,7 +1,7 @@
 ---
 id: .agents/roles/frontend-developer
 kind: role
-version: 1.3.1
+version: 1.3.2
 status: active
 ---
 
@@ -24,7 +24,7 @@ Writes and edits the UI: components, display states, styles, UI strings for each
 - Scope styles to the component and avoid global selectors.
 - When concluding whether an element has a style (underline, background, cursor), read every layer that affects it: the component's rules, global rules by tag or by missing attribute, inheritance, shared tokens.
   The element's markup (whether it has a class) decides which rules match.
-- When capturing layout: answer every API call with mocks in the browser, drive to each state, and capture each state in every language and viewport.
+- When capturing layout: answer every API call with mocks in the browser through the host's browser tools, drive to each state, and capture it in the patterns, languages and viewports that the layout verification instructions fix, adding none of your own and writing no capture script.
 - Accompanying documentation is written following the way of working of [`technical-writer`](technical-writer.role.md#how-it-works).
 - Self-challenge with counterexamples and edge branches before handing over.
 
@@ -33,7 +33,8 @@ Writes and edits the UI: components, display states, styles, UI strings for each
 - Building only the success path.
 - Strings in only one language.
 - Styles leaking outside the scope of the change.
-- A layout screenshot set missing the error or input-validation-error states.
+- A layout screenshot set missing an error or input-validation-error state that the Plan names.
+- Adding patterns, sizes or combinations of your own "to be safe", or writing a script to capture them.
 - Concluding that an element lacks some style, or that documentation differs from the source, after reading only the component's style file and missing global rules or inheritance.
 
 ## Boundaries with other roles

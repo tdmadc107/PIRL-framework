@@ -67,6 +67,17 @@ Each layer runs only when you ask for it.
 
 In a file you own, PIRL writes only between `<!-- pirl:begin -->` and `<!-- pirl:end -->`, and it never writes to `CLAUDE.md`.
 
+### Browser MCP server
+
+Layout verification drives a browser through an MCP server, so a new install also registers one in the project-level MCP file of each host that has one: `.mcp.json` (Claude Code), `.codex/config.toml` (Codex CLI), `.cursor/mcp.json` (Cursor) and `.gemini/settings.json` (Gemini CLI).
+The entry runs `node .pirl/bin/pirl.mjs mcp`, which starts a version-pinned Playwright MCP server through `npx`; it needs Node, npm and a browser on the machine, and nothing in your project.
+The command sits between the host and the server and hides the server's code-running tool (`browser_run_code_unsafe`): it leaves the tool list and calls to it are refused.
+The host asks you to approve the server, or to trust the folder, before it runs; restart the host after the install.
+Codex CLI reads `.codex/config.toml` only in a project you marked as trusted, and its entry allows the server 60 seconds to start, since the first start downloads it.
+PIRL creates such a file only when it is absent and never overwrites one you own or edited: it prints the entry to add by hand instead.
+GitHub Copilot has no project-level file, so register the command `node .pirl/bin/pirl.mjs mcp` as an MCP server yourself.
+Skip it with `--no-mcp`; an installation made before this setting existed keeps it off until you run `node .pirl/bin/pirl.mjs sync --mcp`.
+
 ---
 
 ## 🔧 Commands
@@ -78,7 +89,7 @@ In a file you own, PIRL writes only between `<!-- pirl:begin -->` and `<!-- pirl
 | `npx pirl-framework remove --host <list>` | Removes those hosts' adapter files; delete `.pirl/` to uninstall |
 | `node .pirl/bin/pirl.mjs sync` | Regenerates the adapter files after `.pirl/` changed |
 
-Options: `--host <list>`, `--yes`, `--dir <folder>`, `--force` (overwrite adapters edited by hand), `--help`.
+Options: `--host <list>`, `--yes`, `--dir <folder>`, `--force` (overwrite adapters edited by hand), `--mcp` / `--no-mcp` (register or stop registering the browser MCP server), `--help`.
 
 ---
 
